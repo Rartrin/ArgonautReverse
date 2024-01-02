@@ -1,0 +1,23 @@
+{
+  "profiles": {
+    "PS1-Argonaut-Reverse.NET": {
+      "commandName": "Project"
+    },
+    "Extract DUMMY": {
+      "commandName": "Project",
+      "commandLineArgs": "-extract-files -game \"Croc 2 Demo PS1 (Dummy)\" -dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" -output_dir \"GameFiles/DUMMY/Wads\""
+    },
+    "Extract Croc 2": {
+      "commandName": "Project",
+      "commandLineArgs": "-extract-files -game \"Croc 2 Demo PS1\" -dirdat \"GameFiles/CROCII/Raw/CROCII.DIR\" -output_dir \"GameFiles/CROCII/Wads\""
+    },
+    "Export Jungle Level 1": {
+      "commandName": "Project",
+      "commandLineArgs": "-export-assets -game \"Croc 2 Demo PS1 (Dummy)\" -files \"GameFiles/DUMMY/Wads/00FFF800.WAD\" -levels \"GameFiles/DUMMY/00FFF800\""
+    },
+    "Export DUMMY": {
+      "commandName": "Project",
+      "commandLineArgs": "-export-assets -game \"Croc 2 Demo PS1 (Dummy)\" -dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" -levels \"GameFiles/DUMMY\" -strats \"GameFiles/DUMMY\""
+    }
+  }
+}

@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33815.320
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PS1-Argonaut-Reverse.NET", "PS1-Argonaut-Reverse.NET\PS1-Argonaut-Reverse.NET.csproj", "{4EB0DE40-F2BD-40FE-8E28-532107443FCB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4EB0DE40-F2BD-40FE-8E28-532107443FCB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4EB0DE40-F2BD-40FE-8E28-532107443FCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4EB0DE40-F2BD-40FE-8E28-532107443FCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4EB0DE40-F2BD-40FE-8E28-532107443FCB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {766B1C31-780B-4D40-AA57-B0C6198B0793}
+	EndGlobalSection
+EndGlobal
