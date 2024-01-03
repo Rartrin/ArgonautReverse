@@ -18,7 +18,6 @@ namespace ArgonautReverse.WadSections.TPSX
 			this.palette_start = palette_start;
 		}
 
-		//@classmethod
 		public static TextureData parse(Parser data_in, Configuration conf)
 		{
 			//Bottom Right
@@ -88,14 +87,12 @@ namespace ArgonautReverse.WadSections.TPSX
 			return new TextureData(flags, raw_coords, cm, palette_start);
 		}
 
-		//@staticmethod
 		/// <summary>Textures tend to be better delimited when rounded to the nearest multiple of 2</summary>
 		public static IReadOnlyList<XY> round_coords(IEnumerable<XY> coords)
 		{
 			return coords.Select(coord => new XY(2 * (int)MathF.Ceiling(coord.X / 2f), 2 * (int)MathF.Ceiling(coord.Y / 2f))).ToArray();
 		}
 
-		//@property
 		/// <summary>Unordered coordinates of this texture (256x1024, 512x1024 or 1024x1024 space)</summary>
 		public IReadOnlyList<XY> input_coords
 		{
@@ -109,7 +106,6 @@ namespace ArgonautReverse.WadSections.TPSX
 			}
 		}
 
-		//@property
 		/// <summary>Unordered coordinates of this texture (1024x1024 space)</summary>
 		public IReadOnlyList<XY> output_coords
 		{
@@ -127,7 +123,6 @@ namespace ArgonautReverse.WadSections.TPSX
 			}
 		}
 
-		//@property
 		/// <summary>Left, top, right, bottom coordinates of this texture (256x1024, 512x1024 or 1024x1024 space)</summary>
 		public Box input_box
 		{
@@ -144,7 +139,6 @@ namespace ArgonautReverse.WadSections.TPSX
 			}
 		}
 
-		//@property
 		/// <summary>x, y coordinates of this texture's top left corner (1024x1024 space)</summary>
 		public XY output_top_left_corner => this.output_coords[this.cm._0];
 	}

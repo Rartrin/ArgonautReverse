@@ -61,43 +61,33 @@ namespace ArgonautReverse.Files
 		}
 		// WAD sections
 
-		//@property
 		public TPSXSection tpsx => (TPSXSection)this.dict.GetValueOrDefault(TPSXSectionInfo.Instance.codename_raw);
 
 		//TODO: Sound
-		//@property
 		//public SPSXSection spsx => (SPSXSection)this.dict.GetValueOrDefault(SPSXSectionInfo.Instance.codename_raw);
 
-		//@property
 		public DPSXSection dpsx => (DPSXSection)this.dict.GetValueOrDefault(DPSXSectionInfo.Instance.codename_raw);
 
-		//@property
 		public PORTSection port => (PORTSection)this.dict.GetValueOrDefault(PORTSectionInfo.Instance.codename_raw);
 
-		//@property
 		//public ENDSection end => (ENDSection)this.dict.GetValueOrDefault(ENDSectionInfo.Instance.codename_raw);
 
 		// TPSX
 
-		//@property
-		public IReadOnlyList<string> titles => (IReadOnlyList<string>)this.tpsx?.titles ?? Array.Empty<string>();
+		public IReadOnlyList<string> titles => (IReadOnlyList<string>)this.tpsx?.Titles ?? Array.Empty<string>();
 
-		//@property
-		public IReadOnlyList<TextureData> textures => this.tpsx?.texture_file?.textures;
+		public IReadOnlyList<TextureData> textures => this.tpsx?.TextureFile?.Textures;
 
-		//@property
-		public int n_textures => this.tpsx?.texture_file?.textures?.Count ?? 0;
+		public int n_textures => this.tpsx?.TextureFile?.Textures?.Count ?? 0;
 
 		// SPSX
 
 		//TODO: Sound
-		//@property
 		public object common_sound_effects => throw new NotImplementedException();//this.spsx?.common_sfx;
 
 		//TODO: Sound
 		public object ambient_tracks => throw new NotImplementedException();//this.spsx?.ambient_tracks;
 
-		//@property
 		public object flattened_level_sfx
 		{
 			get
@@ -108,9 +98,7 @@ namespace ArgonautReverse.Files
 				//return this.spsx.level_sfx_groups.sounds;
 			}
 		}
-		
 
-		//@property
 		public object level_sfx
 		{
 			get
@@ -122,7 +110,6 @@ namespace ArgonautReverse.Files
 			}
 		}
 
-		//@property
 		public object dialogues_bgms
 		{
 			get
@@ -134,7 +121,6 @@ namespace ArgonautReverse.Files
 			}
 		}
 
-		//@property
 		public int n_sounds
 		{
 			get
@@ -149,29 +135,20 @@ namespace ArgonautReverse.Files
 			}
 		}
 		// DPSX
+		public IReadOnlyList<Object3DData> models_3d => this.dpsx?.models_3d;
 
-		//@property
-		public IReadOnlyList<Model3DData> models_3d => this.dpsx?.models_3d;
-
-		//@property
 		public int n_models => this.dpsx?.models_3d.Count ?? 0;
 
-		//@property
 		public IReadOnlyList<AnimationData> animations => this.dpsx?.animations;
 
-		//@property
 		public int n_animations => this.dpsx?.animations?.Count ?? 0;
 
-		//@property
-		public IReadOnlyList<ScriptData> scripts => this.dpsx?.scripts;
+		public IReadOnlyList<ActorData> scripts => this.dpsx?.scripts;
 
-		//@property
 		public int n_scripts => this.dpsx?.scripts?.Count ?? 0;
 
-		//@property
 		public ChunksMatrix chunks_matrix => this.dpsx?.level_file?.chunks_matrix;
 
-		//@property
 		public int n_filled_chunks => this.dpsx?.level_file?.chunks_matrix?.n_filled_chunks ?? 0;
 
 		/// <summary>Exports the material (MTL) and texture (PNG) files that are needed by the OBJ Wavefront file.</summary>
@@ -181,7 +158,7 @@ namespace ArgonautReverse.Files
 			{
 				mtl_file.WriteLine(Configuration.wavefront_header + $"newmtl mtl1\nmap_Kd {wad_filename}.PNG");
 			}
-			this.tpsx.texture_file.to_colorized_texture().Save(Path.Join(folder_path, (wad_filename + ".PNG")), System.Drawing.Imaging.ImageFormat.Png);
+			this.tpsx.TextureFile.to_colorized_texture().Save(Path.Join(folder_path, (wad_filename + ".PNG")), System.Drawing.Imaging.ImageFormat.Png);
 		}
 		/// <summary>
 		/// Tries to find one compatible animation for each model in the WAD, animates it to make it clean
@@ -235,20 +212,20 @@ namespace ArgonautReverse.Files
 				var obj_filename = $"{wad_filename}_{i}";
 				using(var obj_file = new StreamWriter(Path.Join(folder_path, (obj_filename + ".OBJ")), false, Encoding.ASCII))
 				{
-					if(model_3d.n_vertices_groups == 1)
+					if(model_3d.Data.n_vertices_groups == 1)
 					{
-						model_3d.to_single_obj(obj_file, obj_filename, this.textures, wad_filename);
+						model_3d.Data.ToSingleObj(obj_file, obj_filename, this.textures, wad_filename);
 					}
 					else
 					{
-						var animation_id = guess_compatible_animation(i, this.models_3d[i].n_vertices_groups);
+						var animation_id = guess_compatible_animation(i, this.models_3d[i].Data.n_vertices_groups);
 						if(animation_id == null)
 						{
-							model_3d.to_single_obj(obj_file, obj_filename, this.textures, wad_filename);
+							model_3d.Data.ToSingleObj(obj_file, obj_filename, this.textures, wad_filename);
 						}
 						else
 						{
-							model_3d.animate(this.animations[animation_id.Value]).to_single_obj(obj_file, obj_filename, this.textures, wad_filename);
+							model_3d.Animate(this.animations[animation_id.Value]).Data.ToSingleObj(obj_file, obj_filename, this.textures, wad_filename);
 						}
 					}
 				}
@@ -265,7 +242,7 @@ namespace ArgonautReverse.Files
 			using(var obj_file = new StreamWriter(Path.Join(folder_path, (filename + ".OBJ")), false, Encoding.ASCII))
 			{
 				var obj = new StringWriter();//StringIO
-				this.models_3d[model_id].to_single_obj(obj, filename, this.textures, filename);
+				this.models_3d[model_id].Data.ToSingleObj(obj, filename, this.textures, filename);
 				obj_file.Write(obj.ToString());
 			}
 		}
@@ -362,8 +339,8 @@ namespace ArgonautReverse.Files
 						var (x, z) = this.dpsx.level_file.chunks_matrix.x_z_coords(i);
 						foreach(var chunk in chunk_holder)
 						{
-							var cm = chunk.model_3d_data;
-							cm.to_batch_obj(
+							var cm = chunk.model_3d_data.Data;
+							cm.ToBatchObj(
 								obj,
 								$"{wad_filename}_{sub_chunk_id}",
 								x,
@@ -431,11 +408,11 @@ namespace ArgonautReverse.Files
 					{
 						if(codename_bytes != 0x454E4420/*ENDSection.codename_bytes*/)
 						{
-							this.dict[codename_bytes] = section.parse(data_in, conf);
+							this.dict[codename_bytes] = section.Parse(data_in, conf);
 						}
 						else
 						{
-							this.dict[codename_bytes] = section.parse(data_in, conf/*, spsx_section=this.dict[SPSXSection.codename_bytes]*/);
+							this.dict[codename_bytes] = section.Parse(data_in, conf/*, spsx_section=this.dict[SPSXSection.codename_bytes]*/);
 						}
 					}
 					else

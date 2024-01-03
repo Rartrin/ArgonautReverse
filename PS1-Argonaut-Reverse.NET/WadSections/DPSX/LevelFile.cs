@@ -11,7 +11,6 @@ namespace ArgonautReverse.WadSections.DPSX
 			this.chunks_matrix = chunks_matrix;
 		}
 
-		//@classmethod
 		public static LevelFile parse(Parser data_in, Configuration conf)
 		{
 			//base.parse(data_in, conf);
@@ -19,12 +18,12 @@ namespace ArgonautReverse.WadSections.DPSX
 			var _chunk_model_headers = new Model3DHeader[n_chunk_models];
 			for(int i=0; i<n_chunk_models; i++)
 			{
-				_chunk_model_headers[i] = Model3DHeader.parse(data_in, conf);
+				_chunk_model_headers[i] = Model3DHeader.Parse(data_in, conf);
 			}
 			var chunk_models = new LevelGeom3DData[n_chunk_models];
 			for(int i=0; i<n_chunk_models; i++)
 			{
-				chunk_models[i] = LevelGeom3DData.parse(data_in, conf, header:_chunk_model_headers[i]);
+				chunk_models[i] = LevelGeom3DData.Parse(data_in, conf, header:_chunk_model_headers[i]);
 			}
 			if(conf.game != G.CROC_2_DEMO_PS1_DUMMY)
 			{
@@ -200,7 +199,7 @@ namespace ArgonautReverse.WadSections.DPSX
 				{
 					for(int i=0; i<sub_chunks_n_lighting[model_id]; i++)
 					{
-						var size = 4 * chunk_models[chunks_models_mapping[model_id]].n_vertices;
+						var size = 4 * chunk_models[chunks_models_mapping[model_id]].Data.n_vertices;
 						data_in.Seek(size, SeekOrigin.Current);
 					}
 				}
@@ -208,7 +207,7 @@ namespace ArgonautReverse.WadSections.DPSX
 				{
 					for(int i=0; i<sub_chunks_n_add_lighting[model_id]; i++)
 					{
-						var size = 4 * chunk_models[add_models_mapping[model_id]].n_vertices;
+						var size = 4 * chunk_models[add_models_mapping[model_id]].Data.n_vertices;
 						data_in.Seek(size, SeekOrigin.Current);
 					}
 				}

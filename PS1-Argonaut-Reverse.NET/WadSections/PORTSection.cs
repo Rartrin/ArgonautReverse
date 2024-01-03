@@ -8,8 +8,7 @@ namespace ArgonautReverse.WadSections
 		public override G[] supported_games{get;} = new[]{G.HARRY_POTTER_1_PS1, G.HARRY_POTTER_2_PS1};
 		public override string section_content_description => "chunk zone ids";
 
-		//@classmethod
-		public override PORTSection parse(Parser data_in, Configuration conf)
+		public override PORTSection Parse(Parser data_in, Configuration conf)
 		{
 			var fallback_data = fallback_parse_data(data_in);
 			var (size, start) = base.parseInner(data_in, conf);
@@ -51,14 +50,11 @@ namespace ArgonautReverse.WadSections
 				this.idk1 = idk1;
 				this.chunks_zones = chunks_zones;
 		}
-	
-		//@property
+
 		public int size => 8 + 32 * this.idk1.Length + 12 * this.n_chunks_zones + 2 * this.n_chunks;
 
-		//@property
 		public int n_chunks_zones => this.chunks_zones.Length;
 
-		//@property
 		public int n_chunks => this.chunks_zones.Sum(zone => zone.Length);
 	}
 }

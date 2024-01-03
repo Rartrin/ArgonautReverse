@@ -12,8 +12,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			this.n_bounding_box_info = n_bounding_box_info;
 		}
 
-		//@classmethod
-		public static Model3DHeader parse(Parser data_in, Configuration conf)
+		public static Model3DHeader Parse(Parser data_in, Configuration conf)
 		{
 			//base.parse(data_in, conf);
 			data_in.Seek(72, SeekOrigin.Current);

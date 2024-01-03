@@ -14,8 +14,7 @@ namespace ArgonautReverse.WadSections.DPSX
 		};
 		public override string section_content_description => "3D models, animations & level geometry";
 
-		//@classmethod
-		public override DPSXSection parse(Parser data_in, Configuration conf)
+		public override DPSXSection Parse(Parser data_in, Configuration conf)
 		{
 			var fallback_data = fallback_parse_data(data_in);
 			var (size, start) = base.parseInner(data_in, conf);
@@ -33,10 +32,10 @@ namespace ArgonautReverse.WadSections.DPSX
 			}
 
 			var n_models_3d = data_in.ReadInt32();
-			var models_3d = new Model3DData[n_models_3d];
+			var models_3d = new Object3DData[n_models_3d];
 			for(int i=0; i<n_models_3d; i++)
 			{
-				models_3d[i]=Model3DData.parse(data_in, conf);
+				models_3d[i]=Object3DData.Parse(data_in, conf);
 			}
 
 			var n_animations = data_in.ReadInt32();
@@ -54,10 +53,10 @@ namespace ArgonautReverse.WadSections.DPSX
 			}
 
 			var n_scripts = data_in.ReadInt32();
-			var scripts = new ScriptData[n_scripts];
+			var scripts = new ActorData[n_scripts];
 			for(int i=0; i<n_scripts; i++)
 			{
-				scripts[i] = ScriptData.parse(data_in, conf);
+				scripts[i] = ActorData.parse(data_in, conf);
 			}
 
 			var level_file = LevelFile.parse(data_in, conf);
@@ -73,12 +72,12 @@ namespace ArgonautReverse.WadSections.DPSX
 
 	public sealed class DPSXSection:BaseWADSection
 	{
-		public readonly IReadOnlyList<Model3DData> models_3d;
+		public readonly IReadOnlyList<Object3DData> models_3d;
 		public readonly IReadOnlyList<AnimationData> animations;
-		public readonly IReadOnlyList<ScriptData> scripts;
+		public readonly IReadOnlyList<ActorData> scripts;
 		public readonly LevelFile level_file;
 
-		public DPSXSection(Model3DData[] models_3d, AnimationData[] animations,  ScriptData[] scripts, LevelFile level_file, byte[] fallback_data = null):base(DPSXSectionInfo.Instance, fallback_data)
+		public DPSXSection(Object3DData[] models_3d, AnimationData[] animations,  ActorData[] scripts, LevelFile level_file, byte[] fallback_data = null):base(DPSXSectionInfo.Instance, fallback_data)
 		{
 			this.models_3d = models_3d;
 			this.animations = animations;

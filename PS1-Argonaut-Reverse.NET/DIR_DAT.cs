@@ -76,7 +76,6 @@ namespace ArgonautReverse
 			return (dir_path, dat_path);
 		}
 
-		//@classmethod
 		public static DIR_DAT from_dir_dat(string input_path, Configuration conf)
 		{
 			var (dir_path, dat_path) = find_dir_dat_files(input_path, conf);
@@ -125,7 +124,6 @@ namespace ArgonautReverse
 			return new DIR_DAT(files);
 		}
 
-		//@classmethod
 		public static DIR_DAT from_files(params string[] files)
 		{
 			var all_files = new List<string>();

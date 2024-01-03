@@ -70,7 +70,7 @@ namespace ArgonautReverse
 			{
 				if(args.TryGetValue("-textures", out var export_textures))
 				{
-					wad_file.tpsx.texture_file.to_colorized_texture().Save(Path.Join(export_textures, $"{wad_file.stem}.PNG"), ImageFormat.Png);
+					wad_file.tpsx.TextureFile.to_colorized_texture().Save(Path.Join(export_textures, $"{wad_file.stem}.PNG"), ImageFormat.Png);
 				}
 			}
 

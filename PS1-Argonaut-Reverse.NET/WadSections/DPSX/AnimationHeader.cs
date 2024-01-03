@@ -35,8 +35,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			this.n_inter_frames = n_inter_frames;
 			this.sub_frame_size = old_animation_format ? 24 : 16;
 		}
-	
-		//@classmethod
+
 		public static AnimationHeader parse(Parser data_in, Configuration conf)
 		{
 			//base.parse(data_in, conf);

@@ -18,8 +18,7 @@ namespace ArgonautReverse.WadSections.TPSX
 		public override G[] supported_games => Configuration.PARSABLE_GAMES;
 		public override string section_content_description => "textures";
 
-		//@classmethod
-		public override TPSXSection parse(Parser data_in, Configuration conf)
+		public override TPSXSection Parse(Parser data_in, Configuration conf)
 		{
 			var fallback_data = fallback_parse_data(data_in);
 			var (size, start) = base.parseInner(data_in, conf);
@@ -37,7 +36,7 @@ namespace ArgonautReverse.WadSections.TPSX
 			else
 			{
 				var tpsx_flags = (TextureFlag)data_in.ReadInt32();
-				var hasLongLevelName = (tpsx_flags & TextureFlag.HasLongLevelName) != 0;//has_translated_titles
+				var hasLongLevelName = (tpsx_flags & TextureFlag.HasLongLevelName) != 0;
 				hasMemoryCardIcons = (tpsx_flags & TextureFlag.HasMemoryCardIcons) != 0;
 				var hasLevelName = (tpsx_flags & TextureFlag.HasLevelName) != 0;
 				compressed16bit = (tpsx_flags & TextureFlag.Compressed16Bit) != 0;
@@ -88,15 +87,15 @@ namespace ArgonautReverse.WadSections.TPSX
 
 	public sealed class TPSXSection:BaseWADSection
 	{
-		public readonly TextureFile texture_file;
-		public readonly IReadOnlyList<string> titles;
-		public readonly IReadOnlyList<Font> FontLookup;
+		public TextureFile TextureFile{get;}
+		public IReadOnlyList<string> Titles{get;}
+		public IReadOnlyList<Font> FontLookup{get;}
 
 		public TPSXSection(TextureFile texture_file, IReadOnlyList<string> titles, IReadOnlyList<Font> fontLookup, byte[] fallback_data = null):base(TPSXSectionInfo.Instance, fallback_data)
 		{
-			this.texture_file = texture_file;
-			this.titles = titles;
-			this.FontLookup = fontLookup;
+			TextureFile = texture_file;
+			Titles = titles;
+			FontLookup = fontLookup;
 		}
 	}
 }

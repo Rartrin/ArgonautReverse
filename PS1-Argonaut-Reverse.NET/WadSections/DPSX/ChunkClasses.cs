@@ -73,8 +73,7 @@ namespace ArgonautReverse.WadSections.DPSX
 				this.max_zone_id = null;
 			}
 		}
-	
-		//@property
+
 		public int n_filled_chunks => this.Count(chunk => chunk.Any());
 
 		public override string ToString() => this.chunks_visual_map();

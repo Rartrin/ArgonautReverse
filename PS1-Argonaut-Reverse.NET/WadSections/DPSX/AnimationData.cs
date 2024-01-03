@@ -15,10 +15,8 @@ namespace ArgonautReverse.WadSections.DPSX
 
 		public IReadOnlyList<Matrix4x4> this[int item] => this.frames[item];
 
-		//@property
 		public int n_vertices_groups => this.header.n_vertices_groups;
 
-		//@classmethod
 		public static AnimationData parse(Parser data_in, Configuration conf)
 		{
 			//base.parse(data_in, conf);

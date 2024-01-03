@@ -47,8 +47,7 @@ namespace ArgonautReverse.Files
 				throw new Exception("Unsupported color palette size");
 			}
 		}
-	
-		//@classmethod
+
 		public static ImageType guess_from_bytes_size(int bytes_size)
 		{
 			foreach(var member in lookup)

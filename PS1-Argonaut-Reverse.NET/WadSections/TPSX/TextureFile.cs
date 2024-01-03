@@ -4,43 +4,30 @@ using System.Drawing.Imaging;
 
 namespace ArgonautReverse.WadSections.TPSX
 {
-	public sealed class TextureFile:IReadOnlyList<TextureData>, BaseDataClass
+	public sealed class TextureFile:BaseDataClass
 	{
 		public const int image_header_size = 4;
 		public const int rle_size = 2;
 		public static readonly (int Width,int Height) image_dimensions = (1024, 1024);
 		public static readonly int image_bytes_size = image_dimensions.Width * image_dimensions.Height / 2;//Floor division
 
-		private readonly List<TextureData> list = new List<TextureData>();
-
 		public readonly int n_rows;
 		public readonly byte[] textures_data;
 		public readonly bool legacy_alpha;
 		public readonly bool has_alpha;
-		public readonly List<TextureData> textures = new List<TextureData>();
+		public IReadOnlyList<TextureData> Textures{get;}
 
-		public int Count => list.Count;
-		public TextureData this[int index] => list[index];
-		public IEnumerator<TextureData> GetEnumerator() => list.GetEnumerator();
-		IEnumerator IEnumerable.GetEnumerator() => list.GetEnumerator();
-
-		public TextureFile(int n_rows, byte[] textures_data, bool legacy_alpha, IEnumerable<TextureData>textures = null)
+		private TextureFile(int n_rows, byte[] textures_data, bool legacy_alpha, IReadOnlyList<TextureData>textures)
 		{
-			if(textures != null)
-			{
-				list.AddRange(textures);
-				this.textures.AddRange(textures);
-			}
+			this.Textures = textures;
 			this.n_rows = n_rows;
 			this.textures_data = textures_data;
 			this.legacy_alpha = legacy_alpha;  //TODO Legacy alpha (Croc 2)
 			this.has_alpha = !legacy_alpha;//TODO Remove. Patch that disables bugged Croc 2 textures transparency export
 		}
 
-		//@property
-		public int n_textures => list.Count;
+		public int n_textures => Textures.Count;
 
-		//@classmethod
 		public static TextureFile parse(Parser data_in, Configuration conf, bool compressed16bit, bool hasMemoryCardIcons, int end)
 		{
 
@@ -151,9 +138,9 @@ namespace ArgonautReverse.WadSections.TPSX
 
 				var resGraphics = Graphics.FromImage(res);
 
-				for(int t=0; t<this.textures.Count; t++)
+				for(int t=0; t<this.Textures.Count; t++)
 				{
-					var texture = this.textures[t];
+					var texture = this.Textures[t];
 
 					var box = texture.input_box;
 					if(box._0 == box._2 || box._1 == box._3)

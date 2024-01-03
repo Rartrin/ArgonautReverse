@@ -3,7 +3,7 @@ using ArgonautReverse.WadSections.TPSX;
 
 namespace ArgonautReverse.WadSections.DPSX
 {
-	public abstract class BaseModel3DData:BaseDataClass
+	public sealed class Model3DData:BaseDataClass
 	{
 		public const int vertex_size = 8;
 		public const int face_size = 20;
@@ -12,15 +12,15 @@ namespace ArgonautReverse.WadSections.DPSX
 
 		public readonly Model3DHeader header;
 		public readonly bool is_world_model_3d;
-		public readonly IReadOnlyList<IReadOnlyList<Vector3>> vertices;//List<np.ndarray>
-		public readonly IReadOnlyList<IReadOnlyList<Vector3>> normals;//was List<np.ndarray>
-		public readonly IReadOnlyList<int[]> quads;//np.ndarray
-		public readonly IReadOnlyList<Vector3> tris;//np.ndarray
-		public readonly IReadOnlyList<Vector3> faces_normals;//np.ndarray
+		public readonly IReadOnlyList<IReadOnlyList<Vector3>> vertices;
+		public readonly IReadOnlyList<IReadOnlyList<Vector3>> normals;
+		public readonly IReadOnlyList<int[]> quads;
+		public readonly IReadOnlyList<Vector3> tris;
+		public readonly IReadOnlyList<Vector3> faces_normals;
 		public readonly IReadOnlyList<int> faces_texture_ids;
 		public readonly int n_vertices_groups;
 
-		public BaseModel3DData(
+		public Model3DData(
 			Model3DHeader header,
 			bool is_world_model_3d,
 			IReadOnlyList<IReadOnlyList<Vector3>> vertices,
@@ -43,23 +43,15 @@ namespace ArgonautReverse.WadSections.DPSX
 			this.n_vertices_groups = n_vertices_groups;
 		}
 
-		//@property
 		public int n_vertices => this.header.n_vertices;
 
-		//@property
 		public int n_faces => this.header.n_faces;
 
-		//@property
 		public int n_bounding_box_info => this.header.n_bounding_box_info;
 
-		//@classmethod
-		protected static cls parse<cls>(Parser data_in, Configuration conf, Model3DHeader header, bool is_world_model_3d) where cls:BaseModel3DData
+		public static Model3DData Parse(Parser data_in, Configuration conf, Model3DHeader header, bool is_world_model_3d)
 		{
-			//base.parse(data_in, conf);
-			//header: Model3DHeader = kwargs["header"]
-			//is_world_model_3d: bool = kwargs["is_world_model_3d"]
-
-			IReadOnlyList<IReadOnlyList<Vector3>> parse_vertices_normals(int mode)
+			static IReadOnlyList<IReadOnlyList<Vector3>> parse_vertices_normals(Parser data_in, Model3DHeader header, int mode)
 			{
 				var res = new List<Vector3[]>();//was List<np.array>
 				var group = new List<Vector3>();
@@ -91,13 +83,13 @@ namespace ArgonautReverse.WadSections.DPSX
 				}
 				return res.ToArray();
 			}
-			var vertices = parse_vertices_normals(0);
+			var vertices = parse_vertices_normals(data_in, header, 0);
 			var n_vertices_groups = vertices.Count;
 			IReadOnlyList<IReadOnlyList<Vector3>> normals;
 
 			if(!(is_world_model_3d && (conf.game==G.HARRY_POTTER_1_PS1 || conf.game==G.HARRY_POTTER_2_PS1)))
 			{
-				normals = parse_vertices_normals(1);
+				normals = parse_vertices_normals(data_in, header, 1);
 				var n_normals_groups = normals.Count;
 
 				if(n_vertices_groups != n_normals_groups)
@@ -133,11 +125,12 @@ namespace ArgonautReverse.WadSections.DPSX
 				
 					if((raw_face_data9 & 0x0800) != 0)
 					{
+						//TODO: Validate this
 						// 1st vertex, then 2nd, 4th and 3rd, except in Croc 2 Demo Dummy WADs
 						if(conf.game != G.CROC_2_DEMO_PS1_DUMMY)
 						{
 							// FIXME
-							//  quads.append((raw_face_data[4], raw_face_data[5], raw_face_data[7], raw_face_data[6]))
+							//quads.Add(new int[]{raw_face_data4, raw_face_data5, raw_face_data7, raw_face_data6})
 							quads.Add(new int[]
 							{
 								raw_face_data4,
@@ -166,7 +159,8 @@ namespace ArgonautReverse.WadSections.DPSX
 					faces_texture_ids.Add(raw_face_data8);
 					if(raw_face_data3 < 1)
 					{
-						throw new NegativeIndexError(
+						throw new NegativeIndexError
+						(
 							data_in.Position,
 							NegativeIndexError.CAUSE_FACE,
 							raw_face_data3,
@@ -206,9 +200,6 @@ namespace ArgonautReverse.WadSections.DPSX
 					faces_texture_ids.Add(raw_face_data[4]);
 				}
 			}
-			//quads = np.array(quads, dtype=np.uint16);
-			//tris = np.array(tris, dtype=np.uint16);
-			//faces_normals = np.array(faces_normals, dtype=np.int16);
 			int bounding_box_info_size;
 			if(conf.game==G.CROC_2_PS1 || conf.game==G.CROC_2_DEMO_PS1 || conf.game==G.CROC_2_DEMO_PS1_DUMMY)
 			{
@@ -220,7 +211,8 @@ namespace ArgonautReverse.WadSections.DPSX
 				bounding_box_info_size = 32;
 			}
 			data_in.Seek(header.n_bounding_box_info * bounding_box_info_size, SeekOrigin.Current);
-			return (cls)Activator.CreateInstance(typeof(cls),
+			return new Model3DData
+			(
 				header,
 				is_world_model_3d,
 				vertices,
@@ -233,45 +225,13 @@ namespace ArgonautReverse.WadSections.DPSX
 			);
 		}
 
-		/// <summary>
-		/// Returns vertices and vertices normals of this model after application of an animation frame's
-		/// rotation & translation information. The model is **not** modified.
-		/// </summary>
-		public Model3DData animate(AnimationData animation, int frame_id = 0)
-		{
-			if(this.n_vertices_groups != animation.n_vertices_groups)
-			{
-				throw new IncompatibleAnimationError(this.n_vertices_groups, animation.n_vertices_groups);
-			}
-			var vertices = new Vector3[this.n_vertices_groups][];
-			var normals = new Vector3[this.n_vertices_groups][];
-			for(int i=0; i<this.n_vertices_groups; i++)
-			{
-				//var rotation = animation[frame_id][i][.., 0..3];
-				//var translation = animation[frame_id][i].Translation;
-				var transform = animation[frame_id][i];
-				vertices[i] = this.vertices[i].Select(v => Vector3.Transform(v, transform)).ToArray();//np.add(this.vertices[i].dot(rotation), translation)
-				normals[i] = this.normals[i].Select(v => Vector3.Transform(v, transform)).ToArray();//np.add(this.normals[i].dot(rotation), translation)
-			}
-			return new Model3DData
-			(
-				this.header,
-				this.is_world_model_3d,
-				vertices,
-				normals,
-				this.quads,
-				this.tris,
-				this.faces_normals,
-				this.faces_texture_ids,
-				this.n_vertices_groups
-			);
-		}
+		
 
 		/// <summary>
 		/// Creates a Wavefront OBJ 3D model from 3D model information and a texture file.
 		/// </summary>
-		public void _to_obj(
-			TextWriter obj,//: StringIO | TextIO,
+		public void ToObj(
+			TextWriter obj,
 			string filename,
 			IEnumerable<TextureData> textures = null,
 			int? x = null,
@@ -397,38 +357,87 @@ namespace ArgonautReverse.WadSections.DPSX
 		}
 
 		/// <summary>Creates a standalone Wavefront OBJ 3D model.</summary>
-		public void to_single_obj(TextWriter obj, string obj_filename, IEnumerable<TextureData> textures, string mtl_filename = null)//StringIO | TextIO
+		public void ToSingleObj(TextWriter obj, string obj_filename, IEnumerable<TextureData> textures, string mtl_filename = null)//StringIO | TextIO
 		{
-			obj.Write(string.Format(mtl_header, mtl_filename!=null ? mtl_filename : obj_filename));//The format coming in loks for the variable mtl_filename
-			this._to_obj(obj, obj_filename, textures);
+			obj.Write(string.Format(mtl_header, mtl_filename ?? obj_filename));//The format coming in looks for the variable mtl_filename
+			this.ToObj(obj, obj_filename, textures);
 		}
 		//Creates a Wavefront OBJ 3D model and appends it to an existing StringIO (used to export entire levels).
-		public void to_batch_obj(TextWriter obj, string filename, int x, int y, int z, ChunkRotation rotation, int vertex_index_offset)//StringIO | TextIO
+		public void ToBatchObj(TextWriter obj, string filename, int x, int y, int z, ChunkRotation rotation, int vertex_index_offset)//StringIO | TextIO
 		{
-			this._to_obj(obj, filename, null, x, y, z, rotation, vertex_index_offset);
+			this.ToObj(obj, filename, null, x, y, z, rotation, vertex_index_offset);
 		}
 	}
 
-	public sealed class Model3DData:BaseModel3DData
+	public sealed class Object3DData
 	{
-		public Model3DData(Model3DHeader header, bool is_world_model_3d, IReadOnlyList<IReadOnlyList<Vector3>> vertices, IReadOnlyList<IReadOnlyList<Vector3>> normals, IReadOnlyList<int[]> quads, IReadOnlyList<Vector3> tris, IReadOnlyList<Vector3> faces_normals, IReadOnlyList<int> faces_texture_ids, int n_vertices_groups) : base(header, is_world_model_3d, vertices, normals, quads, tris, faces_normals, faces_texture_ids, n_vertices_groups){}
+		public Model3DHeader Header{get;}
+		public Model3DData Data{get;}
 
-		//@classmethod
-		public static Model3DData parse(Parser data_in, Configuration conf)
+		private Object3DData(Model3DHeader header, Model3DData data)
 		{
-			var header = Model3DHeader.parse(data_in, conf);
-			return parse<Model3DData>(data_in, conf, header:header, is_world_model_3d:false);
+			Header = header;
+			Data = data;
+		}
+
+		public static Object3DData Parse(Parser data_in, Configuration conf)
+		{
+			var header = Model3DHeader.Parse(data_in, conf);
+			var data = Model3DData.Parse(data_in, conf, header, is_world_model_3d:false);
+			return new Object3DData(header, data);
+		}
+
+		/// <summary>
+		/// Returns vertices and vertices normals of this model after application of an animation frame's
+		/// rotation & translation information. The model is **not** modified.
+		/// </summary>
+		public Object3DData Animate(AnimationData animation, int frame_id = 0)
+		{
+			if(Data.n_vertices_groups != animation.n_vertices_groups)
+			{
+				throw new IncompatibleAnimationError(Data.n_vertices_groups, animation.n_vertices_groups);
+			}
+			var vertices = new Vector3[Data.n_vertices_groups][];
+			var normals = new Vector3[Data.n_vertices_groups][];
+			for(int i=0; i<Data.n_vertices_groups; i++)
+			{
+				//var rotation = animation[frame_id][i][.., 0..3];
+				//var translation = animation[frame_id][i].Translation;
+				var transform = animation[frame_id][i];
+				vertices[i] = Data.vertices[i].Select(v => Vector3.Transform(v, transform)).ToArray();//np.add(this.vertices[i].dot(rotation), translation)
+				normals[i] = Data.normals[i].Select(v => Vector3.Transform(v, transform)).ToArray();//np.add(this.normals[i].dot(rotation), translation)
+			}
+			var newData = new Model3DData
+			(
+				Data.header,
+				Data.is_world_model_3d,
+				vertices,
+				normals,
+				Data.quads,
+				Data.tris,
+				Data.faces_normals,
+				Data.faces_texture_ids,
+				Data.n_vertices_groups
+			);
+			return new Object3DData(Header, newData);
 		}
 	}
 
-	public sealed class LevelGeom3DData:BaseModel3DData
+	public sealed class LevelGeom3DData
 	{
-		public LevelGeom3DData(Model3DHeader header, bool is_world_model_3d, IReadOnlyList<IReadOnlyList<Vector3>> vertices, IReadOnlyList<IReadOnlyList<Vector3>> normals, IReadOnlyList<int[]> quads, IReadOnlyList<Vector3> tris, IReadOnlyList<Vector3> faces_normals, IReadOnlyList<int> faces_texture_ids, int n_vertices_groups) : base(header, is_world_model_3d, vertices, normals, quads, tris, faces_normals, faces_texture_ids, n_vertices_groups){}
+		public Model3DHeader Header{get;}
+		public Model3DData Data{get;}
 
-		//@classmethod
-		public static LevelGeom3DData parse(Parser data_in, Configuration conf, Model3DHeader header)
+		private LevelGeom3DData(Model3DHeader header, Model3DData data)
 		{
-			return parse<LevelGeom3DData>(data_in, conf, header:/*kwargs["header"]*/header, is_world_model_3d:true);
+			Header = header;
+			Data = data;
+		}
+
+		public static LevelGeom3DData Parse(Parser data_in, Configuration conf, Model3DHeader header)
+		{
+			var data = Model3DData.Parse(data_in, conf, header, is_world_model_3d:true);
+			return new LevelGeom3DData(header, data);
 		}
 	}
 }

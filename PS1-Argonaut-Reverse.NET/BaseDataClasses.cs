@@ -4,9 +4,9 @@ namespace ArgonautReverse
 {
 	public interface BaseDataClass
 	{
-		//public /*static*/ abstract void parse(Parser data_in, Configuration conf/*, *args, **kwargs*/);
+		//public /*static*/ abstract void parse(Parser data_in, Configuration conf);
 
-		//public abstract void serialize(BinaryWriter data_out, Configuration conf/*, *args, **kwargs*/);
+		//public abstract void serialize(BinaryWriter data_out, Configuration conf);
 
 
 		//Add in Pack/Repack/Write
@@ -34,7 +34,6 @@ namespace ArgonautReverse
 			codename_raw = BitConverter.ToUInt32(codename_bytes);
 		}
 
-		//@classmethod
 		public unsafe void check_codename(Parser data_in)
 		{
 			var found_codename = data_in.ReadUInt32();
@@ -44,7 +43,6 @@ namespace ArgonautReverse
 			}
 		}
 
-		//@classmethod
 		public void check_size(int expected_size, int section_start, int current_position)
 		{
 			var calculated_size = current_position - section_start;
@@ -53,7 +51,7 @@ namespace ArgonautReverse
 				throw new SectionSizeMismatch(current_position, codename_str, expected_size, calculated_size);
 			}
 		}
-		//@classmethod
+
 		protected (int,int) parseInner(Parser data_in, Configuration conf)
 		{
 			if(!supported_games.Contains(conf.game))
@@ -63,10 +61,9 @@ namespace ArgonautReverse
 			check_codename(data_in);
 			return (data_in.ReadInt32(), data_in.Position);
 		}
-		public abstract BaseWADSection parse(Parser data_in, Configuration conf);
+		public abstract BaseWADSection Parse(Parser data_in, Configuration conf);
 
-		//@staticmethod
-		public static void serialize_section_size(BinaryWriter data_out, int start)
+		public static void SerializeSectionSize(BinaryWriter data_out, int start)
 		{
 			var end = (int)data_out.BaseStream.Position;
 			var size = end - start;
@@ -75,7 +72,6 @@ namespace ArgonautReverse
 			data_out.BaseStream.Position = end;
 		}
 
-		//@classmethod
 		public static byte[] fallback_parse_data(Parser data_in)
 		{
 			var start = data_in.Position;
@@ -89,11 +85,7 @@ namespace ArgonautReverse
 			return data;
 		}
 
-		//@classmethod
 		public abstract BaseWADSection fallback_parse(Parser data_in);
-		//{
-		//	return Activator.CreateInstance(, fallback_parse_data(data_in));
-		//}
 	}
 	public abstract class BaseWADSectionInfo<T>:BaseWADSectionInfo where T:BaseWADSection
 	{

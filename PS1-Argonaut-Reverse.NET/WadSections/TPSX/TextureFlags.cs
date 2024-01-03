@@ -8,13 +8,10 @@ namespace ArgonautReverse.WadSections.TPSX
 
 	public static class TextureFlagExtensions
 	{
-		//@property
 		public static int n_row(this TextureFlags that) => (((int)that & 4) >> 1) + (((int)that & 16) >> 4);
 
-		//@property
 		public static int n_column(this TextureFlags that) => (int)that & 3;
 
-		//@property
 		///<summary>Correction Ratio, needed for non-4bit/pixel textures to be correctly positioned</summary>
 		public static int correction_ratio(this TextureFlags that)
 		{
