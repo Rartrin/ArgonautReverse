@@ -1,23 +1,15 @@
-//from io import BufferedIOBase
-
-
-//from ps1_argonaut.errors_warnings import (
-//    SectionNameError,
-//    SectionSizeMismatch,
-//    UnsupportedParsing,
-//    UnsupportedSerialization,
-//)
-
-
 using System.Text;
 
 namespace ArgonautReverse
 {
 	public interface BaseDataClass
 	{
-		//public /*static*/ abstract void parse(BinaryReader data_in, Configuration conf/*, *args, **kwargs*/);//BufferedIOBase
+		//public /*static*/ abstract void parse(Parser data_in, Configuration conf/*, *args, **kwargs*/);
 
-		//public abstract void serialize(BinaryWriter data_out, Configuration conf/*, *args, **kwargs*/);//BufferedIOBase
+		//public abstract void serialize(BinaryWriter data_out, Configuration conf/*, *args, **kwargs*/);
+
+
+		//Add in Pack/Repack/Write
 	}
 
 	public abstract class BaseWADSectionInfo
@@ -43,12 +35,12 @@ namespace ArgonautReverse
 		}
 
 		//@classmethod
-		public unsafe void check_codename(BinaryReader data_in)//BufferedIOBase
+		public unsafe void check_codename(Parser data_in)
 		{
 			var found_codename = data_in.ReadUInt32();
 			if(found_codename != codename_raw)
 			{
-				throw new SectionNameError((int)data_in.BaseStream.Position, codename_str, Encoding.Latin1.GetString((byte*)&found_codename, 4));
+				throw new SectionNameError(data_in.Position, codename_str, Encoding.Latin1.GetString((byte*)&found_codename, 4));
 			}
 		}
 
@@ -62,19 +54,19 @@ namespace ArgonautReverse
 			}
 		}
 		//@classmethod
-		protected (int,int) parseInner(BinaryReader data_in, Configuration conf/*, *args, **kwargs*/)//BufferedIOBase
+		protected (int,int) parseInner(Parser data_in, Configuration conf)
 		{
 			if(!supported_games.Contains(conf.game))
 			{
 				throw new UnsupportedParsing(section_content_description);
 			}
 			check_codename(data_in);
-			return (data_in.ReadInt32(), (int)data_in.BaseStream.Position);
+			return (data_in.ReadInt32(), data_in.Position);
 		}
-		public abstract BaseWADSection parse(Parser data_in, Configuration conf/*, *args, **kwargs*/);//BufferedIOBase
+		public abstract BaseWADSection parse(Parser data_in, Configuration conf);
 
 		//@staticmethod
-		public static void serialize_section_size(BinaryWriter data_out, int start)//BufferedIOBase
+		public static void serialize_section_size(BinaryWriter data_out, int start)
 		{
 			var end = (int)data_out.BaseStream.Position;
 			var size = end - start;
@@ -84,9 +76,9 @@ namespace ArgonautReverse
 		}
 
 		//@classmethod
-		public static byte[] fallback_parse_data(Parser data_in)//BufferedIOBase
+		public static byte[] fallback_parse_data(Parser data_in)
 		{
-			var start = (int)data_in.Position;
+			var start = data_in.Position;
 			var codename = data_in.ReadUInt32();
 			var size = data_in.ReadInt32();
 
@@ -98,7 +90,7 @@ namespace ArgonautReverse
 		}
 
 		//@classmethod
-		public abstract BaseWADSection fallback_parse(Parser data_in);//BufferedIOBase
+		public abstract BaseWADSection fallback_parse(Parser data_in);
 		//{
 		//	return Activator.CreateInstance(, fallback_parse_data(data_in));
 		//}
@@ -132,11 +124,11 @@ namespace ArgonautReverse
 		}
 
 	
-		public virtual void serialize(BinaryWriter data_out, Configuration conf/*, *args, **kwargs*/)//BufferedIOBase
+		public virtual void serialize(BinaryWriter data_out, Configuration conf)
 		{
 			fallback_serialize(data_out);
 		}
-		protected int serializeInner(BinaryWriter data_out, Configuration conf/*, *args, **kwargs*/)//BufferedIOBase
+		protected int serializeInner(BinaryWriter data_out, Configuration conf)
 		{
 			if(!this.supported_games.Contains(conf.game))
 			{
@@ -147,7 +139,7 @@ namespace ArgonautReverse
 			return (int)data_out.BaseStream.Position;
 		}
 
-		public void fallback_serialize(BinaryWriter data_out)//BufferedIOBase
+		public void fallback_serialize(BinaryWriter data_out)
 		{
 			data_out.Write(this._data);
 		}

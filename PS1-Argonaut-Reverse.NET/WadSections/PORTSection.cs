@@ -1,9 +1,3 @@
-//from io import BufferedIOBase, SEEK_CUR
-
-//from ps1_argonaut.BaseDataClasses import BaseWADSection
-//from ps1_argonaut.configuration import Configuration, G
-
-
 namespace ArgonautReverse.WadSections
 {
 	public class PORTSectionInfo:BaseWADSectionInfo<PORTSection>
@@ -15,7 +9,7 @@ namespace ArgonautReverse.WadSections
 		public override string section_content_description => "chunk zone ids";
 
 		//@classmethod
-		public override PORTSection parse(Parser data_in, Configuration conf/*, *args, **kwargs*/)//BufferedIOBase
+		public override PORTSection parse(Parser data_in, Configuration conf)
 		{
 			var fallback_data = fallback_parse_data(data_in);
 			var (size, start) = base.parseInner(data_in, conf);
@@ -29,9 +23,9 @@ namespace ArgonautReverse.WadSections
 			var n_chunks_per_zone = new byte[n_zones];
 			for(int i=0; i<n_zones; i++)
 			{
-				data_in.seek(2, SeekOrigin.Current);
+				data_in.Seek(2, SeekOrigin.Current);
 				n_chunks_per_zone[i] = data_in.ReadByte();
-				data_in.seek(9, SeekOrigin.Current);
+				data_in.Seek(9, SeekOrigin.Current);
 			}
 			var chunks_zones = new int[n_zones][];
 			for(int i=0; i<n_zones; i++)
@@ -43,7 +37,7 @@ namespace ArgonautReverse.WadSections
 					chunks_zones[i][v] = data_in.ReadInt16();
 				}
 			}
-			check_size(size, start, (int)data_in.Position);
+			check_size(size, start, data_in.Position);
 			return new PORTSection(idk1, chunks_zones, fallback_data);
 		}
 	}

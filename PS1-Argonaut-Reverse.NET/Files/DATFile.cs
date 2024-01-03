@@ -9,7 +9,7 @@ namespace ArgonautReverse.Files
 
 		public string name => $"{stem}.{suffix}";
 
-		public DATFile(string stem, string suffix = null, byte[] data = null/*, *args, **kwargs*/)
+		public DATFile(string stem, string suffix = null, byte[] data = null)
 		{
 			if(data is not null)
 			{
@@ -27,7 +27,7 @@ namespace ArgonautReverse.Files
 	
 		public override string ToString() => "(?) Unknown file";
 
-		public virtual void parse(Configuration conf/*, *args, **kwargs*/){}
+		public virtual void parse(Configuration conf){}
 
 		public void end_parse()
 		{
@@ -43,7 +43,7 @@ namespace ArgonautReverse.Files
 			{
 				File.WriteAllBytes(path, this._data);
 			}
-			else if(data_out is BinaryWriter stream)//BufferedIOBase
+			else if(data_out is BinaryWriter stream)
 			{
 				stream.Write(this._data);
 			}

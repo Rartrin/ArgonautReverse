@@ -1,5 +1,5 @@
-using static Compat.Compat;
 using System.Numerics;
+using ArgonautReverse.WadSections.TPSX;
 
 namespace ArgonautReverse.WadSections.DPSX
 {
@@ -53,7 +53,7 @@ namespace ArgonautReverse.WadSections.DPSX
 		public int n_bounding_box_info => this.header.n_bounding_box_info;
 
 		//@classmethod
-		protected static cls parse<cls>(Parser data_in, Configuration conf/*, *args, **kwargs*/, Model3DHeader header, bool is_world_model_3d) where cls:BaseModel3DData//BufferedIOBase
+		protected static cls parse<cls>(Parser data_in, Configuration conf, Model3DHeader header, bool is_world_model_3d) where cls:BaseModel3DData
 		{
 			//base.parse(data_in, conf);
 			//header: Model3DHeader = kwargs["header"]
@@ -77,7 +77,7 @@ namespace ArgonautReverse.WadSections.DPSX
 					if(index < 1)
 					{
 						var error_cause = (mode == 0) ? NegativeIndexError.CAUSE_VERTEX : NegativeIndexError.CAUSE_VERTEX_NORMAL;
-						throw new NegativeIndexError(data_in.tell(), error_cause, index, xyz);
+						throw new NegativeIndexError(data_in.Position, error_cause, index, xyz);
 					}
 					else if(index == 1)
 					{
@@ -102,7 +102,7 @@ namespace ArgonautReverse.WadSections.DPSX
 
 				if(n_vertices_groups != n_normals_groups)
 				{
-					throw new VerticesNormalsGroupsMismatch(n_vertices_groups, n_normals_groups, data_in.tell());
+					throw new VerticesNormalsGroupsMismatch(n_vertices_groups, n_normals_groups, data_in.Position);
 				}
 			}
 			else
@@ -167,7 +167,7 @@ namespace ArgonautReverse.WadSections.DPSX
 					if(raw_face_data3 < 1)
 					{
 						throw new NegativeIndexError(
-							data_in.tell(),
+							data_in.Position,
 							NegativeIndexError.CAUSE_FACE,
 							raw_face_data3,
 							null//raw_face_data
@@ -219,7 +219,7 @@ namespace ArgonautReverse.WadSections.DPSX
 				// Harry Potter 1 & 2
 				bounding_box_info_size = 32;
 			}
-			data_in.seek(header.n_bounding_box_info * bounding_box_info_size, SEEK_CUR);
+			data_in.Seek(header.n_bounding_box_info * bounding_box_info_size, SeekOrigin.Current);
 			return (cls)Activator.CreateInstance(typeof(cls),
 				header,
 				is_world_model_3d,
@@ -414,7 +414,7 @@ namespace ArgonautReverse.WadSections.DPSX
 		public Model3DData(Model3DHeader header, bool is_world_model_3d, IReadOnlyList<IReadOnlyList<Vector3>> vertices, IReadOnlyList<IReadOnlyList<Vector3>> normals, IReadOnlyList<int[]> quads, IReadOnlyList<Vector3> tris, IReadOnlyList<Vector3> faces_normals, IReadOnlyList<int> faces_texture_ids, int n_vertices_groups) : base(header, is_world_model_3d, vertices, normals, quads, tris, faces_normals, faces_texture_ids, n_vertices_groups){}
 
 		//@classmethod
-		public static Model3DData parse(Parser data_in, Configuration conf/*, *args, **kwargs*/)//BufferedIOBase
+		public static Model3DData parse(Parser data_in, Configuration conf)
 		{
 			var header = Model3DHeader.parse(data_in, conf);
 			return parse<Model3DData>(data_in, conf, header:header, is_world_model_3d:false);
@@ -426,7 +426,7 @@ namespace ArgonautReverse.WadSections.DPSX
 		public LevelGeom3DData(Model3DHeader header, bool is_world_model_3d, IReadOnlyList<IReadOnlyList<Vector3>> vertices, IReadOnlyList<IReadOnlyList<Vector3>> normals, IReadOnlyList<int[]> quads, IReadOnlyList<Vector3> tris, IReadOnlyList<Vector3> faces_normals, IReadOnlyList<int> faces_texture_ids, int n_vertices_groups) : base(header, is_world_model_3d, vertices, normals, quads, tris, faces_normals, faces_texture_ids, n_vertices_groups){}
 
 		//@classmethod
-		public static LevelGeom3DData parse(Parser data_in, Configuration conf/*, *args, **kwargs*/, Model3DHeader header)//BufferedIOBase
+		public static LevelGeom3DData parse(Parser data_in, Configuration conf, Model3DHeader header)
 		{
 			return parse<LevelGeom3DData>(data_in, conf, header:/*kwargs["header"]*/header, is_world_model_3d:true);
 		}

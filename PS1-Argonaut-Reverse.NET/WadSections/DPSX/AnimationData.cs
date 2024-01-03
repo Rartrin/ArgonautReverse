@@ -1,15 +1,3 @@
-//import math
-//from io import BufferedIOBase, SEEK_CUR
-
-//import numpy as np
-//from pyquaternion import Quaternion
-
-//from ps1_argonaut.BaseDataClasses import BaseDataClass
-//from ps1_argonaut.configuration import Configuration
-//from ps1_argonaut.wad_sections.DPSX.AnimationHeader import AnimationHeader
-
-
-using static Compat.Compat;
 using System.Numerics;
 
 namespace ArgonautReverse.WadSections.DPSX
@@ -31,7 +19,7 @@ namespace ArgonautReverse.WadSections.DPSX
 		public int n_vertices_groups => this.header.n_vertices_groups;
 
 		//@classmethod
-		public static AnimationData parse(Parser data_in, Configuration conf/*, *args, **kwargs*/)//BufferedIOBase
+		public static AnimationData parse(Parser data_in, Configuration conf)
 		{
 			//base.parse(data_in, conf);
 			var header = AnimationHeader.parse(data_in, conf);
@@ -94,7 +82,7 @@ namespace ArgonautReverse.WadSections.DPSX
 				}
 				if((header.n_inter_frames != 0) && (frame_id != header.n_stored_frames - 1))
 				{
-					data_in.seek(inter_frames_size, SEEK_CUR);
+					data_in.Seek(inter_frames_size, SeekOrigin.Current);
 				}
 				frames[frame_id] = frame;
 			}

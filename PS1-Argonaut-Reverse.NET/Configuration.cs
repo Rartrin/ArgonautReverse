@@ -7,8 +7,25 @@ namespace ArgonautReverse
 	public delegate (string name, int size, int start) DelDirStructUnpacker(Parser reader);
 	public delegate void DelDirStructPacker(BinaryWriter writer, string name, int size, int start);
 
-	public record class G(string title,int release_year,string dat_filename = null,string dir_filename = null,DelDirStructPacker dir_struct_pack = null,DelDirStructUnpacker dir_struct_unpack = null)
+	public sealed class G
 	{
+		public string Title{get;}
+		public int ReleaseYear{get;}
+		public string FilenameDAT{get;}
+		public string FilenameDIR{get;}
+		public DelDirStructPacker PackDIR{get;}
+		public DelDirStructUnpacker UnpackDIR{get;}
+
+		private G(string title,int release_year,string dat_filename = null,string dir_filename = null,DelDirStructPacker dir_struct_pack = null,DelDirStructUnpacker dir_struct_unpack = null)
+		{
+			this.Title = title;
+			this.ReleaseYear = release_year;
+			this.FilenameDAT = dat_filename;
+			this.FilenameDIR = dir_filename;
+			this.PackDIR = dir_struct_pack;
+			this.UnpackDIR = dir_struct_unpack;
+		}
+
 		private static (string name, int size, int start) _default_struct_unpacker(Parser reader)
 		{
 			//Little Endian, 12 byte string, followed by two 32-bit integers

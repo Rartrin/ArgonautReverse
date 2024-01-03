@@ -1,15 +1,3 @@
-//from io import BufferedIOBase, SEEK_CUR
-
-//from ps1_argonaut.BaseDataClasses import BaseWADSection
-//from ps1_argonaut.configuration import Configuration, G
-//from ps1_argonaut.wad_sections.DPSX.AnimationData import AnimationData
-//from ps1_argonaut.wad_sections.DPSX.LevelFile import LevelFile
-//from ps1_argonaut.wad_sections.DPSX.Model3DData import Model3DData
-//from ps1_argonaut.wad_sections.DPSX.ScriptData import ScriptData
-
-
-using static Compat.Compat;
-
 namespace ArgonautReverse.WadSections.DPSX
 {
 	public sealed class DPSXSectionInfo:BaseWADSectionInfo<DPSXSection>
@@ -27,7 +15,7 @@ namespace ArgonautReverse.WadSections.DPSX
 		public override string section_content_description => "3D models, animations & level geometry";
 
 		//@classmethod
-		public override DPSXSection parse(Parser data_in, Configuration conf/*, *args, **kwargs*/)//BufferedIOBase
+		public override DPSXSection parse(Parser data_in, Configuration conf)
 		{
 			var fallback_data = fallback_parse_data(data_in);
 			var (size, start) = base.parseInner(data_in, conf);
@@ -37,11 +25,11 @@ namespace ArgonautReverse.WadSections.DPSX
 			//TODO:Fonts and Sprites?
 			if(conf.game != G.CROC_2_DEMO_PS1_DUMMY)
 			{
-				data_in.seek(2048, SEEK_CUR);
+				data_in.Seek(2048, SeekOrigin.Current);
 			}
 			else
 			{
-				data_in.seek(2052, SEEK_CUR);
+				data_in.Seek(2052, SeekOrigin.Current);
 			}
 
 			var n_models_3d = data_in.ReadInt32();
@@ -62,7 +50,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			if(conf.game==G.CROC_2_PS1 || conf.game==G.CROC_2_DEMO_PS1)
 			{
 				var n_dpsx_legacy_textures = data_in.ReadInt32();
-				data_in.seek(n_dpsx_legacy_textures * 3072, SEEK_CUR);
+				data_in.Seek(n_dpsx_legacy_textures * 3072, SeekOrigin.Current);
 			}
 
 			var n_scripts = data_in.ReadInt32();
@@ -74,10 +62,10 @@ namespace ArgonautReverse.WadSections.DPSX
 
 			var level_file = LevelFile.parse(data_in, conf);
 
-			// FIXME End of Croc 2 & Croc 2 Demo Dummies' level files aren't reversed yet
+			// FIXME End of Croc 2 & Croc 2 Demo Dummy's level files aren't reversed yet
 			if(conf.game!=G.CROC_2_PS1 && conf.game!=G.CROC_2_DEMO_PS1_DUMMY)
 			{
-				check_size(size, start, data_in.tell());
+				check_size(size, start, data_in.Position);
 			}
 			return new DPSXSection(models_3d, animations, scripts, level_file, fallback_data);
 		}

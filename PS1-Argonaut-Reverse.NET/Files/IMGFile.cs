@@ -12,6 +12,7 @@
 
 using System.Collections;
 using System.Drawing;
+using System.Drawing.Imaging;
 
 namespace ArgonautReverse.Files
 {
@@ -131,7 +132,7 @@ namespace ArgonautReverse.Files
 			}
 			return res;
 		}
-		public override void parse(Configuration conf/*, *args, **kwargs*//*, string kwargs_stem*/)
+		public override void parse(Configuration conf/*, string kwargs_stem*/)
 		{
 			ArraySegment<byte>[] images_data;
 			if(this.stem == "REPORT")// Patch for REPORT.IMG that contains multiple images
@@ -168,7 +169,7 @@ namespace ArgonautReverse.Files
 					{
 						image_type = ImageType.guess_from_bytes_size(image_data.Count);
 					}
-					int[] palette;
+					Color[] palette;
 					if(image_type.n_palette_colors != 0)
 					{
 						palette = Utils.parse_palette(image_data, image_type.n_palette_colors, image_type.has_alpha);
@@ -195,31 +196,47 @@ namespace ArgonautReverse.Files
 			this.end_parse();
 		}
 
-		public static Bitmap to_full_colorized(ArraySegment<byte> data, XY dimensions, int[] palette, int n_palette_colors, bool has_alpha)
+		public static unsafe Bitmap to_full_colorized(ArraySegment<byte> data, XY dimensions, Color[] palette, int n_palette_colors, bool has_alpha)
 		{
-			//var mode = has_alpha ? "RGBA" : "RGB";
-			//var pixels_data = data.Slice(2 * n_palette_colors);
-			//if(n_palette_colors != 0)
-			//{
-			//	Bitmap image;
-			//	if(n_palette_colors == 16)
-			//	{
-			//		var pixels = np.reshape(np.array(Utils.parse_4bits_paletted(pixels_data), dtype:np.uint8), (dimensions[1], dimensions[0]));
-			//		image = Image.fromarray(pixels, "P");
-			//	}
-			//	else
-			//	{
-			//		image = Image.frombytes("P", dimensions, pixels_data);
-			//	}
-			//	image.putpalette(palette, mode);
-			//	return image;
-			//}
-			//else
-			//{
-			//	var pixels = np.reshape(np.array(Utils.parse_high_color(pixels_data, has_alpha), dtype:np.uint8),(dimensions[1], dimensions[0], has_alpha?4:3));
-			//	return Image.fromarray(pixels, mode);
-			//}
-			throw new NotImplementedException();
+			var pixels_data = data.AsSpan(0, 2*n_palette_colors);
+			fixed(byte* pixels_data0 = pixels_data)
+			{
+				if(n_palette_colors != 0)
+				{
+					Bitmap image;
+					if(n_palette_colors == 16)
+					{
+						var pixels_data_4bit = Utils.parse_4bits_paletted(pixels_data);
+						fixed(byte* pixels_data_4bit0 = pixels_data_4bit)
+						{
+							//TODO: Y,X? Notice stride
+							image = new Bitmap(dimensions.Y, dimensions.X, dimensions.Y, PixelFormat.Format4bppIndexed, (IntPtr)pixels_data_4bit0);
+							//var pixels = np.reshape(np.array(Utils.parse_4bits_paletted(pixels_data), dtype:np.uint8), (dimensions.Y, dimensions.X));
+						}
+					}
+					else
+					{
+						image = new Bitmap(dimensions.X, dimensions.Y, dimensions.X, PixelFormat.Format8bppIndexed, (IntPtr)pixels_data0);
+					}
+					var imagePalette = image.Palette;
+					for(int i=0; i<n_palette_colors; i++)
+					{
+						imagePalette.Entries[i] = palette[i];
+					}
+					image.Palette = imagePalette;
+					return image;
+				}
+				else
+				{
+					var highColor = Utils.parse_high_color(pixels_data, has_alpha);
+					fixed(Color* highColor0 = highColor)
+					{
+						return new Bitmap(dimensions.Y, dimensions.X, dimensions.Y, PixelFormat.Format32bppArgb, (IntPtr)highColor0);
+						//var pixels = np.reshape(np.array(Utils.parse_high_color(pixels_data, has_alpha), dtype:np.uint8),(dimensions.Y, dimensions.X, has_alpha?4:3));
+						//return Image.fromarray(pixels, mode);
+					}
+				}
+			}
 		}
 
 		public IEnumerator<Bitmap> GetEnumerator() => list.GetEnumerator();

@@ -2,6 +2,14 @@ using System.Text;
 
 namespace ArgonautReverse.WadSections.TPSX
 {
+	public enum TextureFlag:int
+	{
+		CompressedTPage		= (1 << 0),
+		Compressed16Bit		= (1 << 1),
+		HasLevelName		= (1 << 2),
+		HasMemoryCardIcons	= (1 << 3),
+		HasLongLevelName	= (1 << 4),//Includes translated names
+	}
 	public sealed class TPSXSectionInfo:BaseWADSectionInfo<TPSXSection>
 	{
 		public static readonly TPSXSectionInfo Instance = new TPSXSectionInfo();
@@ -11,25 +19,36 @@ namespace ArgonautReverse.WadSections.TPSX
 		public override string section_content_description => "textures";
 
 		//@classmethod
-		public override TPSXSection parse(Parser data_in, Configuration conf/*, *args, **kwargs*/)//BufferedIOBase
+		public override TPSXSection parse(Parser data_in, Configuration conf)
 		{
 			var fallback_data = fallback_parse_data(data_in);
 			var (size, start) = base.parseInner(data_in, conf);
-			bool has_legacy_textures;
+			bool hasMemoryCardIcons;
+			bool compressed16bit;
 			string[] titles;
 			Font[] fontLookup;
 			if(conf.game == G.CROC_2_DEMO_PS1_DUMMY)
 			{
-				has_legacy_textures = false;
+				hasMemoryCardIcons = false;
 				titles = Array.Empty<string>();
 				fontLookup = Array.Empty<Font>();
+				compressed16bit = false;
 			}
 			else
 			{
-				var tpsx_flags = data_in.ReadInt32();
-				var hasLongLevelName = (tpsx_flags & 16) != 0;//has_translated_titles
-				has_legacy_textures = (tpsx_flags & 8) != 0;
-				var hasLevelName = (tpsx_flags & 4) != 0;
+				var tpsx_flags = (TextureFlag)data_in.ReadInt32();
+				var hasLongLevelName = (tpsx_flags & TextureFlag.HasLongLevelName) != 0;//has_translated_titles
+				hasMemoryCardIcons = (tpsx_flags & TextureFlag.HasMemoryCardIcons) != 0;
+				var hasLevelName = (tpsx_flags & TextureFlag.HasLevelName) != 0;
+				compressed16bit = (tpsx_flags & TextureFlag.Compressed16Bit) != 0;
+
+				//TODO: Ensure these always match
+				bool rle = conf.game == G.CROC_2_PS1 || conf.game == G.CROC_2_DEMO_PS1 || conf.game == G.HARRY_POTTER_1_PS1 || conf.game == G.HARRY_POTTER_2_PS1;
+				if(compressed16bit != rle)
+				{
+					throw new Exception();
+				}
+
 				if(hasLevelName)
 				{
 					if(hasLongLevelName)
@@ -47,10 +66,12 @@ namespace ArgonautReverse.WadSections.TPSX
 					}
 
 					var spriteOffset = data_in.ReadInt32();
-				
-					//Skips fonts
-					data_in.seek(2048, SeekOrigin.Current);
-				
+
+					fontLookup = new Font[256];
+					for(var i=0; i<256; i++)
+					{
+						fontLookup[i] = Font.Parse(data_in);
+					}
 				}
 				else
 				{
@@ -58,9 +79,9 @@ namespace ArgonautReverse.WadSections.TPSX
 					fontLookup = Array.Empty<Font>();
 				}
 			}
-			var texture_file = TextureFile.parse(data_in, conf, has_legacy_textures:has_legacy_textures, end:start + size);
+			var texture_file = TextureFile.parse(data_in, conf, compressed16bit:compressed16bit, hasMemoryCardIcons:hasMemoryCardIcons, end:start + size);
 
-			check_size(size, start, (int)data_in.Position);
+			check_size(size, start, data_in.Position);
 			return new TPSXSection(texture_file, titles, fontLookup, fallback_data);
 		}
 	}

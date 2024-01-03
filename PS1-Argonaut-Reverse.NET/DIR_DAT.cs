@@ -1,14 +1,6 @@
-//from collections.abc import Iterable
-//from io import BytesIO, SEEK_CUR
-//from pathlib import Path
-
-//from ps1_argonaut.configuration import Configuration, G
-//from ps1_argonaut.files.DATFile import DATFile
-//from ps1_argonaut.utils import pad_in_2048_bytes, pad_out_2048_bytes
-//from ps1_argonaut.wad_sections.TPSX.TPSXSection import TPSXSection
-
-// noinspection PyPep8Naming
 using System.Collections;
+using ArgonautReverse.Files;
+using ArgonautReverse.WadSections.TPSX;
 
 namespace ArgonautReverse
 {
@@ -53,8 +45,8 @@ namespace ArgonautReverse
 			if(Directory.Exists(input_path))
 			{
 				// CROC 2 DEMO DUMMY file has no .DIR file
-				dir_path = conf.game != G.CROC_2_DEMO_PS1_DUMMY ? Path.Combine(input_path, conf.game.dir_filename) : null;
-				dat_path = Path.Combine(input_path, conf.game.dat_filename);
+				dir_path = conf.game != G.CROC_2_DEMO_PS1_DUMMY ? Path.Combine(input_path, conf.game.FilenameDIR) : null;
+				dat_path = Path.Combine(input_path, conf.game.FilenameDAT);
 			}
 			else if(File.Exists(input_path))
 			{
@@ -90,25 +82,25 @@ namespace ArgonautReverse
 			var (dir_path, dat_path) = find_dir_dat_files(input_path, conf);
 			var files = new List<DATFile>();
 
-			using(var dat_data = new BinaryReader(File.OpenRead(dat_path)))
+			using(var dat_data = new Parser(File.OpenRead(dat_path)))
 			{
 				if(dir_path is not null)
 				{
-					using var dir_data = new BinaryReader(File.OpenRead(dir_path));
+					using var dir_data = new Parser(File.OpenRead(dir_path));
 					var n_files = dir_data.ReadInt32();
 					for(int i=0; i<n_files; i++)
 					{
-						var (name, size, start) = conf.game.dir_struct_unpack(dir_data);
-						dat_data.BaseStream.Seek(start, SeekOrigin.Begin);
+						var (name, size, start) = conf.game.UnpackDIR(dir_data);
+						dat_data.Seek(start, SeekOrigin.Begin);
 						files.Add(parse_dat_file(name.Trim('\0')/*.decode("ASCII")*/, dat_data.ReadBytes(size)));
 					}
 				}
 				else// Croc 2 Demo DUMMY
 				{
-					while(dat_data.BaseStream.Position<dat_data.BaseStream.Length)
+					while(dat_data.Position<dat_data.Length)
 					{
-						var name = dat_data.BaseStream.Position.ToString("X8");
-						var startingPos = dat_data.BaseStream.Position;
+						var name = dat_data.Position.ToString("X8");
+						var startingPos = dat_data.Position;
 						//var size_bytes = dat_data.ReadBytes(4);
 						//var size = int.from_bytes(size_bytes, "little");
 						var size = dat_data.ReadInt32();
@@ -122,10 +114,10 @@ namespace ArgonautReverse
 					
 						//dat_data.BaseStream.Position -= 4;
 						//var data = dat_data.ReadBytes(size - 4);
-						dat_data.BaseStream.Position = startingPos;
+						dat_data.Position = startingPos;
 						var data = dat_data.ReadBytes(size);
 
-						Utils.pad_in_2048_bytes(dat_data.BaseStream);
+						Utils.pad_in_2048_bytes(dat_data);
 						files.Add(parse_dat_file(name + suffix, /*size_bytes +*/ data));
 					}
 				}
@@ -179,14 +171,14 @@ namespace ArgonautReverse
 				file.serialize(dat_output, conf);
 				var size = (int)(dat_output.BaseStream.Position - start);
 				Utils.pad_out_2048_bytes(dat_output.BaseStream);
-				conf.game.dir_struct_pack(dir_output, file.name/*.encode("ASCII")*/, size, start);
+				conf.game.PackDIR(dir_output, file.name/*.encode("ASCII")*/, size, start);
 			}
-			using(var dir_file = File.OpenWrite(Path.Join(output_folder, conf.game.dir_filename)))
+			using(var dir_file = File.OpenWrite(Path.Join(output_folder, conf.game.FilenameDIR)))
 			{
 				dir_output.BaseStream.Position = 0;
 				dir_output.BaseStream.CopyTo(dir_file);
 			}
-			using(var dat_file = File.OpenWrite(Path.Join(output_folder, conf.game.dat_filename)))
+			using(var dat_file = File.OpenWrite(Path.Join(output_folder, conf.game.FilenameDAT)))
 			{
 				dat_output.BaseStream.Position = 0;
 				dat_output.BaseStream.CopyTo(dat_file);

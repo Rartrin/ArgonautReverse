@@ -17,7 +17,7 @@
     },
     "Export DUMMY": {
       "commandName": "Project",
-      "commandLineArgs": "-export-assets -game \"Croc 2 Demo PS1 (Dummy)\" -dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" -levels \"GameFiles/DUMMY\" -strats \"GameFiles/DUMMY\""
+      "commandLineArgs": "-export-assets -game \"Croc 2 Demo PS1 (Dummy)\" -dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" -levels \"GameFiles/DUMMY\" -strats \"GameFiles/DUMMY\" -textures \"GameFiles/DUMMY/Textures\" -models \"GameFiles/DUMMY/Models\""
     }
   }
 }

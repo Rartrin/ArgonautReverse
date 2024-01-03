@@ -1,3 +1,8 @@
+using System.Drawing.Imaging;
+using ArgonautReverse.Files;
+using ArgonautReverse.WadSections.DPSX;
+using ArgonautReverse.WadSections.TPSX;
+
 namespace ArgonautReverse
 {
 	public static class ExportAssets
@@ -65,7 +70,7 @@ namespace ArgonautReverse
 			{
 				if(args.TryGetValue("-textures", out var export_textures))
 				{
-					wad_file.tpsx.texture_file.to_colorized_texture().Save(Path.Join(export_textures, $"{wad_file.stem}.PNG"));
+					wad_file.tpsx.texture_file.to_colorized_texture().Save(Path.Join(export_textures, $"{wad_file.stem}.PNG"), ImageFormat.Png);
 				}
 			}
 
@@ -110,7 +115,7 @@ namespace ArgonautReverse
 
 		public static void export_assets(Dictionary<string,string> args)
 		{
-			var game = Configuration.SUPPORTED_GAMES.SingleOrDefault(g => g.title == args["-game"]);
+			var game = Configuration.SUPPORTED_GAMES.SingleOrDefault(g => g.Title == args["-game"]);
 			if(!Configuration.PARSABLE_GAMES.Contains(game))
 			{
 				throw new NotImplementedException("Files from this game can be extracted, but not reversed (yet). If you just want to extract them, use the extract_files_from_dat.py script.");

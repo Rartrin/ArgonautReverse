@@ -15,14 +15,14 @@
 			Height = height;
 		}
 
-		public static Font Parse(BinaryReader reader)
+		public static Font Parse(Parser parser)
 		{
 			return new Font
 			(
-				texture:reader.ReadUInt16(),
-				baseLine:reader.ReadUInt16(),
-				width:reader.ReadUInt16(),
-				height:reader.ReadUInt16()
+				texture:parser.ReadUInt16(),
+				baseLine:parser.ReadUInt16(),
+				width:parser.ReadUInt16(),
+				height:parser.ReadUInt16()
 			);
 		}
 	}

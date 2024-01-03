@@ -1,10 +1,3 @@
-//import warnings
-//from io import BufferedIOBase, SEEK_CUR
-
-//from ps1_argonaut.BaseDataClasses import BaseDataClass
-//from ps1_argonaut.configuration import Configuration, G
-//from ps1_argonaut.errors_warnings import AnimationsWarning
-
 namespace ArgonautReverse.WadSections.DPSX
 {
 	public sealed class AnimationHeader:BaseDataClass
@@ -44,7 +37,7 @@ namespace ArgonautReverse.WadSections.DPSX
 		}
 	
 		//@classmethod
-		public static AnimationHeader parse(Parser data_in, Configuration conf/*, *args, **kwargs*/)//BufferedIOBase
+		public static AnimationHeader parse(Parser data_in, Configuration conf)
 		{
 			//base.parse(data_in, conf);
 			int n_flags = data_in.ReadInt32();
@@ -69,12 +62,12 @@ namespace ArgonautReverse.WadSections.DPSX
 				n_inter_frames = 0;
 			}
 			int n_vertex_groups = data_in.ReadInt32();
-			data_in.seek(4, SeekOrigin.Current);
+			data_in.Seek(4, SeekOrigin.Current);
 
 			if(conf.game==G.HARRY_POTTER_1_PS1 || conf.game==G.HARRY_POTTER_2_PS1)
 			{
 				n_stored_frames = data_in.ReadInt32();
-				data_in.seek(12, SeekOrigin.Current);
+				data_in.Seek(12, SeekOrigin.Current);
 			}
 			var flags = new byte[n_flags][];
 			for(int i=0; i<n_flags; i++)
@@ -83,13 +76,13 @@ namespace ArgonautReverse.WadSections.DPSX
 			}
 			if(has_additional_data)
 			{
-				data_in.seek(8 * n_total_frames, SeekOrigin.Current);
+				data_in.Seek(8 * n_total_frames, SeekOrigin.Current);
 			}
-			data_in.seek(4 * n_total_frames, SeekOrigin.Current);  // Total frames info
-			data_in.seek(n_inter_frames * inter_frames_header_size, SeekOrigin.Current);  // Inter-frames header
+			data_in.Seek(4 * n_total_frames, SeekOrigin.Current);  // Total frames info
+			data_in.Seek(n_inter_frames * inter_frames_header_size, SeekOrigin.Current);  // Inter-frames header
 			if ((conf.game==G.HARRY_POTTER_1_PS1 || conf.game==G.HARRY_POTTER_2_PS1) || n_inter_frames != 0)
 			{
-				data_in.seek(4 * n_stored_frames, SeekOrigin.Current);  // Stored frames info
+				data_in.Seek(4 * n_stored_frames, SeekOrigin.Current);  // Stored frames info
 			}
 			bool old_animation_format;
 			if(n_stored_frames == 0 || n_inter_frames != 0)  // Rotation matrices
@@ -109,7 +102,7 @@ namespace ArgonautReverse.WadSections.DPSX
 				}
 				else
 				{
-					throw new AnimationsWarning((int)data_in.Position, n_total_frames);
+					throw new AnimationsWarning(data_in.Position, n_total_frames);
 				}
 			}
 			return new AnimationHeader(n_total_frames, n_stored_frames, n_vertex_groups, n_flags, has_additional_data, flags, old_animation_format, n_inter_frames);

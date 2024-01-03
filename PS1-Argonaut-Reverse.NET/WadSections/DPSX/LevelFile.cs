@@ -1,20 +1,4 @@
-//from io import BufferedIOBase, SEEK_CUR
-
-//from ps1_argonaut.BaseDataClasses import BaseDataClass
-//from ps1_argonaut.configuration import Configuration, G
-//from ps1_argonaut.wad_sections.DPSX.ChunkClasses import (
-//    ChunkHolder,
-//    ChunkRotation,
-//    ChunksMatrix,
-//    SubChunk,
-//)
-//from ps1_argonaut.wad_sections.DPSX.Model3DData import LevelGeom3DData
-//from ps1_argonaut.wad_sections.DPSX.Model3DHeader import Model3DHeader
-
-
 using System.Text;
-using Compat;
-using static Compat.Compat;
 
 namespace ArgonautReverse.WadSections.DPSX
 {
@@ -28,7 +12,7 @@ namespace ArgonautReverse.WadSections.DPSX
 		}
 
 		//@classmethod
-		public static LevelFile parse(Parser data_in, Configuration conf/*, *args, **kwargs*/)//BufferedIOBase
+		public static LevelFile parse(Parser data_in, Configuration conf)
 		{
 			//base.parse(data_in, conf);
 			var n_chunk_models = data_in.ReadInt32();
@@ -44,15 +28,15 @@ namespace ArgonautReverse.WadSections.DPSX
 			}
 			if(conf.game != G.CROC_2_DEMO_PS1_DUMMY)
 			{
-				data_in.seek(8, SEEK_CUR);
+				data_in.Seek(8, SeekOrigin.Current);
 			}
 			var n_sub_chunks = data_in.ReadInt32();
 
 			var n_idk1 = data_in.ReadInt32();
-			data_in.seek(4 * n_idk1, SEEK_CUR);
+			data_in.Seek(4 * n_idk1, SeekOrigin.Current);
 			Utils.Assert(n_sub_chunks == data_in.ReadInt32());
 			var n_actors_instances = data_in.ReadUInt16();
-			data_in.seek((conf.game != G.CROC_2_DEMO_PS1_DUMMY) ? 6 : 2, SEEK_CUR);
+			data_in.Seek((conf.game != G.CROC_2_DEMO_PS1_DUMMY) ? 6 : 2, SeekOrigin.Current);
 			var n_total_chunks = data_in.ReadInt32();
 			var n_chunk_columns = data_in.ReadInt32();
 			var n_chunk_rows = data_in.ReadInt32();
@@ -71,7 +55,7 @@ namespace ArgonautReverse.WadSections.DPSX
 				n_add_sub_chunks_lighting = null;
 			}
 			var n_idk4 = data_in.ReadInt32();
-			data_in.seek((conf.game != G.CROC_2_DEMO_PS1_DUMMY) ? 116 : 80, SEEK_CUR);
+			data_in.Seek((conf.game != G.CROC_2_DEMO_PS1_DUMMY) ? 116 : 80, SeekOrigin.Current);
 
 			var _chunks_matrix = new object[n_total_chunks];//list[list[int] | int | None]
 			for(int i=0; i<n_total_chunks; i++)
@@ -82,11 +66,11 @@ namespace ArgonautReverse.WadSections.DPSX
 			var _sub_chunks_height_0 = new Dictionary<uint,(int _0, int _1)>();
 			var _sub_chunks_height = new Dictionary<uint,int>();
 
-			var chunks_info_start_offset = data_in.tell();
+			var chunks_info_start_offset = data_in.Position;
 
 			IReadOnlyList<int> parse_chunks_info(int offset, List<int> chunks_ids_list)
 			{
-				data_in.seek(chunks_info_start_offset + offset);
+				data_in.Seek(chunks_info_start_offset + offset);
 				chunks_ids_list.Add(data_in.ReadInt32());
 				var linked_chunk_offset = data_in.ReadUInt32();
 				if(linked_chunk_offset != 0xFFFFFFFF)
@@ -119,7 +103,7 @@ namespace ArgonautReverse.WadSections.DPSX
 					}
 				}
 			}
-			data_in.seek(chunks_info_start_offset + 8 * n_sub_chunks);
+			data_in.Seek(chunks_info_start_offset + 8 * n_sub_chunks);
 			int[] zone_ids;
 			byte[][] fvw_data;
 			if(conf.game != G.CROC_2_DEMO_PS1_DUMMY)
@@ -144,7 +128,7 @@ namespace ArgonautReverse.WadSections.DPSX
 				else
 				{
 					fvw_data = null;
-					data_in.seek(-4, SEEK_CUR);
+					data_in.Seek(-4, SeekOrigin.Current);
 				}
 			}
 			else
@@ -179,9 +163,9 @@ namespace ArgonautReverse.WadSections.DPSX
 
 			for(int i=0; i<n_actors_instances; i++)
 			{
-				data_in.seek(24, SEEK_CUR);
+				data_in.Seek(24, SeekOrigin.Current);
 				var actor_offset = data_in.ReadInt32();
-				data_in.seek(32, SEEK_CUR);
+				data_in.Seek(32, SeekOrigin.Current);
 				var actor_sound_level = data_in.ReadInt32();
 			}
 			int[] add_models_mapping;
@@ -190,23 +174,23 @@ namespace ArgonautReverse.WadSections.DPSX
 				add_models_mapping = new int[n_add_sub_chunks_lighting.Value];
 				for(int i=0; i<n_add_sub_chunks_lighting; i++)
 				{
-					data_in.seek(16, SEEK_CUR);
+					data_in.Seek(16, SeekOrigin.Current);
 					add_models_mapping[i] = data_in.ReadInt32();
-					data_in.seek(4, SEEK_CUR);
+					data_in.Seek(4, SeekOrigin.Current);
 				}
 				var n_idk2 = data_in.ReadInt32();
-				data_in.seek(32 * n_idk2, SEEK_CUR);  // TODO Reverse this
+				data_in.Seek(32 * n_idk2, SeekOrigin.Current);  // TODO Reverse this
 			}
 			else
 			{
 				add_models_mapping = null;
-				data_in.seek(32 * n_sub_chunks, SEEK_CUR);  // Two different 32-bytes long structures
-				data_in.seek(32 * n_sub_chunks, SEEK_CUR);
-				data_in.seek((conf.game == G.CROC_2_DEMO_PS1) ? 32 : 92, SEEK_CUR);
+				data_in.Seek(32 * n_sub_chunks, SeekOrigin.Current);  // Two different 32-bytes long structures
+				data_in.Seek(32 * n_sub_chunks, SeekOrigin.Current);
+				data_in.Seek((conf.game == G.CROC_2_DEMO_PS1) ? 32 : 92, SeekOrigin.Current);
 			}
 			if(conf.game == G.CROC_2_PS1)
 			{
-				data_in.seek(30732, SEEK_CUR);
+				data_in.Seek(30732, SeekOrigin.Current);
 			}
 			else if(conf.game != G.CROC_2_DEMO_PS1_DUMMY && n_sub_chunks != 0)
 			{
@@ -217,7 +201,7 @@ namespace ArgonautReverse.WadSections.DPSX
 					for(int i=0; i<sub_chunks_n_lighting[model_id]; i++)
 					{
 						var size = 4 * chunk_models[chunks_models_mapping[model_id]].n_vertices;
-						data_in.seek(size, SEEK_CUR);
+						data_in.Seek(size, SeekOrigin.Current);
 					}
 				}
 				for(int model_id=0; model_id<n_add_sub_chunks_lighting; model_id++)
@@ -225,7 +209,7 @@ namespace ArgonautReverse.WadSections.DPSX
 					for(int i=0; i<sub_chunks_n_add_lighting[model_id]; i++)
 					{
 						var size = 4 * chunk_models[add_models_mapping[model_id]].n_vertices;
-						data_in.seek(size, SEEK_CUR);
+						data_in.Seek(size, SeekOrigin.Current);
 					}
 				}
 				if(conf.game != G.CROC_2_DEMO_PS1)// Not present in Croc 2 Demo Dummy
@@ -233,20 +217,20 @@ namespace ArgonautReverse.WadSections.DPSX
 					var idk_size = data_in.ReadInt32();
 					if(idk_size != 0)
 					{
-						data_in.seek(4 + idk_size, SEEK_CUR);
+						data_in.Seek(4 + idk_size, SeekOrigin.Current);
 					}
 					else
 					{
-						data_in.seek(-4, SEEK_CUR);
+						data_in.Seek(-4, SeekOrigin.Current);
 					}
 					var n_idk3 = data_in.ReadInt32();
 					if(n_idk3 == 0)
 					{
-						data_in.seek(-4, SEEK_CUR);
+						data_in.Seek(-4, SeekOrigin.Current);
 					}
 					var idk3 = data_in.ReadArrayOfByteArrays(40, n_idk3);//var idk3 = [int.from_bytes(data_in.read(40), "little") for _ in range(n_idk3)]
 				}
-				data_in.seek(12, SEEK_CUR);
+				data_in.Seek(12, SeekOrigin.Current);
 			}
 			var chunks_holders = new ChunkHolder[n_total_chunks];
 			for(int i=0; i<n_total_chunks; i++)

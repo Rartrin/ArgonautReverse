@@ -1,18 +1,3 @@
-//import warnings
-//from collections.abc import Iterable
-//from io import BufferedIOBase, BytesIO, SEEK_CUR
-
-//import numpy as np
-//from PIL import Image
-
-//from ps1_argonaut.BaseDataClasses import BaseDataClass
-//from ps1_argonaut.configuration import Configuration, G
-//from ps1_argonaut.errors_warnings import TexturesWarning, ZeroRunLengthError
-//from ps1_argonaut.utils import parse_4bits_paletted, parse_high_color, parse_palette
-//from ps1_argonaut.wad_sections.TPSX.TextureData import TextureData
-//from ps1_argonaut.wad_sections.TPSX.TextureFlags import TextureFlags
-
-
 using System.Collections;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -56,24 +41,14 @@ namespace ArgonautReverse.WadSections.TPSX
 		public int n_textures => list.Count;
 
 		//@classmethod
-		public static TextureFile parse(Parser data_in, Configuration conf/*, *args, **kwargs*/, bool has_legacy_textures, int end)//BufferedIOBase
+		public static TextureFile parse(Parser data_in, Configuration conf, bool compressed16bit, bool hasMemoryCardIcons, int end)
 		{
-			//base.parse(data_in, conf);
-			//bool has_legacy_textures = kwargs["has_legacy_textures"];
-			//int end = kwargs["end"];
-			bool rle =
-			(
-				conf.game == G.CROC_2_PS1
-				|| conf.game == G.CROC_2_DEMO_PS1
-				|| conf.game == G.HARRY_POTTER_1_PS1
-				|| conf.game == G.HARRY_POTTER_2_PS1
-			);
 
 			var textures = new List<TextureData>();
 			int n_textures = data_in.ReadInt32();
 			int n_rows = data_in.ReadInt32();
 
-			if(n_textures > 4000 || (0 > n_rows || n_rows > 4))
+			if(n_textures > 4000 || ((n_rows<0) || (4<n_rows)))
 			{
 				if(conf.ignore_warnings)
 				{
@@ -81,7 +56,7 @@ namespace ArgonautReverse.WadSections.TPSX
 				}
 				else
 				{
-					throw new TexturesWarning((int)data_in.Position, n_textures, n_rows);
+					throw new TexturesWarning(data_in.Position, n_textures, n_rows);
 				}
 			}
 
@@ -101,14 +76,20 @@ namespace ArgonautReverse.WadSections.TPSX
 			}
 			var n_idk_yet_1 = data_in.ReadInt32();
 			var number_effects = data_in.ReadInt32(); // Name found in the debug symbols
-			data_in.Position += n_idk_yet_1 * image_header_size;
+			data_in.Position += n_idk_yet_1 * image_header_size;//image_header_size is just sizeof(int)
 
-			if(has_legacy_textures)// Patch for legacy textures, see Textures documentation
+			//TODO: Memory Card Icons
+			if(hasMemoryCardIcons)
 			{
 				data_in.Position += 15360;
+				for(int i=0; i<5; i++)
+				{
+					var mcPalette = data_in.ReadUInt32Array(128);
+					var mcBitmapData = data_in.ReadUInt32Array(16*40);
+				}
 			}
 			byte[] textures_data;
-			if(rle)
+			if(compressed16bit)
 			{
 				var raw_textures = new byte[image_bytes_size];
 				var raw_texturesStream = new MemoryStream(raw_textures);
@@ -130,7 +111,7 @@ namespace ArgonautReverse.WadSections.TPSX
 					}
 					else
 					{
-						throw new ZeroRunLengthError((int)data_in.Position);
+						throw new ZeroRunLengthError(data_in.Position);
 					}
 				}
 				raw_texturesStream.Position = 0;
@@ -148,77 +129,79 @@ namespace ArgonautReverse.WadSections.TPSX
 				textures_data = new byte[image_size + padding_size];
 				data_in.Read(textures_data, 0, image_size);
 			}
-			bool legacy_alpha = (conf.game==G.CROC_2_DEMO_PS1) && (conf.game==G.CROC_2_DEMO_PS1_DUMMY);
+			bool legacy_alpha = (conf.game==G.CROC_2_DEMO_PS1) || (conf.game==G.CROC_2_DEMO_PS1_DUMMY);
 			return new TextureFile(n_rows, textures_data, legacy_alpha, textures);
 		}
 
 		/// <summary>Draws a complete colored texture image (composed of multiple single textures).</summary>
-		public Bitmap to_colorized_texture()
+		public unsafe Bitmap to_colorized_texture()
 		{
-			var rgba = "RGBA";
-			var rgb = "RGB";
-
-			var res = new Bitmap(image_dimensions.Width, image_dimensions.Height,  System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-		
-			var im_4bits_paletted = Image.fromarray(
-				np.array(Utils.parse_4bits_paletted(this.textures_data), dtype:np.uint8).reshape(
-					image_dimensions.Height, image_dimensions.Width
-				),
-				"P"
-			);
-			var im_8bits_paletted = Image.fromarray(
-				np.array(list(this.textures_data), dtype:np.uint8).reshape(
-					(image_dimensions.Height, image_dimensions.Width / 2)//Floor division
-				),
-				"P"
-			);
-			var im_high_color = Image.fromarray(
-				np.array(
-					Utils.parse_high_color(this.textures_data, true), dtype:np.uint8
-				).reshape((image_dimensions.Height, image_dimensions.Width / 4, 4)),//Floor division
-				rgba
-			);
-		
-			var texture_mode = this.has_alpha ? rgba : rgb;
-			foreach(var texture in this.textures)
+			var res = new Bitmap(image_dimensions.Width, image_dimensions.Height,  PixelFormat.Format32bppArgb);
+			
+			fixed(byte* textures_data0 = this.textures_data)
 			{
-				var box = texture.input_box;
-				if((texture.flags&TextureFlags.IS_NOT_PALETTED)==0)
+				var textures_data_4bit = Utils.parse_4bits_paletted(this.textures_data);
+				Bitmap im_4bits_paletted;
+				fixed(byte* textures_data_4bit0 = textures_data_4bit)
 				{
-					if((texture.flags&TextureFlags.HAS_256_COLORS_PALETTE)!=0)  // 256-colors paletted
-					{
-						var texture_image = im_8bits_paletted.crop(box);
-						texture_image.putpalette(
-							Utils.parse_palette(
-								this.textures_data,
-								256,
-								this.has_alpha,
-								this.legacy_alpha,
-								texture.palette_start ?? 0
-							),
-							texture_mode
-						);
-					}
-					else// 16-colors paletted
-					{
-						texture_image = im_4bits_paletted.crop(box);
-						texture_image.putpalette(
-							Utils.parse_palette(
-								this.textures_data,
-								16,
-								this.has_alpha,
-								this.legacy_alpha,
-								texture.palette_start ?? 0
-							),
-							texture_mode
-						);
-					}
+					im_4bits_paletted = new Bitmap(image_dimensions.Width, image_dimensions.Height, image_dimensions.Width/2, PixelFormat.Format4bppIndexed, (IntPtr)textures_data_4bit0);
 				}
-				else// True color (no palette)
+				Bitmap im_8bits_paletted = new Bitmap(image_dimensions.Width, image_dimensions.Height, image_dimensions.Width / 2, PixelFormat.Format8bppIndexed, (IntPtr)textures_data0);
+				Bitmap im_high_color = new Bitmap(image_dimensions.Width, image_dimensions.Height, image_dimensions.Width / 4 /* * (has_alpha?4:3)*/, PixelFormat.Format32bppArgb, (IntPtr)textures_data0);
+
+				var resGraphics = Graphics.FromImage(res);
+
+				for(int t=0; t<this.textures.Count; t++)
 				{
-					texture_image = im_high_color.crop(box);
+					var texture = this.textures[t];
+
+					var box = texture.input_box;
+					if(box._0 == box._2 || box._1 == box._3)
+					{
+						Console.WriteLine($"Invalid texture dimentions {box._0},{box._1},{box._2},{box._3}");
+						continue;
+					}
+
+					var rect = Rectangle.FromLTRB(box._0, box._1, box._2, box._3);
+
+					Bitmap texture_image;
+					if((texture.flags&TextureFlags.IS_NOT_PALETTED)==0)
+					{
+						int paletteSize;
+						if((texture.flags&TextureFlags.HAS_256_COLORS_PALETTE)!=0)  // 256-colors paletted
+						{
+							texture_image = im_8bits_paletted.Clone(rect, PixelFormat.Format8bppIndexed);
+							paletteSize = 256;
+						}
+						else// 16-colors paletted
+						{
+							texture_image = im_4bits_paletted.Clone(rect, PixelFormat.Format4bppIndexed);
+							paletteSize = 16;
+						}
+						var palette = texture_image.Palette;
+						
+						var paletteColors = Utils.parse_palette
+						(
+							this.textures_data,
+							paletteSize,
+							this.has_alpha,
+							this.legacy_alpha,
+							texture.palette_start ?? 0
+						);
+
+						for(int p=0; p<palette.Entries.Length; p++)
+						{
+							palette.Entries[p] = paletteColors[p];
+						}
+						texture_image.Palette = palette;
+					}
+					else// True color (no palette)
+					{
+						texture_image = im_high_color.Clone(rect, PixelFormat.Format32bppArgb);
+					}
+					var drawPos = texture.output_top_left_corner;
+					resGraphics.DrawImageUnscaled(texture_image, drawPos.X, drawPos.Y);
 				}
-				res.paste(texture_image, texture.output_top_left_corner);
 			}
 			return res;
 		}

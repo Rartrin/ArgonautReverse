@@ -1,25 +1,8 @@
-//import math
-//from io import BufferedIOBase, BytesIO, SEEK_CUR, StringIO
-//from pathlib import Path
-
-//from ps1_argonaut.BaseDataClasses import BaseWADSection
-//from ps1_argonaut.configuration import Configuration, G, wavefront_header
-//from ps1_argonaut.errors_warnings import SectionNameError
-//from ps1_argonaut.files.DATFile import DATFile
-//from ps1_argonaut.wad_sections.DPSX.ChunkClasses import ChunkHolder
-//from ps1_argonaut.wad_sections.DPSX.DPSXSection import DPSXSection
-//from ps1_argonaut.wad_sections.DPSX.Model3DData import Model3DData
-//from ps1_argonaut.wad_sections.ENDSection import ENDSection
-//from ps1_argonaut.wad_sections.PORTSection import PORTSection
-//from ps1_argonaut.wad_sections.SPSX import VAGSoundData
-//from ps1_argonaut.wad_sections.SPSX.Sounds import DialoguesBGMsSoundFlags
-//from ps1_argonaut.wad_sections.SPSX.SPSXSection import SPSXSection
-//from ps1_argonaut.wad_sections.TPSX.TPSXSection import TPSXSection
-
-
 using System.Text;
+using ArgonautReverse.WadSections;
+using ArgonautReverse.WadSections.DPSX;
+using ArgonautReverse.WadSections.TPSX;
 
-using static Compat.Compat;
 namespace ArgonautReverse.Files
 {
 	public class WADFile:DATFile//, IReadOnlyDictionary<uint, BaseWADSectionInfo>
@@ -198,7 +181,6 @@ namespace ArgonautReverse.Files
 			{
 				mtl_file.WriteLine(Configuration.wavefront_header + $"newmtl mtl1\nmap_Kd {wad_filename}.PNG");
 			}
-			//TODO: Textures
 			this.tpsx.texture_file.to_colorized_texture().Save(Path.Join(folder_path, (wad_filename + ".PNG")), System.Drawing.Imaging.ImageFormat.Png);
 		}
 		/// <summary>
@@ -407,13 +389,13 @@ namespace ArgonautReverse.Files
 			}
 		}
 
-		public override unsafe void parse(Configuration conf/*, *args, **kwargs*/)
+		public override unsafe void parse(Configuration conf)
 		{
 			using var data_in = new Parser(new MemoryStream(this._data));//BytesIO
 			var sections_offsets = new Dictionary<uint,int>();
 			void parse_sections()
 			{
-				data_in.seek(4);
+				data_in.Seek(4);
 				while(true)
 				{
 					var codename = data_in.ReadUInt32();
@@ -421,9 +403,9 @@ namespace ArgonautReverse.Files
 					// Detects incorrect WADs like FESOUND or FETHUND
 					if (sections_offsets.Count == 0 & codename != TPSXSectionInfo.Instance.codename_raw)
 					{
-						throw new SectionNameError(data_in.tell(), TPSXSectionInfo.Instance.codename_str, Encoding.Latin1.GetString((byte*)&codename, 4));
+						throw new SectionNameError(data_in.Position, TPSXSectionInfo.Instance.codename_str, Encoding.Latin1.GetString((byte*)&codename, 4));
 					}
-					sections_offsets[codename] = data_in.tell() - 4;
+					sections_offsets[codename] = data_in.Position - 4;
 				
 					//0x454E4420
 					if(codename == 0x454E4420 /*ENDSectionInfo.Info.codename_raw*/)// ' DNE' (END)
@@ -441,7 +423,7 @@ namespace ArgonautReverse.Files
 
 			foreach(var(codename_bytes, offset) in sections_offsets)
 			{
-				data_in.seek(offset);
+				data_in.Seek(offset);
 				if(WADFile.sections_conf.ContainsKey(codename_bytes))
 				{
 					var section = WADFile.sections_conf[codename_bytes];
@@ -473,7 +455,7 @@ namespace ArgonautReverse.Files
 			}
 			this.end_parse();
 		}
-		public override void serialize(object file_path_or_data_out, Configuration conf)//Path | BufferedIOBase
+		public override void serialize(object file_path_or_data_out, Configuration conf)
 		{
 			var data_out = (file_path_or_data_out is BinaryWriter writer) ? writer : new BinaryWriter(new MemoryStream());
 

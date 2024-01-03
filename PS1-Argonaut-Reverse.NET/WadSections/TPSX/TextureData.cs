@@ -1,16 +1,15 @@
-using Coords = System.Collections.Generic.IReadOnlyList<XY>;
-public record class Box(int _0,int _1,int _2,int _3);
-
 namespace ArgonautReverse.WadSections.TPSX
 {
+	public record class Box(int _0,int _1,int _2,int _3);
+
 	public sealed class TextureData:BaseDataClass
 	{
 		public readonly TextureFlags flags;
-		public readonly Coords raw_coords;
+		public readonly IReadOnlyList<XY> raw_coords;
 		public readonly Box cm;
 		public readonly int? palette_start;
 
-		public TextureData(TextureFlags flags, Coords raw_coords, Box cm, int? palette_start)
+		public TextureData(TextureFlags flags, IReadOnlyList<XY> raw_coords, Box cm, int? palette_start)
 		{
 			this.flags = flags;
 			Utils.Assert(((int)this.flags & 0xFE00) == 0);
@@ -20,24 +19,37 @@ namespace ArgonautReverse.WadSections.TPSX
 		}
 
 		//@classmethod
-		public static TextureData parse(Parser data_in, Configuration conf/*, *args, **kwargs*/)//BufferedIOBase
+		public static TextureData parse(Parser data_in, Configuration conf)
 		{
-			//struct = Struct("2BH2BH4B")
-			//c1x, c1y, palette_info, c2x, c2y, flags, c3x, c3y, c4x, c4y = cls.struct.unpack(data_in.read(12));
-			var c1x = data_in.ReadByte();
-			var c1y = data_in.ReadByte();
+			//Bottom Right
+			var brX = data_in.ReadByte();
+			var brY = data_in.ReadByte();
+			
 			var palette_info = data_in.ReadUInt16();
-			var c2x = data_in.ReadByte();
-			var c2y = data_in.ReadByte();
+			
+			//Bottom Left
+			var blX = data_in.ReadByte();
+			var blY = data_in.ReadByte();
+
 			var flags = (TextureFlags)data_in.ReadUInt16();
-			var c3x = data_in.ReadByte();
-			var c3y = data_in.ReadByte();
-			var c4x = data_in.ReadByte();
-			var c4y = data_in.ReadByte();
+			
+			//Top Right
+			var trX = data_in.ReadByte();
+			var trY = data_in.ReadByte();
+
+			//Top Left
+			var tlX = data_in.ReadByte();
+			var tlY = data_in.ReadByte();
 
 			// Raw coordinates are contained in a 1024x1024, 512x1024 or 256x1024 space
 			// (16-colors paletted, 256-colors paletted and non-paletted high color respectively)
-			XY[] raw_coords = new XY[]{new XY(c1x, c1y), new XY(c2x, c2y), new XY(c3x, c3y), new XY(c4x, c4y)};
+			var raw_coords = new XY[]
+			{
+				new XY(brX, brY),
+				new XY(blX, blY),
+				new XY(trX, trY),
+				new XY(tlX, tlY)
+			};
 
 			Box cm;
 			// Coordinates Mapping, needed to put the coordinates in the right order
@@ -78,14 +90,14 @@ namespace ArgonautReverse.WadSections.TPSX
 
 		//@staticmethod
 		/// <summary>Textures tend to be better delimited when rounded to the nearest multiple of 2</summary>
-		public static Coords round_coords(IEnumerable<XY> coords)
+		public static IReadOnlyList<XY> round_coords(IEnumerable<XY> coords)
 		{
 			return coords.Select(coord => new XY(2 * (int)MathF.Ceiling(coord.X / 2f), 2 * (int)MathF.Ceiling(coord.Y / 2f))).ToArray();
 		}
 
 		//@property
 		/// <summary>Unordered coordinates of this texture (256x1024, 512x1024 or 1024x1024 space)</summary>
-		public Coords input_coords
+		public IReadOnlyList<XY> input_coords
 		{
 			get
 			{
@@ -99,7 +111,7 @@ namespace ArgonautReverse.WadSections.TPSX
 
 		//@property
 		/// <summary>Unordered coordinates of this texture (1024x1024 space)</summary>
-		public Coords output_coords
+		public IReadOnlyList<XY> output_coords
 		{
 			get
 			{

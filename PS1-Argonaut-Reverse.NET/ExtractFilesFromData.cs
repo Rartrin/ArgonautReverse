@@ -38,7 +38,7 @@ namespace ArgonautReverse
 
 		public static void Extract(Dictionary<string,string> args)
 		{
-			var game = Configuration.SUPPORTED_GAMES.Single(game => game.title == args["-game"]);
+			var game = Configuration.SUPPORTED_GAMES.Single(game => game.Title == args["-game"]);
 			var conf = new Configuration(game, true, false);
 
 			var input_path = args["-dirdat"];
