@@ -3,11 +3,11 @@ namespace ArgonautReverse.Files
 	public abstract class DATFile
 	{
 		//public static string suffix;
-		protected byte[] _data;
-		public string suffix;
-		public string stem;
+		protected readonly byte[] _data;
+		public string Suffix{get;}
+		public string Stem{get;}
 
-		public string name => $"{stem}.{suffix}";
+		public string Name => $"{Stem}.{Suffix}";
 
 		public DATFile(string stem, string suffix = null, byte[] data = null)
 		{
@@ -16,28 +16,20 @@ namespace ArgonautReverse.Files
 				this._data = data;
 			}
 
-			this.suffix = suffix;//??DATFile.suffix;
+			this.Suffix = suffix;//??DATFile.suffix;
 
-			if(stem.Length > 8 || this.suffix.Length > 3)
+			if(stem.Length > 8 || this.Suffix.Length > 3)
 			{
 				throw new Exception("The engine uses \"8.3 filenames\" (8-characters stem, dot then 3-characters extension), please use a compatible filename.");
 			}
-			this.stem = stem;
+			this.Stem = stem;
 		}
 	
 		public override string ToString() => "(?) Unknown file";
 
-		public virtual void parse(Configuration conf){}
+		public virtual void Parse(Configuration conf){}
 
-		public void end_parse()
-		{
-			if(this._data != null)//hasattr(self, "_data")
-			{
-				this._data = null;//del this._data
-			}
-		}
-
-		public virtual void serialize(object data_out, Configuration conf)
+		public virtual void Serialize(object data_out, Configuration conf)
 		{
 			if(data_out is string path)
 			{

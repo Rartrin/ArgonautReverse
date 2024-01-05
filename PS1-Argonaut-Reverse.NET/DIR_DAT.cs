@@ -4,13 +4,9 @@ using ArgonautReverse.WadSections.TPSX;
 
 namespace ArgonautReverse
 {
-	public sealed class DIR_DAT:IReadOnlyList<DATFile>
+	public sealed class DIR_DAT//:IReadOnlyList<DATFile>
 	{
-		public int Count => list.Count;
-
-		public DATFile this[int index] => list[index];
-
-		private readonly List<DATFile> list = new List<DATFile>();
+		public IReadOnlyList<DATFile> Files{get;}
 
 		public static DATFile parse_dat_file(string name, byte[] data)
 		{
@@ -30,12 +26,9 @@ namespace ArgonautReverse
 			}
 		}
 
-		public DIR_DAT(IEnumerable<DATFile> files = null)
+		public DIR_DAT(IEnumerable<DATFile> files)
 		{
-			if(files != null)
-			{
-				list.AddRange(files);
-			}
+			Files = files.ToArray();
 		}
 	
 		public static (string dir_path,string dat_path) find_dir_dat_files(string input_path, Configuration conf)
@@ -91,7 +84,7 @@ namespace ArgonautReverse
 					{
 						var (name, size, start) = conf.game.UnpackDIR(dir_data);
 						dat_data.Seek(start, SeekOrigin.Begin);
-						files.Add(parse_dat_file(name.Trim('\0')/*.decode("ASCII")*/, dat_data.ReadBytes(size)));
+						files.Add(parse_dat_file(name.Trim('\0'), dat_data.ReadBytes(size)));
 					}
 				}
 				else// Croc 2 Demo DUMMY
@@ -147,8 +140,8 @@ namespace ArgonautReverse
 		}
 		public void serialize(string output_folder, Configuration conf)
 		{
-			using var dir_output = new BinaryWriter(new MemoryStream());//BytesIO
-			using var dat_output = new BinaryWriter(new MemoryStream());//BytesIO
+			using var dir_output = new BinaryWriter(new MemoryStream());
+			using var dat_output = new BinaryWriter(new MemoryStream());
 
 			if(File.Exists(output_folder))
 			{
@@ -161,15 +154,15 @@ namespace ArgonautReverse
 			}
 			if(conf.game != G.CROC_1_PS1)
 			{
-				dir_output.Write((int)this.Count);
+				dir_output.Write((int)Files.Count);
 			}
-			foreach(var file in this.list)
+			foreach(var file in this.Files)
 			{
 				var start = (int)dat_output.BaseStream.Position;
-				file.serialize(dat_output, conf);
+				file.Serialize(dat_output, conf);
 				var size = (int)(dat_output.BaseStream.Position - start);
 				Utils.pad_out_2048_bytes(dat_output.BaseStream);
-				conf.game.PackDIR(dir_output, file.name/*.encode("ASCII")*/, size, start);
+				conf.game.PackDIR(dir_output, file.Name/*.encode("ASCII")*/, size, start);
 			}
 			using(var dir_file = File.OpenWrite(Path.Join(output_folder, conf.game.FilenameDIR)))
 			{
@@ -182,8 +175,5 @@ namespace ArgonautReverse
 				dat_output.BaseStream.CopyTo(dat_file);
 			}
 		}
-
-		public IEnumerator<DATFile> GetEnumerator() => list.GetEnumerator();
-		IEnumerator IEnumerable.GetEnumerator() => list.GetEnumerator();
 	}
 }

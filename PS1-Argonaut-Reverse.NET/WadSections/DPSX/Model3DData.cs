@@ -8,7 +8,7 @@ namespace ArgonautReverse.WadSections.DPSX
 		public const int vertex_size = 8;
 		public const int face_size = 20;
 		public const int chunk_face_size = 12;
-		public const string mtl_header = Configuration.wavefront_header + "mtllib {0}.MTL\nusemtl mtl1\ns off\n";
+		public const string mtl_header = "mtllib {0}.MTL\nusemtl mtl1\ns off\n";
 
 		public readonly Model3DHeader header;
 		public readonly bool is_world_model_3d;
@@ -357,13 +357,13 @@ namespace ArgonautReverse.WadSections.DPSX
 		}
 
 		/// <summary>Creates a standalone Wavefront OBJ 3D model.</summary>
-		public void ToSingleObj(TextWriter obj, string obj_filename, IEnumerable<TextureData> textures, string mtl_filename = null)//StringIO | TextIO
+		public void ToSingleObj(TextWriter obj, string obj_filename, IEnumerable<TextureData> textures, string mtl_filename = null)
 		{
 			obj.Write(string.Format(mtl_header, mtl_filename ?? obj_filename));//The format coming in looks for the variable mtl_filename
 			this.ToObj(obj, obj_filename, textures);
 		}
 		//Creates a Wavefront OBJ 3D model and appends it to an existing StringIO (used to export entire levels).
-		public void ToBatchObj(TextWriter obj, string filename, int x, int y, int z, ChunkRotation rotation, int vertex_index_offset)//StringIO | TextIO
+		public void ToBatchObj(TextWriter obj, string filename, int x, int y, int z, ChunkRotation rotation, int vertex_index_offset)
 		{
 			this.ToObj(obj, filename, null, x, y, z, rotation, vertex_index_offset);
 		}

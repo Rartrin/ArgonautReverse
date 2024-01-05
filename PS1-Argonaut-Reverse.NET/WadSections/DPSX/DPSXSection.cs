@@ -56,7 +56,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			var scripts = new ActorData[n_scripts];
 			for(int i=0; i<n_scripts; i++)
 			{
-				scripts[i] = ActorData.parse(data_in, conf);
+				scripts[i] = ActorData.Parse(data_in, conf);
 			}
 
 			var level_file = LevelFile.parse(data_in, conf);

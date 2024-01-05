@@ -55,11 +55,11 @@ namespace ArgonautReverse
 			{
 				Directory.CreateDirectory(output_path);
 			}
-			foreach(var dat_file in dir_dat)
+			foreach(var dat_file in dir_dat.Files)
 			{
-				dat_file.serialize(Path.Join(output_path, dat_file.name), conf);
+				dat_file.Serialize(Path.Join(output_path, dat_file.Name), conf);
 			}
-			Console.Write($"{dir_dat.Count} files successfully extracted to {output_path}");
+			Console.Write($"{dir_dat.Files.Count} files successfully extracted to {output_path}");
 		}
 	}
 }

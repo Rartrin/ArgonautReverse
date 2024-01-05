@@ -1,0 +1,76 @@
+using ArgonautReverse.WadSections.SPSX;
+
+namespace ArgonautReverse.WadSections
+{
+	public sealed class ENDSectionInfo:BaseWADSectionInfo<ENDSection>
+	{
+		public static readonly ENDSectionInfo Instance = new ENDSectionInfo();
+
+		public override string codename_str => "END ";
+		public override string section_content_description => "sound effects, background music & dialogues";
+		public override G[] supported_games{get;} = Configuration.SUPPORTED_GAMES;//new[]{G.HARRY_POTTER_1_PS1, G.HARRY_POTTER_2_PS1};
+
+		public override ENDSection Parse(Parser data_in, Configuration conf)
+		{
+			throw new Exception("Use other Parse function");
+		}
+		public ENDSection Parse(Parser data_in, Configuration conf, SPSXSection spsx_section)
+		{
+			if(spsx_section != null)
+			{
+				var (size, start) = base.parseInner(data_in, conf);
+				if(size != 0)
+				{
+					if((spsx_section.spsx_flags&SPSXFlags.HAS_LEVEL_SFX)!=0)
+					{
+						spsx_section.level_sfx_groups.parse_vags(data_in, conf);
+						spsx_section.level_sfx_mapping.parse_mapping(spsx_section.level_sfx_groups);
+					}
+					data_in.Seek(2048 * (int)Math.Ceiling(data_in.Position / 2048.0));
+					spsx_section.dialogues_bgms.parse_vags(data_in, conf);
+
+					if(conf.game == G.HARRY_POTTER_2_PS1)
+					{
+						data_in.Seek(2048 * (int)Math.Ceiling(data_in.Position / 2048.0));
+					}
+					check_size(size, start, data_in.Position);
+				}
+			}
+			return new ENDSection(spsx_section);
+		}
+	}
+	public sealed class ENDSection:BaseWADSection
+	{
+		public readonly SPSXSection spsx_section;
+
+		public ENDSection(SPSXSection spsx_section):base(ENDSectionInfo.Instance)
+		{
+			this.spsx_section = spsx_section;
+		}
+		
+		public override void serialize(BinaryWriter data_out, Configuration conf)
+		{
+			var start = base.serializeInner(data_out, conf);
+			if(spsx_section!=null)
+			{
+				if((this.spsx_section.spsx_flags&SPSXFlags.HAS_LEVEL_SFX)!=0)
+				{
+					this.spsx_section.level_sfx_groups.serialize_vags(data_out, conf);
+				}
+
+				if((this.spsx_section.spsx_flags&SPSXFlags.HAS_COMMON_SFX_AND_DIALOGUES_BGMS)!=0)
+				{
+					Utils.pad_out_2048_bytes(data_out.BaseStream);
+					this.spsx_section.dialogues_bgms.serialize_vags(data_out, conf);
+				}
+
+				if(conf.game == G.HARRY_POTTER_2_PS1)
+				{
+					Utils.pad_out_2048_bytes(data_out.BaseStream);
+				}
+			}
+
+			SerializeSectionSize(data_out, start);
+		}
+	}
+}

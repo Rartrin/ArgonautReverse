@@ -131,10 +131,10 @@ namespace ArgonautReverse.Files
 			}
 			return res;
 		}
-		public override void parse(Configuration conf/*, string kwargs_stem*/)
+		public override void Parse(Configuration conf/*, string kwargs_stem*/)
 		{
 			ArraySegment<byte>[] images_data;
-			if(this.stem == "REPORT")// Patch for REPORT.IMG that contains multiple images
+			if(this.Stem == "REPORT")// Patch for REPORT.IMG that contains multiple images
 			{
 				var imageSizes = new[]{608, 288, 288, 288, 608, 608, 608, 608, 608, 608, 608, 608};
 				//This starts as the space between offsets. Then we make each offset the sum all values up to this one.
@@ -192,7 +192,6 @@ namespace ArgonautReverse.Files
 					throw new Exception("Unknown image size");
 				}
 			}
-			this.end_parse();
 		}
 
 		public static unsafe Bitmap to_full_colorized(ArraySegment<byte> data, XY dimensions, Color[] palette, int n_palette_colors, bool has_alpha)

@@ -1,13 +1,5 @@
 namespace ArgonautReverse
 {
-	public static class warnings
-	{
-		public static void warn(string message)
-		{
-			Console.Write("WARNING: ");
-			Console.WriteLine(message);
-		}
-	}
 	public class UnsupportedParsing:NotImplementedException
 	{
 		public UnsupportedParsing(string feature_name):base($"Sorry, {feature_name} parsing / exporting isn't supported (yet) on this game."){}
@@ -18,7 +10,7 @@ namespace ArgonautReverse
 		public UnsupportedSerialization(string feature_name):base($"Sorry, {feature_name} serializing isn't supported (yet) on this game."){}
 	}
 
-	public class ReverseError:Exception
+	public abstract class ReverseError:Exception
 	{
 		public string explanation;
 		public int? absolute_file_offset;
@@ -70,32 +62,49 @@ namespace ArgonautReverse
 		public ZeroRunLengthError(int absolute_file_offset):base("A zero run length has been found while decompressing.", absolute_file_offset){}
 	}
 
-
-	public class TexturesWarning:ReverseError
+	public abstract class ReverseWarning:ReverseError
 	{
-		public TexturesWarning(int absolute_file_offset, int n_textures, int n_rows):base(
+		protected static void WarnInner(string message)
+		{
+			Console.Write("WARNING: ");
+			Console.WriteLine(message);
+		}
+
+
+		protected static string IgnoreWarningsMessage => "\nIf you think that the amounts are coherent, you can silence this warning with the --ignore-warnings commandline option.";
+
+		public ReverseWarning(int absolute_file_offset, string message):base(message, absolute_file_offset){}
+	}
+
+	public class TexturesWarning:ReverseWarning
+	{
+		private static string GetWarningMessage(int n_textures, int n_rows) =>
 			$"Too much textures ({n_textures}), or incorrect row count ({n_rows}).\n"+
-			$"It is most probably caused by an inaccuracy in my reverse engineering of the textures format.",
-			absolute_file_offset
-		){}
+			$"It is most probably caused by an inaccuracy in my reverse engineering of the textures format.";
+
+		public TexturesWarning(int absolute_file_offset, int n_textures, int n_rows):base(absolute_file_offset, GetWarningMessage(n_textures, n_rows)){}
+
+		public static void Warn(int n_textures, int n_rows) => WarnInner(GetWarningMessage(n_textures, n_rows));
 	}
 
-	public class Models3DWarning:ReverseError
+	public class Models3DWarning:ReverseWarning
 	{
-		public Models3DWarning(int absolute_file_offset, int n_vertices, int n_faces):base(
-			$"Too many vertices or faces ({n_vertices} vertices, {n_faces} faces). It is most probably caused by an "+
-			$"inaccuracy in my reverse engineering of the models format.\nIf you think that the amounts are coherent, "+
-			$"you can silence this warning with the --ignore-warnings commandline option.",
-			absolute_file_offset
-		){}
+		private static string GetWarningMessage(int n_vertices, int n_faces) =>
+			$"Too many vertices or faces ({n_vertices} vertices, {n_faces} faces).\n"+
+			"It is most probably caused by an inaccuracy in my reverse engineering of the models format.";
+
+		public Models3DWarning(int absolute_file_offset, int n_vertices, int n_faces):base(absolute_file_offset, GetWarningMessage(n_vertices, n_faces) + IgnoreWarningsMessage){}
+
+		public static void Warn(int n_vertices, int n_faces) => WarnInner(GetWarningMessage(n_vertices, n_faces));
 	}
 
-	public class AnimationsWarning:ReverseError
+	public class AnimationsWarning:ReverseWarning
 	{
-		public AnimationsWarning(int absolute_file_offset, int n_total_frames):base(
+		private static string GetWarningMessage(int n_total_frames) =>
 			$"Too much frames in animation (or no frame): {n_total_frames} frames.\n"+
-			$"It is most probably caused by an inaccuracy in my reverse engineering of the textures format.",
-			absolute_file_offset
-		){}
+			$"It is most probably caused by an inaccuracy in my reverse engineering of the textures format.";
+		public AnimationsWarning(int absolute_file_offset, int n_total_frames):base(absolute_file_offset, GetWarningMessage(n_total_frames)){}
+
+		public static void Warn(int n_total_frames) => WarnInner(GetWarningMessage(n_total_frames));
 	}
 }

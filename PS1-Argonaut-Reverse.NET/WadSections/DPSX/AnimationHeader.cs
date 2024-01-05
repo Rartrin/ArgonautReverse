@@ -97,7 +97,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			{
 				if(conf.ignore_warnings)
 				{
-					warnings.warn($"Too much frames in animation (or no frame): {n_total_frames} frames. It is most probably caused by an inaccuracy in my reverse engineering of the textures format.");
+					AnimationsWarning.Warn(n_total_frames);
 				}
 				else
 				{

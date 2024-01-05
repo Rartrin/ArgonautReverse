@@ -1,37 +1,26 @@
 using System.Text;
 using ArgonautReverse.WadSections;
 using ArgonautReverse.WadSections.DPSX;
+using ArgonautReverse.WadSections.SPSX;
 using ArgonautReverse.WadSections.TPSX;
 
 namespace ArgonautReverse.Files
 {
-	public class WADFile:DATFile//, IReadOnlyDictionary<uint, BaseWADSectionInfo>
+	public class WADFile:DATFile
 	{
-		private readonly Dictionary<uint,BaseWADSection> dict;
-		//suffix = "WAD"
+		private readonly Dictionary<uint,BaseWADSection> dict = new Dictionary<uint,BaseWADSection>();
 
 		private static readonly Dictionary<uint,BaseWADSectionInfo> sections_conf = new Dictionary<uint, BaseWADSectionInfo>()
 		{
 			[TPSXSectionInfo.Instance.codename_raw] = TPSXSectionInfo.Instance,
-			//TODO: Sound
-			//[SPSXSectionInfo.Instance.codename_raw] = SPSXSectionInfo.Instance,
+			[SPSXSectionInfo.Instance.codename_raw] = SPSXSectionInfo.Instance,
 			[DPSXSectionInfo.Instance.codename_raw] = DPSXSectionInfo.Instance,
 			[PORTSectionInfo.Instance.codename_raw] = PORTSectionInfo.Instance,
-			//TODO: End
-			//[ENDSectionInfo.Instance.codename_raw] = ENDSectionInfo.Instance,
+			[ENDSectionInfo.Instance.codename_raw] = ENDSectionInfo.Instance,
 		};
 
-		public WADFile(string stem, string suffix = null, /*Dictionary<uint,BaseWADSection> sections = null, */byte[] data = null):base(stem, suffix, data:data)
-		{
-			//if(sections != null)
-			//{
-			//	dict = new Dictionary<uint,BaseWADSection>(sections);
-			//}
-			//else
-			//{
-				dict = new Dictionary<uint,BaseWADSection>();
-			//}
-		}
+		public WADFile(string stem, string suffix = null, byte[] data = null):base(stem, suffix, data:data){}
+
 		public override string ToString()
 		{
 			string titles = "";
@@ -45,16 +34,15 @@ namespace ArgonautReverse.Files
 				res += "\n";
 				if(this.tpsx != null)
 				{
-					res += $" {this.n_textures:>4} texture(s)";
+					res += $" {this.n_textures} texture(s)";
 				}
-				//TODO: Sound
-				//if(this.spsx is SPSXSection)
-				//{
-				//	res += $" {this.n_sounds:>4} audio file(s)";
-				//}
+				if(this.spsx != null)
+				{
+					res += $" {this.n_sounds} audio file(s)";
+				}
 				if(this.dpsx != null)
 				{
-					res += $" {this.n_models:>4} model(s) {this.n_animations:>4} animation(s) {this.n_filled_chunks:>4} chunk(s)";
+					res += $" {this.n_models} model(s) {this.n_animations} animation(s) {this.n_filled_chunks} chunk(s)";
 				}
 			}
 			return res;
@@ -63,18 +51,17 @@ namespace ArgonautReverse.Files
 
 		public TPSXSection tpsx => (TPSXSection)this.dict.GetValueOrDefault(TPSXSectionInfo.Instance.codename_raw);
 
-		//TODO: Sound
-		//public SPSXSection spsx => (SPSXSection)this.dict.GetValueOrDefault(SPSXSectionInfo.Instance.codename_raw);
+		public SPSXSection spsx => this.dict.GetValueOrDefault(SPSXSectionInfo.Instance.codename_raw) as SPSXSection;
 
 		public DPSXSection dpsx => (DPSXSection)this.dict.GetValueOrDefault(DPSXSectionInfo.Instance.codename_raw);
 
 		public PORTSection port => (PORTSection)this.dict.GetValueOrDefault(PORTSectionInfo.Instance.codename_raw);
 
-		//public ENDSection end => (ENDSection)this.dict.GetValueOrDefault(ENDSectionInfo.Instance.codename_raw);
+		public ENDSection end => (ENDSection)this.dict.GetValueOrDefault(ENDSectionInfo.Instance.codename_raw);
 
 		// TPSX
 
-		public IReadOnlyList<string> titles => (IReadOnlyList<string>)this.tpsx?.Titles ?? Array.Empty<string>();
+		public IReadOnlyList<string> titles => this.tpsx?.Titles ?? Array.Empty<string>();
 
 		public IReadOnlyList<TextureData> textures => this.tpsx?.TextureFile?.Textures;
 
@@ -82,42 +69,34 @@ namespace ArgonautReverse.Files
 
 		// SPSX
 
-		//TODO: Sound
-		public object common_sound_effects => throw new NotImplementedException();//this.spsx?.common_sfx;
+		public CommonSFXContainer common_sound_effects => this.spsx?.common_sfx;
 
-		//TODO: Sound
-		public object ambient_tracks => throw new NotImplementedException();//this.spsx?.ambient_tracks;
+		public AmbientContainer ambient_tracks => this.spsx?.ambient_tracks;
 
-		public object flattened_level_sfx
+		public IEnumerable<Sound> flattened_level_sfx
 		{
 			get
 			{
-				//TODO: Sound
-				throw new NotImplementedException();
-				//if(this.end == null) {return null;}
-				//return this.spsx.level_sfx_groups.sounds;
+				if(this.end == null) {return null;}
+				return this.spsx.level_sfx_groups.Sounds;
 			}
 		}
 
-		public object level_sfx
+		public LevelSFXContainer level_sfx
 		{
 			get
 			{
-				//TODO: Sound
-				throw new NotImplementedException();
-				//if(this.end == null) {return null;}
-				//return this.spsx.level_sfx_groups;
+				if(this.end == null) {return null;}
+				return this.spsx.level_sfx_groups;
 			}
 		}
 
-		public object dialogues_bgms
+		public DialoguesBGMsContainer dialogues_bgms
 		{
 			get
 			{
-				//TODO: Sound
-				throw new NotImplementedException();
-				//if(this.end == null) {return null;}
-				//return this.spsx.dialogues_bgms;
+				if(this.end == null) {return null;}
+				return this.spsx.dialogues_bgms;
 			}
 		}
 
@@ -125,13 +104,8 @@ namespace ArgonautReverse.Files
 		{
 			get
 			{
-				//TODO: Sound
-				throw new NotImplementedException();
-				//if(this.spsx == null || this.spsx is not SPSXSection)
-				//{
-				//	return 0;
-				//}
-				//return this.spsx.n_sounds;
+				if(this.spsx == null){return 0;}
+				return this.spsx.n_sounds;
 			}
 		}
 		// DPSX
@@ -156,7 +130,7 @@ namespace ArgonautReverse.Files
 		{
 			using(var mtl_file = new StreamWriter(Path.Join(folder_path, wad_filename+".MTL"), false, Encoding.ASCII))
 			{
-				mtl_file.WriteLine(Configuration.wavefront_header + $"newmtl mtl1\nmap_Kd {wad_filename}.PNG");
+				mtl_file.WriteLine($"newmtl mtl1\nmap_Kd {wad_filename}.PNG");
 			}
 			this.tpsx.TextureFile.to_colorized_texture().Save(Path.Join(folder_path, (wad_filename + ".PNG")), System.Drawing.Imaging.ImageFormat.Png);
 		}
@@ -241,7 +215,7 @@ namespace ArgonautReverse.Files
 			this._prepare_obj_export(folder_path, filename);
 			using(var obj_file = new StreamWriter(Path.Join(folder_path, (filename + ".OBJ")), false, Encoding.ASCII))
 			{
-				var obj = new StringWriter();//StringIO
+				var obj = new StringWriter();
 				this.models_3d[model_id].Data.ToSingleObj(obj, filename, this.textures, filename);
 				obj_file.Write(obj.ToString());
 			}
@@ -249,55 +223,57 @@ namespace ArgonautReverse.Files
 
 		public void export_audio(string folder_path, string wad_filename, string fmt)
 		{
-			//TODO: Sound
-			throw new NotImplementedException();
-			//if(fmt!="VAG" && fmt!="WAV")
-			//{
-			//	throw new Exception("Only VAG and WAV export is supported at the moment");
-			//}
-		
-			//if(this.spsx != null)
-			//{
-			//	throw new NotImplementedException();
-			//	//var mono_sounds = new Dictionary<string, object>()
-			//	//{
-			//	//	["effect"] = this.spsx.common_sfx,
-			//	//	["ambient"] = this.spsx.ambient_tracks,
-			//	//	["level_effect"] = this.spsx.level_sfx_groups,
-			//	//};
-			//	//foreach(var(prefix, sounds) in mono_sounds)
-			//	//{
-			//	//	for i, vag in enumerate(sounds.vags):
-			//	//		filename = f"{wad_filename}_{prefix}_{i}"
-			//	//		audio_bytes = (
-			//	//			vag.to_vag(filename)[0]
-			//	//			if fmt == "VAG"
-			//	//			else vag.to_wav(filename)
-			//	//		)
-			//	//		(folder_path / f"{filename}.{fmt}").write_bytes(audio_bytes)
-			//	//}
-			//	//dialogue_index = 0
-			//	//bgm_index = 0
-			//	//for sound in this.spsx.dialogues_bgms:
-			//	//	if DialoguesBGMsSoundFlags.IS_BACKGROUND_MUSIC in sound.flags:
-			//	//		filename = f"{wad_filename}_background_music_{bgm_index}"
-			//	//		bgm_index += 1
-			//	//	else:
-			//	//		filename = f"{wad_filename}_dialogue_{dialogue_index}"
-			//	//		dialogue_index += 1
-			//	//	audio_bytes = (
-			//	//		sound.vag.to_vag(filename)
-			//	//		if fmt == "VAG"
-			//	//		else sound.vag.to_wav(filename)
-			//	//	)
-			//	//	if fmt == "VAG" and len(audio_bytes) == VAGSoundData.STEREO:
-			//	//		(folder_path / f"{filename}_L.VAG").write_bytes(audio_bytes[0])
-			//	//		(folder_path / f"{filename}_R.VAG").write_bytes(audio_bytes[1])
-			//	//	else:
-			//	//		(folder_path / f"{filename}.{fmt}").write_bytes(
-			//	//			audio_bytes[0] if fmt == "VAG" else audio_bytes
-			//	//		)
-			//}
+			if(fmt!="VAG" && fmt!="WAV")
+			{
+				throw new Exception("Only VAG and WAV export is supported at the moment");
+			}
+
+			if(this.spsx != null)
+			{
+				var mono_sounds = new Dictionary<string, IEnumerable<VAGSoundData>>()
+				{
+					["effect"] = this.spsx.common_sfx.vags,
+					["ambient"] = this.spsx.ambient_tracks.vags,
+					["level_effect"] = this.spsx.level_sfx_groups.vags,
+				};
+				foreach(var(prefix, vags) in mono_sounds)
+				{
+					int i=0;
+					foreach(var vag in vags)
+					{
+						var filename = $"{wad_filename}_{prefix}_{i}";
+						var audio_bytes = fmt == "VAG" ? vag.to_vag()[0] : vag.to_wav(filename);
+						File.WriteAllBytes(Path.Join(folder_path, $"{filename}.{fmt}"), audio_bytes);
+						i++;
+					}
+				}
+				int dialogue_index = 0;
+				int bgm_index = 0;
+				foreach(var sound in this.spsx.dialogues_bgms.Sounds)
+				{
+					string filename;
+					if((((DialogueBGMSound)sound).flagsAndLoop&DialoguesBGMsSoundFlags.IS_BACKGROUND_MUSIC)!=0)
+					{
+						filename = $"{wad_filename}_background_music_{bgm_index}";
+						bgm_index += 1;
+					}
+					else
+					{
+						filename = $"{wad_filename}_dialogue_{dialogue_index}";
+						dialogue_index += 1;
+					}
+					var audio_bytes = (fmt == "VAG") ? sound.vag.to_vag() : new[]{sound.vag.to_wav(filename)};
+					if(fmt == "VAG" && audio_bytes.Length == VAGSoundData.STEREO)
+					{
+						File.WriteAllBytes(Path.Join(folder_path, $"{filename}_L.VAG"), audio_bytes[0]);
+						File.WriteAllBytes(Path.Join(folder_path, $"{filename}_R.VAG"), audio_bytes[1]);
+					}
+					else
+					{
+						File.WriteAllBytes(Path.Join(folder_path, $"{filename}.{fmt}"), audio_bytes[0]);
+					}
+				}
+			}
 		}
 
 		public void export_audio_to_wav(string folder_path, string wad_filename) =>
@@ -320,7 +296,7 @@ namespace ArgonautReverse.Files
 			this._prepare_obj_export(folder_path, wad_filename);
 			using(var obj_file = new StreamWriter(Path.Join(folder_path, (wad_filename + ".OBJ")), false, Encoding.ASCII))
 			{
-				var obj = new StringWriter();//StringIO
+				var obj = new StringWriter();
 				obj.Write(string.Format(Model3DData.mtl_header, wad_filename));
 				int vio = 0;
 				int sub_chunk_id = 0;
@@ -366,9 +342,9 @@ namespace ArgonautReverse.Files
 			}
 		}
 
-		public override unsafe void parse(Configuration conf)
+		public override unsafe void Parse(Configuration conf)
 		{
-			using var data_in = new Parser(new MemoryStream(this._data));//BytesIO
+			using var data_in = new Parser(new MemoryStream(this._data));
 			var sections_offsets = new Dictionary<uint,int>();
 			void parse_sections()
 			{
@@ -382,10 +358,9 @@ namespace ArgonautReverse.Files
 					{
 						throw new SectionNameError(data_in.Position, TPSXSectionInfo.Instance.codename_str, Encoding.Latin1.GetString((byte*)&codename, 4));
 					}
-					sections_offsets[codename] = data_in.Position - 4;
+					sections_offsets.Add(codename, data_in.Position - 4);
 				
-					//0x454E4420
-					if(codename == 0x454E4420 /*ENDSectionInfo.Info.codename_raw*/)// ' DNE' (END)
+					if(codename == ENDSectionInfo.Instance.codename_raw)
 					{
 						break;
 					}
@@ -406,19 +381,18 @@ namespace ArgonautReverse.Files
 					var section = WADFile.sections_conf[codename_bytes];
 					if(section.supported_games.Contains(conf.game))
 					{
-						if(codename_bytes != 0x454E4420/*ENDSection.codename_bytes*/)
+						if(codename_bytes != ENDSectionInfo.Instance.codename_raw)
 						{
 							this.dict[codename_bytes] = section.Parse(data_in, conf);
 						}
 						else
 						{
-							this.dict[codename_bytes] = section.Parse(data_in, conf/*, spsx_section=this.dict[SPSXSection.codename_bytes]*/);
+							this.dict[codename_bytes] = ((ENDSectionInfo)section).Parse(data_in, conf, spsx_section:this.dict.GetValueOrDefault(SPSXSectionInfo.Instance.codename_raw) as SPSXSection);
 						}
 					}
 					else
 					{
-						throw new Exception("No idea what to do here, the original code shouldn't work here");
-						//this.dict[codename_bytes] = BaseWADSection.fallback_parse(data_in);
+						this.dict[codename_bytes] = new UnknownSectionInfo(codename_bytes).fallback_parse(data_in);//throw new Exception("No idea what to do here, the original code shouldn't work here");
 					}
 				}
 				else
@@ -426,13 +400,12 @@ namespace ArgonautReverse.Files
 					//TODO: Throw expection or add general type
 
 					//throw new Exception("No idea what to do here, the original code shouldn't work here");
-					Console.WriteLine($"Skipping Chunk: {Encoding.ASCII.GetString((byte*)&codename_bytes, 4)}");
-					//this.dict[codename_bytes] = BaseWADSection.fallback_parse(data_in);
+					//Console.WriteLine($"Skipping Chunk: {Encoding.ASCII.GetString((byte*)&codename_bytes, 4)}");
+					this.dict[codename_bytes] = new UnknownSectionInfo(codename_bytes).fallback_parse(data_in);
 				}
 			}
-			this.end_parse();
 		}
-		public override void serialize(object file_path_or_data_out, Configuration conf)
+		public override void Serialize(object file_path_or_data_out, Configuration conf)
 		{
 			var data_out = (file_path_or_data_out is BinaryWriter writer) ? writer : new BinaryWriter(new MemoryStream());
 

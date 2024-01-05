@@ -1,6 +1,7 @@
 using System.Drawing.Imaging;
 using ArgonautReverse.Files;
 using ArgonautReverse.WadSections.DPSX;
+using ArgonautReverse.WadSections.SPSX;
 using ArgonautReverse.WadSections.TPSX;
 
 namespace ArgonautReverse
@@ -49,66 +50,65 @@ namespace ArgonautReverse
 			}
 		}
 
-		public static void export_images_from_img(IMGFile img_file, string output_dir)
+		public static void ExportImagesFromImg(IMGFile img_file, string output_dir)
 		{
 			if(img_file.Count == 1)
 			{
-				img_file[0].Save(Path.Join(output_dir, $"{img_file.stem}.PNG"));
+				img_file[0].Save(Path.Join(output_dir, $"{img_file.Stem}.PNG"));
 			}
 			else
 			{
 				for(int i=0; i<img_file.Count; i++)
 				{
-					img_file[i].Save(Path.Join(output_dir, $"{img_file.stem}_{i}.PNG"));
+					img_file[i].Save(Path.Join(output_dir, $"{img_file.Stem}_{i}.PNG"));
 				}
 			}
 		}
 
-		public static void export_assets_from_wad(WADFile wad_file, Dictionary<string,string> args, Configuration conf)
+		public static void ExportAssetsFromWad(WADFile wad_file, Dictionary<string,string> args, Configuration conf)
 		{
 			if(TPSXSectionInfo.Instance.supported_games.Contains(conf.game))
 			{
 				if(args.TryGetValue("-textures", out var export_textures))
 				{
-					wad_file.tpsx.TextureFile.to_colorized_texture().Save(Path.Join(export_textures, $"{wad_file.stem}.PNG"), ImageFormat.Png);
+					wad_file.tpsx.TextureFile.to_colorized_texture().Save(Path.Join(export_textures, $"{wad_file.Stem}.PNG"), ImageFormat.Png);
 				}
 			}
 
-			//TODO: Sound
-			if(false)//if(SPSXSectionInfo.Instance.supported_games.Contains(conf.game))
+			if(SPSXSectionInfo.Instance.supported_games.Contains(conf.game))
 			{
 				if(args.TryGetValue("-audio", out var export_audio))
 				{
-					var wad_audio_export_folder_path = Path.Join(export_audio, wad_file.stem);
+					var wad_audio_export_folder_path = Path.Join(export_audio, wad_file.Stem);
 					create_export_directory(wad_audio_export_folder_path);
-					wad_file.export_audio_to_wav(wad_audio_export_folder_path, wad_file.stem);
+					wad_file.export_audio_to_wav(wad_audio_export_folder_path, wad_file.Stem);
 				}
 				if(args.TryGetValue("-unpack_audio", out var unpack_audio))
 				{
-					var wad_audio_unpack_folder_path = Path.Join(unpack_audio, wad_file.stem);
+					var wad_audio_unpack_folder_path = Path.Join(unpack_audio, wad_file.Stem);
 					create_export_directory(wad_audio_unpack_folder_path);
-					wad_file.export_audio_to_vag(wad_audio_unpack_folder_path, wad_file.stem);
+					wad_file.export_audio_to_vag(wad_audio_unpack_folder_path, wad_file.Stem);
 				}
 			}
 			if(DPSXSectionInfo.Instance.supported_games.Contains(conf.game))
 			{
 				if(args.TryGetValue("-strats", out var export_strats))
 				{
-					var wad_strats_folder_path = Path.Join(export_strats, wad_file.stem);
+					var wad_strats_folder_path = Path.Join(export_strats, wad_file.Stem);
 					create_export_directory(wad_strats_folder_path);
-					wad_file.ExportStrats(wad_strats_folder_path, wad_file.stem);
+					wad_file.ExportStrats(wad_strats_folder_path, wad_file.Stem);
 				}
 				if(args.TryGetValue("-models", out var export_models))
 				{
-					var wad_models_3d_folder_path = Path.Join(export_models, wad_file.stem);
+					var wad_models_3d_folder_path = Path.Join(export_models, wad_file.Stem);
 					create_export_directory(wad_models_3d_folder_path);
-					wad_file.export_experimental_models(wad_models_3d_folder_path, wad_file.stem);
+					wad_file.export_experimental_models(wad_models_3d_folder_path, wad_file.Stem);
 				}
 				if(args.TryGetValue("-levels", out var export_levels))
 				{
-					var wad_level_folder_path = Path.Join(export_levels, wad_file.stem);
+					var wad_level_folder_path = Path.Join(export_levels, wad_file.Stem);
 					create_export_directory(wad_level_folder_path);
-					wad_file.export_level(wad_level_folder_path, wad_file.stem);
+					wad_file.export_level(wad_level_folder_path, wad_file.Stem);
 				}
 			}
 		}
@@ -159,25 +159,25 @@ namespace ArgonautReverse
 			}
 		
 			//Parse files
-			var n_files = dir_dat.Count;
+			var n_files = dir_dat.Files.Count;
 			var n_digits = n_files.ToString().Length;
-			for(int i=0; i<dir_dat.Count; i++)// type: int, DATFile
+			for(int i=0; i<dir_dat.Files.Count; i++)
 			{
-				var dat_file = dir_dat[i];
-				Console.Write($"[{(i + 1).ToString().PadLeft(n_digits)}/{n_files}] {dat_file.name:12}: ");
+				var datFile = dir_dat.Files[i];
+				Console.Write($"[{(i + 1).ToString().PadLeft(n_digits)}/{n_files}] {datFile.Name:12}: ");
 				try
 				{
-					if(dat_file is IMGFile && args.TryGetValue("-images", out var export_images))
+					if(datFile is IMGFile imgFile && args.TryGetValue("-images", out var export_images))
 					{
-						dat_file.parse(conf);
-						export_images_from_img((IMGFile)dat_file, export_images);
+						imgFile.Parse(conf);
+						ExportImagesFromImg(imgFile, export_images);
 					}
-					else if(dat_file is WADFile && wads_parsing_needed)
+					else if(datFile is WADFile wadFile && wads_parsing_needed)
 					{
-						dat_file.parse(conf);
-						export_assets_from_wad((WADFile)dat_file, args, conf);
+						wadFile.Parse(conf);
+						ExportAssetsFromWad(wadFile, args, conf);
 					}
-					Console.WriteLine(dat_file);
+					Console.WriteLine(datFile);
 				}
 				catch(Exception e)
 				{

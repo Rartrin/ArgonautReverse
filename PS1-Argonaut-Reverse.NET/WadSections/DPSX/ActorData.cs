@@ -10,9 +10,8 @@ namespace ArgonautReverse.WadSections.DPSX
 
 		public int Size => this.data.Length;
 
-		public static ActorData parse(Parser data_in, Configuration conf)
+		public static ActorData Parse(Parser data_in, Configuration conf)
 		{
-			//base.parse(data_in, conf);
 			var size = 4 * data_in.ReadInt32();
 			return new ActorData(data_in.ReadBytes(size));
 		}

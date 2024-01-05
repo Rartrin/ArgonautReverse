@@ -24,7 +24,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			{
 				if(conf.ignore_warnings)
 				{
-					warnings.warn($"Too much vertices or faces ({n_vertices} vertices, {n_faces} faces). It is most probably caused by an inaccuracy in my reverse engineering of the models format.");
+					Models3DWarning.Warn(n_vertices, n_faces);
 				}
 				else
 				{

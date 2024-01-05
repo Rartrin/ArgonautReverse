@@ -104,7 +104,7 @@ namespace ArgonautReverse.WadSections.DPSX
 		public string subchunks_visual_ids()
 		{
 			int subchunk_id = 0;
-			var res = new StringWriter();//StringIO()
+			var res = new StringWriter();
 			for(int x=0; x<this.n_rows; x++)
 			{
 				for(int y=0; y<this.n_columns; y++)
@@ -135,7 +135,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			{
 				return "There are no zone ids in this level.";
 			}
-			var res = new StringWriter();//StringIO
+			var res = new StringWriter();
 			for(int x=0; x<this.n_rows; x++)
 			{
 				for(int y=0; y<this.n_columns; y++)

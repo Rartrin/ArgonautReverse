@@ -14,24 +14,27 @@ namespace ArgonautReverse
 
 	public abstract class BaseWADSectionInfo
 	{
-		public abstract G[] supported_games{get;}//: tuple[G, ...]
+		public abstract G[] supported_games{get;}
 		public abstract string section_content_description{get;}
 		//Big endian
 		public abstract string codename_str{get;}
 		//Little Endian
-		public readonly byte[] codename_bytes;
-		public readonly uint codename_raw;
+		public byte[] codename_bytes{get;protected set;}
+		public uint codename_raw{get;protected set;}
 
 		public unsafe BaseWADSectionInfo()
 		{
-			if(codename_str.Length!=4){throw new Exception();}
-			codename_bytes = new byte[4];
-			for(int i=0; i<4; i++)
+			if(codename_str != null)
 			{
-				//String is in big endian for display so we need to swap it
-				codename_bytes[i] = (byte)codename_str[4-(i+1)];
+				if(codename_str.Length!=4){throw new Exception();}
+				codename_bytes = new byte[4];
+				for(int i=0; i<4; i++)
+				{
+					//String is in big endian for display so we need to swap it
+					codename_bytes[i] = (byte)codename_str[4-(i+1)];
+				}
+				codename_raw = BitConverter.ToUInt32(codename_bytes);
 			}
-			codename_raw = BitConverter.ToUInt32(codename_bytes);
 		}
 
 		public unsafe void check_codename(Parser data_in)
@@ -63,16 +66,7 @@ namespace ArgonautReverse
 		}
 		public abstract BaseWADSection Parse(Parser data_in, Configuration conf);
 
-		public static void SerializeSectionSize(BinaryWriter data_out, int start)
-		{
-			var end = (int)data_out.BaseStream.Position;
-			var size = end - start;
-			data_out.BaseStream.Position = start - 4;
-			data_out.Write((int)size);
-			data_out.BaseStream.Position = end;
-		}
-
-		public static byte[] fallback_parse_data(Parser data_in)
+		protected static byte[] fallback_parse_data(Parser data_in)
 		{
 			var start = data_in.Position;
 			var codename = data_in.ReadUInt32();
@@ -91,7 +85,7 @@ namespace ArgonautReverse
 	{
 		public sealed override BaseWADSection fallback_parse(Parser data_in)
 		{
-			return (T)Activator.CreateInstance(typeof(T), fallback_parse_data(data_in));
+			return (T)Activator.CreateInstance(typeof(T), this, fallback_parse_data(data_in));
 		}
 	}
 
@@ -131,9 +125,49 @@ namespace ArgonautReverse
 			return (int)data_out.BaseStream.Position;
 		}
 
+		protected static void SerializeSectionSize(BinaryWriter data_out, int start)
+		{
+			var end = (int)data_out.BaseStream.Position;
+			var size = end - start;
+			data_out.BaseStream.Position = start - 4;
+			data_out.Write((int)size);
+			data_out.BaseStream.Position = end;
+		}
+
 		public void fallback_serialize(BinaryWriter data_out)
 		{
 			data_out.Write(this._data);
 		}
+	}
+
+	public sealed class UnknownSectionInfo:BaseWADSectionInfo<UnknownSection>
+	{
+		public override G[] supported_games => Configuration.SUPPORTED_GAMES;
+
+		public override string section_content_description => $"{codename_str} chunk";
+		public override string codename_str{get;}
+
+		public unsafe UnknownSectionInfo(uint codename_raw)
+		{
+			Span<char> str = stackalloc char[4];
+			byte* codename_raw0 = (byte*)&codename_raw;
+			for(int i = 0; i < 4; i++)
+			{
+				str[3-i] = (char)codename_raw0[i];
+			}
+			this.codename_str = new string(str);
+			this.codename_raw = codename_raw;
+			this.codename_bytes = BitConverter.GetBytes(codename_raw);
+		}
+
+		public override UnknownSection Parse(Parser data_in, Configuration conf)
+		{
+			return (UnknownSection)fallback_parse(data_in);
+		}
+	}
+
+	public sealed class UnknownSection:BaseWADSection
+	{
+		public UnknownSection(BaseWADSectionInfo info, byte[] data = null) : base(info, data){}
 	}
 }

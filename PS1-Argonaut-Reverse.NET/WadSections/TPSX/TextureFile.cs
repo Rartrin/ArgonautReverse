@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Drawing;
 using System.Drawing.Imaging;
 
@@ -30,7 +29,6 @@ namespace ArgonautReverse.WadSections.TPSX
 
 		public static TextureFile parse(Parser data_in, Configuration conf, bool compressed16bit, bool hasMemoryCardIcons, int end)
 		{
-
 			var textures = new List<TextureData>();
 			int n_textures = data_in.ReadInt32();
 			int n_rows = data_in.ReadInt32();
@@ -39,7 +37,7 @@ namespace ArgonautReverse.WadSections.TPSX
 			{
 				if(conf.ignore_warnings)
 				{
-					warnings.warn($"Too much textures ({n_textures}, or incorrect row count {n_rows}. It is most probably caused by an inaccuracy in my reverse engineering of the textures format.");
+					TexturesWarning.Warn(n_textures, n_rows);
 				}
 				else
 				{
