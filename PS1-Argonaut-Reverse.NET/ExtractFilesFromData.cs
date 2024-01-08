@@ -49,7 +49,7 @@ namespace ArgonautReverse
 				throw new Exception("output is a file, not a directory");
 			}
 
-			var dir_dat = DIR_DAT.from_dir_dat(input_path, conf);
+			var dir_dat = DIR_DAT.FromDirDat(input_path, conf);
 
 			if(!Directory.Exists(output_path))
 			{

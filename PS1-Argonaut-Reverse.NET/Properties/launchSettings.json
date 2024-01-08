@@ -18,6 +18,14 @@
     "Export DUMMY": {
       "commandName": "Project",
       "commandLineArgs": "-export-assets -game \"Croc 2 Demo PS1 (Dummy)\" -dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" -levels \"GameFiles/DUMMY\" -strats \"GameFiles/DUMMY\" -textures \"GameFiles/DUMMY/Textures\" -models \"GameFiles/DUMMY/Models\""
+    },
+    "Export DUMMY - Actors": {
+      "commandName": "Project",
+      "commandLineArgs": "-export-assets -game \"Croc 2 Demo PS1 (Dummy)\" -dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" -actors \"GameFiles/DUMMY/Actors\""
+    },
+    "Export DUMMY - Levels+Models+Textures": {
+      "commandName": "Project",
+      "commandLineArgs": "-export-assets -game \"Croc 2 Demo PS1 (Dummy)\" -dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" -levels \"GameFiles/DUMMY\" -textures \"GameFiles/DUMMY/Textures\" -models \"GameFiles/DUMMY/Models\""
     }
   }
 }

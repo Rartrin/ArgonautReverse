@@ -6,11 +6,11 @@ namespace ArgonautReverse.WadSections.SPSX
 
 		public override string codename_str => "SPSX";
 		public override string section_content_description => "sound effects, background music & dialogues";
-		public override G[] supported_games{get;} = new[]{/*G.CROC_2_DEMO_PS1_DUMMY,*/ G.HARRY_POTTER_1_PS1, G.HARRY_POTTER_2_PS1};
+		public override Game[] supported_games{get;} = new Game[]{/*CROC_2_DEMO_PS1_DUMMY.Instance,*/ HARRY_POTTER_1_PS1.Instance, HARRY_POTTER_2_PS1.Instance};
 
 		public override SPSXSection Parse(Parser data_in, Configuration conf)
 		{
-			bool isHarryPotterGame = conf.game==G.HARRY_POTTER_1_PS1 || conf.game==G.HARRY_POTTER_2_PS1;
+			bool isHarryPotterGame = conf.game==HARRY_POTTER_1_PS1.Instance || conf.game==HARRY_POTTER_2_PS1.Instance;
 			var (size, start) = base.parseInner(data_in, conf);
 
 			var spsx_flags = (SPSXFlags)data_in.ReadUInt32();
@@ -153,27 +153,27 @@ namespace ArgonautReverse.WadSections.SPSX
 
 		public int end_gap => this.level_sfx_groups.Groups.Sum(group => Utils.round_up_padding(group.size));
 
-		public override void serialize(BinaryWriter data_out, Configuration conf)
+		public override void serialize(Serializer data_out, Configuration conf)
 		{
 			var start = base.serializeInner(data_out, conf);
 
-			data_out.Write((int)this.spsx_flags);
-			data_out.Write((int)this.n_common_sfx);
+			data_out.WriteUInt32((uint)this.spsx_flags);
+			data_out.WriteInt32(this.n_common_sfx);
 			if((this.spsx_flags&SPSXFlags.HAS_COMMON_SFX_AND_DIALOGUES_BGMS)!=0)
 			{
 				this.common_sfx.serialize(data_out, conf);
 			}
 			if((this.spsx_flags&SPSXFlags.HAS_AMBIENT_TRACKS)!=0)
 			{
-				data_out.Write((int)(20 * this.n_ambient_tracks));
+				data_out.WriteInt32((20 * this.n_ambient_tracks));
 				this.ambient_tracks.serialize(data_out, conf);
 			}
 			if((this.spsx_flags&SPSXFlags.HAS_LEVEL_SFX)!=0)
 			{
-				data_out.Write((int)this.n_level_sfx_groups);
-				data_out.Write((int)this.idk1);
-				data_out.Write((int)this.idk2);
-				data_out.Write((int)this.level_sfx_mapping.n_unique_level_sfx);
+				data_out.WriteInt32(this.n_level_sfx_groups);
+				data_out.WriteInt32(this.idk1.Value);
+				data_out.WriteInt32(this.idk2.Value);
+				data_out.WriteInt32(this.level_sfx_mapping.n_unique_level_sfx);
 
 				this.level_sfx_groups.serialize(data_out, conf);
 				foreach(var group in this.level_sfx_groups.Groups)
@@ -182,23 +182,23 @@ namespace ArgonautReverse.WadSections.SPSX
 				}
 				this.level_sfx_mapping.serialize(data_out, conf, level_sfx_groups:this.level_sfx_groups);
 			}
-			data_out.Write((int)this.n_dialogues_bgms);
+			data_out.WriteInt32(this.n_dialogues_bgms);
 			if((this.spsx_flags&SPSXFlags.HAS_COMMON_SFX_AND_DIALOGUES_BGMS)!=0)
 			{
-				data_out.Write((int)this.end_gap);
+				data_out.WriteInt32(this.end_gap);
 				this.dialogues_bgms.serialize(data_out, conf);
-				data_out.Write((int)this.common_sfx_size);
+				data_out.WriteInt32(this.common_sfx_size);
 				foreach(var vag in this.common_sfx.vags)
 				{
-					data_out.Write(vag.data);
+					data_out.WriteBytes(vag.data);
 				}
 			}
 			if((this.spsx_flags&SPSXFlags.HAS_AMBIENT_TRACKS)!=0)
 			{
-				data_out.Write((int)this.ambient_tracks_size);
+				data_out.WriteInt32(this.ambient_tracks_size);
 				foreach(var vag in this.ambient_tracks.vags)
 				{
-					data_out.Write(vag.data);
+					data_out.WriteBytes(vag.data);
 				}
 			}
 			SerializeSectionSize(data_out, start);

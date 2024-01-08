@@ -15,7 +15,7 @@ namespace ArgonautReverse.WadSections.TPSX
 		public static readonly TPSXSectionInfo Instance = new TPSXSectionInfo();
 
 		public override string codename_str => "TPSX";//"XSPT";
-		public override G[] supported_games => Configuration.PARSABLE_GAMES;
+		public override Game[] supported_games => Configuration.PARSABLE_GAMES;
 		public override string section_content_description => "textures";
 
 		public override TPSXSection Parse(Parser data_in, Configuration conf)
@@ -26,7 +26,7 @@ namespace ArgonautReverse.WadSections.TPSX
 			bool compressed16bit;
 			string[] titles;
 			Font[] fontLookup;
-			if(conf.game == G.CROC_2_DEMO_PS1_DUMMY)
+			if(conf.game == CROC_2_DEMO_PS1_DUMMY.Instance)
 			{
 				hasMemoryCardIcons = false;
 				titles = Array.Empty<string>();
@@ -42,7 +42,7 @@ namespace ArgonautReverse.WadSections.TPSX
 				compressed16bit = (tpsx_flags & TextureFlag.Compressed16Bit) != 0;
 
 				//TODO: Ensure these always match
-				bool rle = conf.game == G.CROC_2_PS1 || conf.game == G.CROC_2_DEMO_PS1 || conf.game == G.HARRY_POTTER_1_PS1 || conf.game == G.HARRY_POTTER_2_PS1;
+				bool rle = conf.game == CROC_2_PS1.Instance || conf.game == CROC_2_DEMO_PS1.Instance || conf.game == HARRY_POTTER_1_PS1.Instance || conf.game == HARRY_POTTER_2_PS1.Instance;
 				if(compressed16bit != rle)
 				{
 					throw new Exception();

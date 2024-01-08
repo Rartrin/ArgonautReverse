@@ -8,7 +8,7 @@ namespace ArgonautReverse.WadSections
 
 		public override string codename_str => "END ";
 		public override string section_content_description => "sound effects, background music & dialogues";
-		public override G[] supported_games{get;} = Configuration.SUPPORTED_GAMES;//new[]{G.HARRY_POTTER_1_PS1, G.HARRY_POTTER_2_PS1};
+		public override Game[] supported_games{get;} = Configuration.SUPPORTED_GAMES;//new[]{HARRY_POTTER_1_PS1.Instance, HARRY_POTTER_2_PS1.Instance};
 
 		public override ENDSection Parse(Parser data_in, Configuration conf)
 		{
@@ -29,7 +29,7 @@ namespace ArgonautReverse.WadSections
 					data_in.Seek(2048 * (int)Math.Ceiling(data_in.Position / 2048.0));
 					spsx_section.dialogues_bgms.parse_vags(data_in, conf);
 
-					if(conf.game == G.HARRY_POTTER_2_PS1)
+					if(conf.game == HARRY_POTTER_2_PS1.Instance)
 					{
 						data_in.Seek(2048 * (int)Math.Ceiling(data_in.Position / 2048.0));
 					}
@@ -48,7 +48,7 @@ namespace ArgonautReverse.WadSections
 			this.spsx_section = spsx_section;
 		}
 		
-		public override void serialize(BinaryWriter data_out, Configuration conf)
+		public override void serialize(Serializer data_out, Configuration conf)
 		{
 			var start = base.serializeInner(data_out, conf);
 			if(spsx_section!=null)
@@ -60,13 +60,13 @@ namespace ArgonautReverse.WadSections
 
 				if((this.spsx_section.spsx_flags&SPSXFlags.HAS_COMMON_SFX_AND_DIALOGUES_BGMS)!=0)
 				{
-					Utils.pad_out_2048_bytes(data_out.BaseStream);
+					Utils.pad_out_2048_bytes(data_out);
 					this.spsx_section.dialogues_bgms.serialize_vags(data_out, conf);
 				}
 
-				if(conf.game == G.HARRY_POTTER_2_PS1)
+				if(conf.game == HARRY_POTTER_2_PS1.Instance)
 				{
-					Utils.pad_out_2048_bytes(data_out.BaseStream);
+					Utils.pad_out_2048_bytes(data_out);
 				}
 			}
 

@@ -110,20 +110,16 @@ namespace ArgonautReverse.Files
 		};
 	}
 
-	public sealed class IMGFile:DATFile, BaseDataClass, IReadOnlyList<Bitmap>
+	public sealed class IMGFile:DATFile, BaseDataClass
 	{
 		//suffix = "IMG"
-		private readonly List<Bitmap> list = new List<Bitmap>();
-
-		public int Count => list.Count;
-
-		public Bitmap this[int index] => list[index];
+		public IReadOnlyList<Bitmap> Images{get;private set;}
 
 		public IMGFile(string stem, string suffix = null, byte[] data = null):base(stem, suffix, data:data){}
 	
 		public override string ToString()
 		{
-			var dimensions = string.Join(", ", list.Select(x => $"({x.Width}x{x.Height} px)"));
+			var dimensions = string.Join(", ", Images.Select(x => $"({x.Width}x{x.Height} px)"));
 			var res = "Menu image";
 			if(!string.IsNullOrEmpty(dimensions))
 			{
@@ -153,7 +149,7 @@ namespace ArgonautReverse.Files
 				images_data = new ArraySegment<byte>[1]{this._data};
 			}
 
-			this.list.Clear();
+			var images = new List<Bitmap>();
 			foreach(var image_data in images_data)
 			{
 				if(ImageType.lookup.Any(image_type => image_type.bytes_size == image_data.Count))//(image_data.Count in [image_type.bytes_size for image_type in ImageType])
@@ -177,7 +173,7 @@ namespace ArgonautReverse.Files
 					{
 						palette = null;
 					}
-					this.list.Add(
+					images.Add(
 						IMGFile.to_full_colorized(
 							image_data,
 							image_type.dimensions,
@@ -192,6 +188,7 @@ namespace ArgonautReverse.Files
 					throw new Exception("Unknown image size");
 				}
 			}
+			this.Images = images;
 		}
 
 		public static unsafe Bitmap to_full_colorized(ArraySegment<byte> data, XY dimensions, Color[] palette, int n_palette_colors, bool has_alpha)
@@ -236,8 +233,5 @@ namespace ArgonautReverse.Files
 				}
 			}
 		}
-
-		public IEnumerator<Bitmap> GetEnumerator() => list.GetEnumerator();
-		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 }

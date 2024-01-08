@@ -14,7 +14,7 @@ namespace ArgonautReverse
 
 	public abstract class BaseWADSectionInfo
 	{
-		public abstract G[] supported_games{get;}
+		public abstract Game[] supported_games{get;}
 		public abstract string section_content_description{get;}
 		//Big endian
 		public abstract string codename_str{get;}
@@ -92,7 +92,7 @@ namespace ArgonautReverse
 	public abstract class BaseWADSection:BaseDataClass
 	{
 		public readonly BaseWADSectionInfo Info;
-		public G[] supported_games => Info.supported_games;
+		public Game[] supported_games => Info.supported_games;
 		public string section_content_description => Info.section_content_description;
 		public string codename_str => Info.codename_str;
 		public byte[] codename_bytes => Info.codename_bytes;
@@ -110,39 +110,39 @@ namespace ArgonautReverse
 		}
 
 	
-		public virtual void serialize(BinaryWriter data_out, Configuration conf)
+		public virtual void serialize(Serializer data_out, Configuration conf)
 		{
 			fallback_serialize(data_out);
 		}
-		protected int serializeInner(BinaryWriter data_out, Configuration conf)
+		protected int serializeInner(Serializer data_out, Configuration conf)
 		{
 			if(!this.supported_games.Contains(conf.game))
 			{
 				throw new UnsupportedSerialization(this.section_content_description);
 			}
-			data_out.Write(codename_bytes);
-			data_out.Write((int)0);// Section's size
-			return (int)data_out.BaseStream.Position;
+			data_out.WriteBytes(codename_bytes);
+			data_out.WriteInt32(0);// Section's size
+			return data_out.Position;
 		}
 
-		protected static void SerializeSectionSize(BinaryWriter data_out, int start)
+		protected static void SerializeSectionSize(Serializer data_out, int start)
 		{
-			var end = (int)data_out.BaseStream.Position;
+			var end = data_out.Position;
 			var size = end - start;
-			data_out.BaseStream.Position = start - 4;
-			data_out.Write((int)size);
-			data_out.BaseStream.Position = end;
+			data_out.Position = start - 4;
+			data_out.WriteInt32(size);
+			data_out.Position = end;
 		}
 
-		public void fallback_serialize(BinaryWriter data_out)
+		public void fallback_serialize(Serializer data_out)
 		{
-			data_out.Write(this._data);
+			data_out.WriteBytes(this._data);
 		}
 	}
 
 	public sealed class UnknownSectionInfo:BaseWADSectionInfo<UnknownSection>
 	{
-		public override G[] supported_games => Configuration.SUPPORTED_GAMES;
+		public override Game[] supported_games => Configuration.SUPPORTED_GAMES;
 
 		public override string section_content_description => $"{codename_str} chunk";
 		public override string codename_str{get;}

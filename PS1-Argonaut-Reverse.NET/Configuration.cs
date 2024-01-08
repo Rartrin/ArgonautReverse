@@ -1,109 +1,173 @@
-//import logging
-
 using System.Text;
 
 namespace ArgonautReverse
 {
-	public delegate (string name, int size, int start) DelDirStructUnpacker(Parser reader);
-	public delegate void DelDirStructPacker(BinaryWriter writer, string name, int size, int start);
-
-	public sealed class G
+	public abstract class DirFormat
 	{
-		public string Title{get;}
-		public int ReleaseYear{get;}
-		public string FilenameDAT{get;}
-		public string FilenameDIR{get;}
-		public DelDirStructPacker PackDIR{get;}
-		public DelDirStructUnpacker UnpackDIR{get;}
+		public abstract void Pack(Serializer writer, string name, int size, int start);
+		public abstract void Unpack(Parser reader, out string name, out int size, out int start);
+	}
+	public sealed class DirFormat_Croc1:DirFormat_Croc2
+	{
+		new public static readonly DirFormat_Croc1 Instance = new DirFormat_Croc1();
 
-		private G(string title,int release_year,string dat_filename = null,string dir_filename = null,DelDirStructPacker dir_struct_pack = null,DelDirStructUnpacker dir_struct_unpack = null)
-		{
-			this.Title = title;
-			this.ReleaseYear = release_year;
-			this.FilenameDAT = dat_filename;
-			this.FilenameDIR = dir_filename;
-			this.PackDIR = dir_struct_pack;
-			this.UnpackDIR = dir_struct_unpack;
-		}
+		private DirFormat_Croc1(){}
 
-		private static (string name, int size, int start) _default_struct_unpacker(Parser reader)
+		public override void Pack(Serializer writer, string name, int size, int start)
 		{
-			//Little Endian, 12 byte string, followed by two 32-bit integers
-			//Struct("<12sII")
-			var name = Encoding.ASCII.GetString(reader.ReadBytes(12));
-			int size = reader.ReadInt32();
-			int start = reader.ReadInt32();
-			return (name, size, start);
-		}
-		private static void _default_struct_packer(BinaryWriter writer, string name, int size, int start)
-		{
-			//Little Endian, 12 byte string, followed by two 32-bit integers
-			//Struct("<12sII")
-			writer.Write(Encoding.ASCII.GetBytes(name.PadRight(12, '\0')));
-			writer.Write((int)size);
-			writer.Write((int)start);
-		}
-
-
-		private static (string name, int size, int start) Croc1_Unpack(Parser reader)
-		{
-			//Little Endian, 12 byte string, two 32-bit integers, 4 byte padding
+			//Same as Croc 2 but with 4 bytes of padding at the end
 			//Struct("<12sII4x")
-			var name = Encoding.ASCII.GetString(reader.ReadBytes(12));
-			int size = reader.ReadInt32();
-			int start = reader.ReadInt32();
+			base.Pack(writer, name, size, start);
+			writer.WriteInt32(0);//Padding
+		}
+		
+		public override void Unpack(Parser reader, out string name, out int size, out int start)
+		{
+			//Same as Croc 2 but with 4 bytes of padding at the end
+			//Struct("<12sII4x")
+			base.Unpack(reader, out name, out size, out start);
 			_ = reader.ReadInt32();//Padding
-			return (name, size, start);
 		}
-		private static void Croc1_Pack(BinaryWriter writer, string name, int size, int start)
-		{
-			//Little Endian, 12 byte string, two 32-bit integers, 4 byte padding
-			//Struct("<12sII4x")
-			writer.Write(Encoding.ASCII.GetBytes(name.PadRight(12, '\0')));
-			writer.Write((int)size);
-			writer.Write((int)start);
-			writer.Write((int)0);//Padding
-		}
+	}
+	public class DirFormat_Croc2:DirFormat
+	{
+		public static readonly DirFormat_Croc2 Instance = new DirFormat_Croc2();
 
-		public static readonly G CROC_1_PS1 = new G("Croc 1 PS1", 1997, "CROCFILE.1", "CROCFILE.DIR", Croc1_Pack, Croc1_Unpack);
-		public static readonly G CROC_2_PS1 = new G("Croc 2 PS1", 1999, "CROCII.DAT", "CROCII.DIR", _default_struct_packer, _default_struct_unpacker);
-		public static readonly G CROC_2_DEMO_PS1 = new G("Croc 2 Demo PS1", 1999, "CROCII.DAT", "CROCII.DIR", _default_struct_packer, _default_struct_unpacker);
-		public static readonly G CROC_2_DEMO_PS1_DUMMY = new G("Croc 2 Demo PS1 (Dummy)", 1999, "DUMMY.DAT", null);
-		public static readonly G HARRY_POTTER_1_PS1 = new G("Harry Potter 1 PS1", 2001, "POTTER.DAT", "POTTER.DIR", _default_struct_packer, _default_struct_unpacker);
-		public static readonly G HARRY_POTTER_2_PS1 = new G("Harry Potter 2 PS1", 2002, "POTTER.DAT", "POTTER.DIR", _default_struct_packer, _default_struct_unpacker);
+		protected DirFormat_Croc2(){}
+
+		public override void Unpack(Parser reader, out string name, out int size, out int start)
+		{
+			//Little Endian, 12 byte string, followed by two 32-bit integers
+			//Struct("<12sII")
+			name = Encoding.ASCII.GetString(reader.ReadBytes(12));
+			size = reader.ReadInt32();
+			start = reader.ReadInt32();
+		}
+		public override void Pack(Serializer writer, string name, int size, int start)
+		{
+			//Little Endian, 12 byte string, followed by two 32-bit integers
+			//Struct("<12sII")
+			writer.WriteBytes(Encoding.ASCII.GetBytes(name.PadRight(12, '\0')));
+			writer.WriteInt32(size);
+			writer.WriteInt32(start);
+		}
+	}
+	public abstract class Game
+	{
+		public abstract string Title{get;}
+		public abstract DateTime BuildDate{get;}
+		public abstract string FilenameDAT{get;}
+		public abstract string FilenameDIR{get;}
+		public abstract DirFormat DirFormat{get;}
 	}
 
-	public class Configuration
+	public sealed class CROC_1_PS1:Game
 	{
-		public G game;
-		public bool ignore_warnings;
-		public bool debug;
-		public Configuration(G game, bool ignore_warnings = false, bool debug = false)
+		//Croc 1 PS1 NA Release
+		public static CROC_1_PS1 Instance{get;} = new CROC_1_PS1();
+		public override string Title => "Croc 1 PS1";
+		public override DateTime BuildDate => new DateTime(1997, 9, 29);
+		public override string FilenameDAT => "CROCFILE.1";
+		public override string FilenameDIR => "CROCFILE.DIR";
+		public override DirFormat DirFormat => DirFormat_Croc1.Instance;
+
+		private CROC_1_PS1(){}
+	}
+	public sealed class CROC_2_PS1:Game
+	{
+		//Croc 2 PS1 NA Release
+		public static CROC_2_PS1 Instance{get;} = new CROC_2_PS1();
+
+		public override string Title => "Croc 2 PS1";
+		public override DateTime BuildDate => new DateTime(1999, 7, 1);
+		public override string FilenameDAT => "CROCII.DAT";
+		public override string FilenameDIR => "CROCII.DIR";
+		public override DirFormat DirFormat => DirFormat_Croc2.Instance;
+
+		private CROC_2_PS1(){}
+	}
+	public sealed class CROC_2_DEMO_PS1:Game
+	{
+		//Croc 2 PS1 US Demo
+		public static CROC_2_DEMO_PS1 Instance{get;} = new CROC_2_DEMO_PS1();
+
+		public override string Title => "Croc 2 Demo PS1";
+		public override DateTime BuildDate => new DateTime(1999, 3, 4);
+		public override string FilenameDAT =>"CROCII.DAT";
+		public override string FilenameDIR => "CROCII.DIR";
+		public override DirFormat DirFormat => DirFormat_Croc2.Instance;
+
+		private CROC_2_DEMO_PS1(){}
+	}
+	public sealed class CROC_2_DEMO_PS1_DUMMY:Game
+	{
+		//Croc 2 PS1 US Demo's DUMMY.DAT
+		public static CROC_2_DEMO_PS1_DUMMY Instance{get;} = new CROC_2_DEMO_PS1_DUMMY();
+
+		public override string Title => "Croc 2 Demo PS1 (Dummy)";
+		public override DateTime BuildDate => new DateTime(1999, 3, 4);
+		public override string FilenameDAT =>"DUMMY.DAT";
+		public override string FilenameDIR => null;
+		public override DirFormat DirFormat => null;
+
+		private CROC_2_DEMO_PS1_DUMMY(){}
+	}
+	public sealed class HARRY_POTTER_1_PS1:Game
+	{
+		public static HARRY_POTTER_1_PS1 Instance{get;} = new HARRY_POTTER_1_PS1();
+
+		public override string Title => "Harry Potter 1 PS1";
+		public override DateTime BuildDate => new DateTime(2001, 12, 1);
+		public override string FilenameDAT =>"POTTER.DAT";
+		public override string FilenameDIR => "POTTER.DIR";
+		public override DirFormat DirFormat => DirFormat_Croc2.Instance;
+
+		private HARRY_POTTER_1_PS1(){}
+	}
+	public sealed class HARRY_POTTER_2_PS1:Game
+	{
+		public static HARRY_POTTER_2_PS1 Instance{get;} = new HARRY_POTTER_2_PS1();
+
+		public override string Title => "Harry Potter 2 PS1";
+		public override DateTime BuildDate => new DateTime(2002, 11, 5);
+		public override string FilenameDAT =>"POTTER.DAT";
+		public override string FilenameDIR => "POTTER.DIR";
+		public override DirFormat DirFormat => DirFormat_Croc2.Instance;
+
+		private HARRY_POTTER_2_PS1(){}
+	}
+
+	public sealed class Configuration
+	{
+		public readonly Game game;
+		public readonly bool ignore_warnings;
+		public readonly bool debug;
+		public Configuration(Game game, bool ignore_warnings = false, bool debug = false)
 		{
 			this.game = game;
-			this.ignore_warnings = ignore_warnings;// If False, warnings stop program execution
+			this.ignore_warnings = ignore_warnings;
 			//logging.basicConfig(format="%(message)s", level=logging.DEBUG if debug else logging.WARNING)
 			this.debug = debug;
 		}
 
-		public static readonly G[] SUPPORTED_GAMES = new G[]
+		public static readonly Game[] SUPPORTED_GAMES = new Game[]
 		{
-			G.CROC_1_PS1,
-			G.CROC_2_PS1,
-			G.CROC_2_DEMO_PS1,
-			G.CROC_2_DEMO_PS1_DUMMY,
-			G.HARRY_POTTER_1_PS1,
-			G.HARRY_POTTER_2_PS1,
+			CROC_1_PS1.Instance,
+			CROC_2_PS1.Instance,
+			CROC_2_DEMO_PS1.Instance,
+			CROC_2_DEMO_PS1_DUMMY.Instance,
+			HARRY_POTTER_1_PS1.Instance,
+			HARRY_POTTER_2_PS1.Instance,
 		};
 		//Croc 1 parsing is not supported, but it can be sliced
-		public static readonly G[] PARSABLE_GAMES = new G[]
+		public static readonly Game[] PARSABLE_GAMES = new Game[]
 		{
-			G.CROC_2_PS1,
-			G.CROC_2_DEMO_PS1,
-			G.CROC_2_DEMO_PS1_DUMMY,
-			G.HARRY_POTTER_1_PS1,
-			G.HARRY_POTTER_2_PS1,
+			CROC_2_PS1.Instance,
+			CROC_2_DEMO_PS1.Instance,
+			CROC_2_DEMO_PS1_DUMMY.Instance,
+			HARRY_POTTER_1_PS1.Instance,
+			HARRY_POTTER_2_PS1.Instance,
 		};
-		public static readonly G[] SLICEABLE_GAMES = SUPPORTED_GAMES;
+		public static readonly Game[] SLICEABLE_GAMES = SUPPORTED_GAMES;
 	}
 }

@@ -27,12 +27,12 @@ namespace ArgonautReverse.WadSections.SPSX
 		public readonly uint sampling_rate;
 		public readonly Configuration conf;
 
-		private static unsafe void WriteInt32BE(BinaryWriter writer, int value)
+		private static unsafe void WriteInt32BE(Serializer writer, int value)
 		{
 			var bytes = (byte*)&value;
 			for(int i=3; i>=0; i--)
 			{
-				writer.Write((byte)bytes[i]);
+				writer.WriteByte(bytes[i]);
 			}
 		}
 
@@ -62,9 +62,9 @@ namespace ArgonautReverse.WadSections.SPSX
 			);
 		}
 
-		public void serialize(BinaryWriter data_out, Configuration conf)
+		public void serialize(Serializer data_out, Configuration conf)
 		{
-			data_out.Write(this.data);
+			data_out.WriteBytes(this.data);
 		}
 
 		public byte[][] to_vag(bool with_headers = true)
@@ -73,17 +73,17 @@ namespace ArgonautReverse.WadSections.SPSX
 			if(with_headers)
 			{
 				header = new byte[48];
-				using var headerStream = new BinaryWriter(new MemoryStream(header));
-				headerStream.Write(vagpBytes);
-				headerStream.BaseStream.Seek(8, SeekOrigin.Current);//TODO: What is this?
+				using var headerStream = new Serializer(new MemoryStream(header));
+				headerStream.WriteBytes(vagpBytes);
+				headerStream.Seek(8, SeekOrigin.Current);//TODO: What is this?
 				WriteInt32BE(headerStream, (int)(this.size / this.n_channels));
 				WriteInt32BE(headerStream, (int)this.sampling_rate);
 
 				//TODO: What is this data here for? This is 28 bytes in total.
-				headerStream.BaseStream.Seek(10, SeekOrigin.Current);
-				headerStream.Write((byte)1);
-				headerStream.Write((byte)0);
-				headerStream.Write(Encoding.ASCII.GetBytes("OverSurgeReverse"));
+				headerStream.Seek(10, SeekOrigin.Current);
+				headerStream.WriteByte(1);
+				headerStream.WriteByte(0);
+				headerStream.WriteBytes(Encoding.ASCII.GetBytes("OverSurgeReverse"));
 			}
 			else
 			{
@@ -145,28 +145,28 @@ namespace ArgonautReverse.WadSections.SPSX
 
 			var total_wav_size = 44 + audio_data_size;
 			var ret = new byte[total_wav_size];
-			using(var headerStream = new BinaryWriter(new MemoryStream(ret)))
+			using(var headerStream = new Serializer(new MemoryStream(ret)))
 			{
 				//RIFF header
-				headerStream.Write(riffBytes);
-				headerStream.Write((int)(total_wav_size - 8));
-				headerStream.Write(waveBytes);
+				headerStream.WriteBytes(riffBytes);
+				headerStream.WriteInt32(total_wav_size - 8);
+				headerStream.WriteBytes(waveBytes);
 
 				//fmt chunk
-				headerStream.Write(fmtBytes);
-				headerStream.Write((int)16);//Chunk size
-				headerStream.Write((ushort)1);//Format code: 1 = WAVE_FORMAT_PCM
-				headerStream.Write((ushort)this.n_channels);
-				headerStream.Write((int)this.sampling_rate);
-				headerStream.Write((int)byte_rate);
-				headerStream.Write((ushort)block_align);
-				headerStream.Write((ushort)0x0010);//Bits per sample
+				headerStream.WriteBytes(fmtBytes);
+				headerStream.WriteInt32(16);//Chunk size
+				headerStream.WriteUInt16(1);//Format code: 1 = WAVE_FORMAT_PCM
+				headerStream.WriteUInt16((ushort)this.n_channels);
+				headerStream.WriteInt32((int)this.sampling_rate);
+				headerStream.WriteInt32((int)byte_rate);
+				headerStream.WriteUInt16((ushort)block_align);
+				headerStream.WriteUInt16(0x0010);//Bits per sample
 
 				//data chunk
-				headerStream.Write(dataBytes);
-				headerStream.Write((int)audio_data_size);
+				headerStream.WriteBytes(dataBytes);
+				headerStream.WriteInt32(audio_data_size);
 
-				if(headerStream.BaseStream.Position != 44)
+				if(headerStream.Position != 44)
 				{
 					throw new Exception("Header size invalid");
 				}

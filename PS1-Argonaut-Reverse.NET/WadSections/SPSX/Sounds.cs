@@ -30,9 +30,9 @@ namespace ArgonautReverse.WadSections.SPSX
 			this._size = null;
 		}
 
-		public void serialize_vag(BinaryWriter data_out, Configuration conf) => this.vag.serialize(data_out, conf);
+		public void serialize_vag(Serializer data_out, Configuration conf) => this.vag.serialize(data_out, conf);
 
-		public abstract void serialize(BinaryWriter data_out, Configuration conf, uint end_section_offset);
+		public abstract void serialize(Serializer data_out, Configuration conf, uint end_section_offset);
 	}
 
 	public abstract class _AmbientOrEffectSound:Sound
@@ -66,7 +66,7 @@ namespace ArgonautReverse.WadSections.SPSX
 			//return new cls(sampling_rate, volume_level, flags, uk1, uk2, size);
 		}
 
-		public override void serialize(BinaryWriter data_out, Configuration conf, uint end_section_offset)
+		public override void serialize(Serializer data_out, Configuration conf, uint end_section_offset)
 		{
 			var rounded_sampling_rate = (ushort)Math.Round((this.sampling_rate * 4096) / 44100.0);
 			PackIHHI2s2sI
@@ -94,16 +94,16 @@ namespace ArgonautReverse.WadSections.SPSX
 			base.parse_vag(data_in, conf);
 		}
 
-		protected static void PackIHHI2s2sI(BinaryWriter writer, uint samplingRate, ushort roundedSamplingRate, ushort volumeLevel, SoundEffectsAmbientFlags flags, ushort uk1, ushort uk2, uint size)
+		protected static void PackIHHI2s2sI(Serializer writer, uint samplingRate, ushort roundedSamplingRate, ushort volumeLevel, SoundEffectsAmbientFlags flags, ushort uk1, ushort uk2, uint size)
 		{
 			//<IHHI2s2sI
-			writer.Write((uint)samplingRate);
-			writer.Write((ushort)roundedSamplingRate);
-			writer.Write((ushort)volumeLevel);
-			writer.Write((uint)flags);
-			writer.Write((ushort)uk1);
-			writer.Write((ushort)uk2);
-			writer.Write((uint)size);
+			writer.WriteUInt32(samplingRate);
+			writer.WriteUInt16(roundedSamplingRate);
+			writer.WriteUInt16(volumeLevel);
+			writer.WriteUInt32((uint)flags);
+			writer.WriteUInt16(uk1);
+			writer.WriteUInt16(uk2);
+			writer.WriteUInt32(size);
 		}
 	}
 
@@ -117,7 +117,7 @@ namespace ArgonautReverse.WadSections.SPSX
 			return new AmbientSound(sampling_rate, volume_level, flags, uk1, uk2, size);
 		}
 
-		public override void serialize(BinaryWriter data_out, Configuration conf, uint end_section_offset)
+		public override void serialize(Serializer data_out, Configuration conf, uint end_section_offset)
 		{
 			var rounded_sampling_rate = (ushort)Math.Round((this.sampling_rate * 4096) / 48000.0);
 			PackIHHI2s2sI
@@ -171,7 +171,7 @@ namespace ArgonautReverse.WadSections.SPSX
 			return new DialogueBGMSound(sampling_rate, flags, uk1, size);
 		}
 
-		public override void serialize(BinaryWriter data_out, Configuration conf, uint end_section_offset)
+		public override void serialize(Serializer data_out, Configuration conf, uint end_section_offset)
 		{
 			var rounded_sampling_rate = (ushort)Math.Round((this.sampling_rate * 4096) / 44100.0);
 			PackIHH4sI
@@ -197,14 +197,14 @@ namespace ArgonautReverse.WadSections.SPSX
 			base.parse_vag(data_in, conf);
 		}
 
-		private static void PackIHH4sI(BinaryWriter writer, uint end_section_offset, ushort rounded_sampling_rate, DialoguesBGMsSoundFlags flags, uint uk1, uint size)
+		private static void PackIHH4sI(Serializer writer, uint end_section_offset, ushort rounded_sampling_rate, DialoguesBGMsSoundFlags flags, uint uk1, uint size)
 		{
 			//<IHH4sI
-			writer.Write((uint)end_section_offset);
-			writer.Write((ushort)rounded_sampling_rate);
-			writer.Write((ushort)flags);
-			writer.Write((uint)uk1);
-			writer.Write((uint)size);
+			writer.WriteUInt32(end_section_offset);
+			writer.WriteUInt16(rounded_sampling_rate);
+			writer.WriteUInt16((ushort)flags);
+			writer.WriteUInt32(uk1);
+			writer.WriteUInt32(size);
 		}
 	}
 }

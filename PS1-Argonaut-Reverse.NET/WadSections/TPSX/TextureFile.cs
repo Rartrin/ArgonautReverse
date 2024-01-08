@@ -47,7 +47,7 @@ namespace ArgonautReverse.WadSections.TPSX
 
 			// In Harry Potter, the last 16 textures are empty (full of 00 bytes)
 			int n_stored_textures = n_textures;
-			if(conf.game == G.HARRY_POTTER_1_PS1 || conf.game==G.HARRY_POTTER_2_PS1)
+			if(conf.game == HARRY_POTTER_1_PS1.Instance || conf.game==HARRY_POTTER_2_PS1.Instance)
 			{
 				n_stored_textures = n_textures - 16;
 			}
@@ -55,7 +55,7 @@ namespace ArgonautReverse.WadSections.TPSX
 			{
 				textures.Add(TextureData.parse(data_in, conf));
 			}
-			if(conf.game == G.HARRY_POTTER_1_PS1 || conf.game==G.HARRY_POTTER_2_PS1)
+			if(conf.game == HARRY_POTTER_1_PS1.Instance || conf.game==HARRY_POTTER_2_PS1.Instance)
 			{
 				data_in.Position += 192; // 16 textures x 12 bytes
 			}
@@ -102,7 +102,7 @@ namespace ArgonautReverse.WadSections.TPSX
 				raw_texturesStream.Position = 0;
 				textures_data = raw_texturesStream.ToArray();//.read();
 				raw_texturesStream.Close();
-				if (conf.game == G.CROC_2_DEMO_PS1)  // Patch for Croc 2 Demo (non-dummy) last end offset error
+				if (conf.game == CROC_2_DEMO_PS1.Instance)  // Patch for Croc 2 Demo (non-dummy) last end offset error
 				{
 					data_in.Position -= 2;
 				}
@@ -114,7 +114,7 @@ namespace ArgonautReverse.WadSections.TPSX
 				textures_data = new byte[image_size + padding_size];
 				data_in.Read(textures_data, 0, image_size);
 			}
-			bool legacy_alpha = (conf.game==G.CROC_2_DEMO_PS1) || (conf.game==G.CROC_2_DEMO_PS1_DUMMY);
+			bool legacy_alpha = (conf.game==CROC_2_DEMO_PS1.Instance) || (conf.game==CROC_2_DEMO_PS1_DUMMY.Instance);
 			return new TextureFile(n_rows, textures_data, legacy_alpha, textures);
 		}
 

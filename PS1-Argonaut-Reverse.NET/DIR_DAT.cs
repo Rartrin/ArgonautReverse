@@ -1,10 +1,9 @@
-using System.Collections;
 using ArgonautReverse.Files;
 using ArgonautReverse.WadSections.TPSX;
 
 namespace ArgonautReverse
 {
-	public sealed class DIR_DAT//:IReadOnlyList<DATFile>
+	public sealed class DIR_DAT
 	{
 		public IReadOnlyList<DATFile> Files{get;}
 
@@ -26,9 +25,9 @@ namespace ArgonautReverse
 			}
 		}
 
-		public DIR_DAT(IEnumerable<DATFile> files)
+		public DIR_DAT(IReadOnlyList<DATFile> files)
 		{
-			Files = files.ToArray();
+			Files = files;
 		}
 	
 		public static (string dir_path,string dat_path) find_dir_dat_files(string input_path, Configuration conf)
@@ -38,27 +37,26 @@ namespace ArgonautReverse
 			if(Directory.Exists(input_path))
 			{
 				// CROC 2 DEMO DUMMY file has no .DIR file
-				dir_path = conf.game != G.CROC_2_DEMO_PS1_DUMMY ? Path.Combine(input_path, conf.game.FilenameDIR) : null;
+				dir_path = conf.game != CROC_2_DEMO_PS1_DUMMY.Instance ? Path.Combine(input_path, conf.game.FilenameDIR) : null;
 				dat_path = Path.Combine(input_path, conf.game.FilenameDAT);
 			}
 			else if(File.Exists(input_path))
 			{
-				if(conf.game != G.CROC_2_DEMO_PS1_DUMMY)
+				if(Path.GetExtension(input_path) == ".DIR")
 				{
-					if(Path.GetExtension(input_path) == ".DIR")
-					{
-						dir_path = input_path;
-						dat_path = Path.ChangeExtension(input_path, ".DAT");
-					}
-					else
-					{
-						dir_path = Path.ChangeExtension(input_path, ".DIR");
-						dat_path = input_path;
-					}
+					dir_path = input_path;
+					dat_path = Path.ChangeExtension(input_path, ".DAT");
 				}
 				else
 				{
-					dir_path = null;
+					if(conf.game.DirFormat != null)
+					{
+						dir_path = Path.ChangeExtension(input_path, ".DIR");
+					}
+					else
+					{
+						dir_path = null;
+					}
 					dat_path = input_path;
 				}
 			}
@@ -69,7 +67,7 @@ namespace ArgonautReverse
 			return (dir_path, dat_path);
 		}
 
-		public static DIR_DAT from_dir_dat(string input_path, Configuration conf)
+		public static DIR_DAT FromDirDat(string input_path, Configuration conf)
 		{
 			var (dir_path, dat_path) = find_dir_dat_files(input_path, conf);
 			var files = new List<DATFile>();
@@ -82,7 +80,7 @@ namespace ArgonautReverse
 					var n_files = dir_data.ReadInt32();
 					for(int i=0; i<n_files; i++)
 					{
-						var (name, size, start) = conf.game.UnpackDIR(dir_data);
+						conf.game.DirFormat.Unpack(dir_data, out var name, out var size, out var start);
 						dat_data.Seek(start, SeekOrigin.Begin);
 						files.Add(parse_dat_file(name.Trim('\0'), dat_data.ReadBytes(size)));
 					}
@@ -117,31 +115,36 @@ namespace ArgonautReverse
 			return new DIR_DAT(files);
 		}
 
-		public static DIR_DAT from_files(params string[] files)
+		public static DIR_DAT FromFiles(params string[] paths)
 		{
-			var all_files = new List<string>();
-			foreach(var file in files)
+			var filePaths = new List<string>();
+			foreach(var path in paths)
 			{
-				if(Directory.Exists(file))
+				if(Directory.Exists(path))
 				{
-					//all_files.AddRange(file for file in file.rglob("*") if file.is_file());
-					throw new NotImplementedException();
+					filePaths.AddRange(Directory.GetFiles(path, "*",SearchOption.AllDirectories).Where(File.Exists));
 				}
-				else if(File.Exists(file))
+				else if(File.Exists(path))
 				{
-					all_files.Add(file);
+					filePaths.Add(path);
 				}
 				else
 				{
 					throw new FileNotFoundException();
 				}
 			}
-			return new DIR_DAT(all_files.Select(file => parse_dat_file(Path.GetFileName(file), File.ReadAllBytes(file))));
+			var files = new DATFile[filePaths.Count];
+			for(int i=0; i<filePaths.Count; i++)
+			{
+				var filePath = filePaths[i];
+				files[i] = parse_dat_file(Path.GetFileName(filePath), File.ReadAllBytes(filePath));
+			}
+			return new DIR_DAT(files);
 		}
-		public void serialize(string output_folder, Configuration conf)
+		public void Serialize(string output_folder, Configuration conf)
 		{
-			using var dir_output = new BinaryWriter(new MemoryStream());
-			using var dat_output = new BinaryWriter(new MemoryStream());
+			using var dir_output = new Serializer(File.OpenWrite(Path.Join(output_folder, conf.game.FilenameDIR)));
+			using var dat_output = new Serializer(File.OpenWrite(Path.Join(output_folder, conf.game.FilenameDAT)));
 
 			if(File.Exists(output_folder))
 			{
@@ -150,29 +153,18 @@ namespace ArgonautReverse
 			else if(!Directory.Exists(output_folder))
 			{
 				Directory.CreateDirectory(output_folder);
-				//output_folder.mkdir(parents=True)
 			}
-			if(conf.game != G.CROC_1_PS1)
+			if(conf.game != CROC_1_PS1.Instance)
 			{
-				dir_output.Write((int)Files.Count);
+				dir_output.WriteInt32(Files.Count);
 			}
 			foreach(var file in this.Files)
 			{
-				var start = (int)dat_output.BaseStream.Position;
+				var start = dat_output.Position;
 				file.Serialize(dat_output, conf);
-				var size = (int)(dat_output.BaseStream.Position - start);
-				Utils.pad_out_2048_bytes(dat_output.BaseStream);
-				conf.game.PackDIR(dir_output, file.Name/*.encode("ASCII")*/, size, start);
-			}
-			using(var dir_file = File.OpenWrite(Path.Join(output_folder, conf.game.FilenameDIR)))
-			{
-				dir_output.BaseStream.Position = 0;
-				dir_output.BaseStream.CopyTo(dir_file);
-			}
-			using(var dat_file = File.OpenWrite(Path.Join(output_folder, conf.game.FilenameDAT)))
-			{
-				dat_output.BaseStream.Position = 0;
-				dat_output.BaseStream.CopyTo(dat_file);
+				var size = dat_output.Position - start;
+				Utils.pad_out_2048_bytes(dat_output);
+				conf.game.DirFormat.Pack(dir_output, file.Name, size, start);
 			}
 		}
 	}

@@ -15,10 +15,10 @@ namespace ArgonautReverse
 		public static int round_up_padding(int n) => (n + padding_size - 1) & (-padding_size);
 
 
-		public static void pad_out_2048_bytes(Stream bio)
+		public static void pad_out_2048_bytes(Serializer bio)
 		{
-			var padding = new byte[round_up_padding((int)bio.Position) - bio.Position];
-			bio.Write(padding);
+			var padding = new byte[round_up_padding(bio.Position) - bio.Position];
+			bio.WriteBytes(padding);
 		}
 
 

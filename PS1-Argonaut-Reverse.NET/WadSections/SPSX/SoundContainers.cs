@@ -13,7 +13,7 @@ namespace ArgonautReverse.WadSections.SPSX
 
 		public IEnumerable<VAGSoundData> vags => Sounds.Select(sound => sound.vag);
 
-		public virtual void serialize(BinaryWriter data_out, Configuration conf)
+		public virtual void serialize(Serializer data_out, Configuration conf)
 		{
 			foreach(var sound in Sounds)
 			{
@@ -29,7 +29,7 @@ namespace ArgonautReverse.WadSections.SPSX
 			}
 		}
 
-		public void serialize_vags(BinaryWriter data_out, Configuration conf)
+		public void serialize_vags(Serializer data_out, Configuration conf)
 		{
 			foreach(var sound in Sounds)
 			{
@@ -67,13 +67,13 @@ namespace ArgonautReverse.WadSections.SPSX
 			return new LevelSFXGroupContainer(Array.Empty<Sound>(), n_sound_effects);
 		}
 
-		public override void serialize(BinaryWriter data_out, Configuration conf) => throw new Exception();
-		public void serialize(BinaryWriter data_out, Configuration conf, int group_header_offset, int end_offset)
+		public override void serialize(Serializer data_out, Configuration conf) => throw new Exception();
+		public void serialize(Serializer data_out, Configuration conf, int group_header_offset, int end_offset)
 		{
-			data_out.Write((int)group_header_offset);
-			data_out.Write((int)Sounds.Count);
-			data_out.Write((int)end_offset);
-			data_out.Write((int)this.size);
+			data_out.WriteInt32(group_header_offset);
+			data_out.WriteInt32(Sounds.Count);
+			data_out.WriteInt32(end_offset);
+			data_out.WriteInt32(this.size);
 		}
 
 		public void parse_children(Parser data_in, Configuration conf)
@@ -85,7 +85,7 @@ namespace ArgonautReverse.WadSections.SPSX
 			this._n_sound_effects = null;
 		}
 
-		public void serialize_children(BinaryWriter data_out, Configuration conf)
+		public void serialize_children(Serializer data_out, Configuration conf)
 		{
 			foreach(var sound in Sounds)
 			{
@@ -110,7 +110,7 @@ namespace ArgonautReverse.WadSections.SPSX
 
 		public IEnumerable<VAGSoundData> vags => Groups.SelectMany(group => group.Sounds.Select(sound => sound.vag));
 
-		public void serialize(BinaryWriter data_out, Configuration conf)
+		public void serialize(Serializer data_out, Configuration conf)
 		{
 			int group_header_offset = 0;
 			int end_offset = 0;
@@ -142,11 +142,11 @@ namespace ArgonautReverse.WadSections.SPSX
 				group.parse_vags(data_in, conf);
 			}
 		}
-		public void serialize_vags(BinaryWriter data_out, Configuration conf)
+		public void serialize_vags(Serializer data_out, Configuration conf)
 		{
 			foreach(var group in Groups)
 			{
-				data_out.BaseStream.Seek(2048 * (int)Math.Ceiling(data_out.BaseStream.Position / 2048.0), SeekOrigin.Begin);
+				data_out.Seek(2048 * (int)Math.Ceiling(data_out.Position / 2048.0), SeekOrigin.Begin);
 				group.serialize_vags(data_out, conf);
 			}
 		}
@@ -165,7 +165,7 @@ namespace ArgonautReverse.WadSections.SPSX
 			}
 		}
 
-		public override void serialize(BinaryWriter data_out, Configuration conf)
+		public override void serialize(Serializer data_out, Configuration conf)
 		{
 			int end_section_offset = 0;
 			foreach(var sound in Sounds)

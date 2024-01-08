@@ -5,7 +5,7 @@ namespace ArgonautReverse.WadSections
 		public static readonly PORTSectionInfo Instance = new PORTSectionInfo();
 
 		public override string codename_str => "PORT";//"TROP";
-		public override G[] supported_games{get;} = new[]{G.HARRY_POTTER_1_PS1, G.HARRY_POTTER_2_PS1};
+		public override Game[] supported_games{get;} = new Game[]{HARRY_POTTER_1_PS1.Instance, HARRY_POTTER_2_PS1.Instance};
 		public override string section_content_description => "chunk zone ids";
 
 		public override PORTSection Parse(Parser data_in, Configuration conf)

@@ -5,12 +5,12 @@ namespace ArgonautReverse.WadSections.DPSX
 		public static readonly DPSXSectionInfo Instance = new DPSXSectionInfo();
 		public override string codename_str => "DPSX";//"XSPD"
 													  // FIXME DEBUG
-		public override G[] supported_games{get;} =
+		public override Game[] supported_games{get;} =
 		{
-			G.CROC_2_PS1,
-			G.CROC_2_DEMO_PS1_DUMMY,
-			G.HARRY_POTTER_1_PS1,
-			G.HARRY_POTTER_2_PS1
+			CROC_2_PS1.Instance,
+			CROC_2_DEMO_PS1_DUMMY.Instance,
+			HARRY_POTTER_1_PS1.Instance,
+			HARRY_POTTER_2_PS1.Instance
 		};
 		public override string section_content_description => "3D models, animations & level geometry";
 
@@ -22,7 +22,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			var n_idk_unique_textures = data_in.ReadInt32();
 
 			//TODO:Fonts and Sprites?
-			if(conf.game != G.CROC_2_DEMO_PS1_DUMMY)
+			if(conf.game != CROC_2_DEMO_PS1_DUMMY.Instance)
 			{
 				data_in.Seek(2048, SeekOrigin.Current);
 			}
@@ -46,27 +46,27 @@ namespace ArgonautReverse.WadSections.DPSX
 			}
 
 			//TODO: Cutscene data?
-			if(conf.game==G.CROC_2_PS1 || conf.game==G.CROC_2_DEMO_PS1)
+			if(conf.game==CROC_2_PS1.Instance || conf.game==CROC_2_DEMO_PS1.Instance)
 			{
 				var n_dpsx_legacy_textures = data_in.ReadInt32();
 				data_in.Seek(n_dpsx_legacy_textures * 3072, SeekOrigin.Current);
 			}
 
-			var n_scripts = data_in.ReadInt32();
-			var scripts = new ActorData[n_scripts];
-			for(int i=0; i<n_scripts; i++)
+			var n_actors = data_in.ReadInt32();
+			var actors = new ActorData[n_actors];
+			for(int i=0; i<n_actors; i++)
 			{
-				scripts[i] = ActorData.Parse(data_in, conf);
+				actors[i] = ActorData.Parse(data_in, conf);
 			}
 
 			var level_file = LevelFile.parse(data_in, conf);
 
 			// FIXME End of Croc 2 & Croc 2 Demo Dummy's level files aren't reversed yet
-			if(conf.game!=G.CROC_2_PS1 && conf.game!=G.CROC_2_DEMO_PS1_DUMMY)
+			if(conf.game!=CROC_2_PS1.Instance && conf.game!=CROC_2_DEMO_PS1_DUMMY.Instance)
 			{
 				check_size(size, start, data_in.Position);
 			}
-			return new DPSXSection(models_3d, animations, scripts, level_file, fallback_data);
+			return new DPSXSection(models_3d, animations, actors, level_file, fallback_data);
 		}
 	}
 
@@ -74,14 +74,14 @@ namespace ArgonautReverse.WadSections.DPSX
 	{
 		public readonly IReadOnlyList<Object3DData> models_3d;
 		public readonly IReadOnlyList<AnimationData> animations;
-		public readonly IReadOnlyList<ActorData> scripts;
+		public readonly IReadOnlyList<ActorData> actors;
 		public readonly LevelFile level_file;
 
-		public DPSXSection(Object3DData[] models_3d, AnimationData[] animations,  ActorData[] scripts, LevelFile level_file, byte[] fallback_data = null):base(DPSXSectionInfo.Instance, fallback_data)
+		public DPSXSection(Object3DData[] models_3d, AnimationData[] animations,  ActorData[] actors, LevelFile level_file, byte[] fallback_data = null):base(DPSXSectionInfo.Instance, fallback_data)
 		{
 			this.models_3d = models_3d;
 			this.animations = animations;
-			this.scripts = scripts;
+			this.actors = actors;
 			this.level_file = level_file;
 		}
 	}

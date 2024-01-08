@@ -117,9 +117,9 @@ namespace ArgonautReverse.Files
 
 		public int n_animations => this.dpsx?.animations?.Count ?? 0;
 
-		public IReadOnlyList<ActorData> scripts => this.dpsx?.scripts;
+		public IReadOnlyList<ActorData> actors => this.dpsx?.actors;
 
-		public int n_scripts => this.dpsx?.scripts?.Count ?? 0;
+		public int n_scripts => this.dpsx?.actors?.Count ?? 0;
 
 		public ChunksMatrix chunks_matrix => this.dpsx?.level_file?.chunks_matrix;
 
@@ -334,11 +334,11 @@ namespace ArgonautReverse.Files
 			}
 		}
 
-		public void ExportStrats(string folder_path, string wad_filename)
+		public void ExportActors(string folder_path, string wad_filename)
 		{
 			for(int i=0; i<this.n_scripts; i++)
 			{
-				File.WriteAllBytes(Path.Join(folder_path, $"{wad_filename}_{i}.STRAT_ASM"), this.scripts[i].data);
+				File.WriteAllBytes(Path.Join(folder_path, $"{wad_filename}_{i}.raw_actor"), this.actors[i].data);
 			}
 		}
 
@@ -383,34 +383,34 @@ namespace ArgonautReverse.Files
 					{
 						if(codename_bytes != ENDSectionInfo.Instance.codename_raw)
 						{
-							this.dict[codename_bytes] = section.Parse(data_in, conf);
+							this.dict.Add(codename_bytes, section.Parse(data_in, conf));
 						}
 						else
 						{
-							this.dict[codename_bytes] = ((ENDSectionInfo)section).Parse(data_in, conf, spsx_section:this.dict.GetValueOrDefault(SPSXSectionInfo.Instance.codename_raw) as SPSXSection);
+							this.dict.Add(codename_bytes, ((ENDSectionInfo)section).Parse(data_in, conf, spsx_section:this.dict.GetValueOrDefault(SPSXSectionInfo.Instance.codename_raw) as SPSXSection));
 						}
 					}
 					else
 					{
-						this.dict[codename_bytes] = new UnknownSectionInfo(codename_bytes).fallback_parse(data_in);//throw new Exception("No idea what to do here, the original code shouldn't work here");
+						Console.WriteLine($"Unsupported Chunk: {Encoding.ASCII.GetString((byte*)&codename_bytes, 4)}");
+						this.dict.Add(codename_bytes, new UnknownSectionInfo(codename_bytes).fallback_parse(data_in));//throw new Exception("No idea what to do here, the original code shouldn't work here");
 					}
 				}
 				else
 				{
-					//TODO: Throw expection or add general type
-
-					//throw new Exception("No idea what to do here, the original code shouldn't work here");
-					//Console.WriteLine($"Skipping Chunk: {Encoding.ASCII.GetString((byte*)&codename_bytes, 4)}");
-					this.dict[codename_bytes] = new UnknownSectionInfo(codename_bytes).fallback_parse(data_in);
+					Console.WriteLine($"Unknown Chunk: {Encoding.ASCII.GetString((byte*)&codename_bytes, 4)}");
+					this.dict.Add(codename_bytes, new UnknownSectionInfo(codename_bytes).fallback_parse(data_in));
 				}
 			}
 		}
 		public override void Serialize(object file_path_or_data_out, Configuration conf)
 		{
-			var data_out = (file_path_or_data_out is BinaryWriter writer) ? writer : new BinaryWriter(new MemoryStream());
+			var data_out = (file_path_or_data_out is Serializer serializer) ? serializer : new Serializer(new MemoryStream());
 
-			var wad_size_offset = (int)data_out.BaseStream.Position;
-			data_out.Write((int)0);//b"\x00\x00\x00\x00"
+			var wad_size_offset = data_out.Position;
+
+			//TODO: Understand data
+			data_out.WriteUInt32(0);//b"\x00\x00\x00\x00"
 			foreach(var section in this.dict.Values)
 			{
 				section.serialize(data_out, conf);
@@ -423,21 +423,21 @@ namespace ArgonautReverse.Files
 				//	section.serialize(data_out, conf);
 				//}
 			}
-			var end_offset = (int)data_out.BaseStream.Position;
+			var end_offset = data_out.Position;
 			var wad_size = end_offset - wad_size_offset;
-			if(conf.game==G.CROC_2_PS1 || conf.game==G.HARRY_POTTER_1_PS1 || conf.game==G.HARRY_POTTER_2_PS1)
+			if(conf.game==CROC_2_PS1.Instance || conf.game==HARRY_POTTER_1_PS1.Instance || conf.game==HARRY_POTTER_2_PS1.Instance)
 			{
 				wad_size += 2048;
 			}
-			data_out.BaseStream.Position += wad_size_offset;
-			data_out.Write((int)wad_size);
-			data_out.BaseStream.Position += end_offset;
+			data_out.Position += wad_size_offset;
+			data_out.WriteInt32(wad_size);
+			data_out.Position += end_offset;
 
-			if(file_path_or_data_out is string)
+			if(file_path_or_data_out is string filePath)
 			{
-				data_out.BaseStream.Position = 0;
-				using var output_file = File.OpenWrite((string)file_path_or_data_out);
-				data_out.BaseStream.CopyTo(output_file);
+				data_out.Position = 0;
+				using var output_file = File.OpenWrite(filePath);
+				data_out.CopyTo(output_file);
 				data_out.Close();
 			}
 		}

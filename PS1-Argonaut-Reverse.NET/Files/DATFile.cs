@@ -35,9 +35,9 @@ namespace ArgonautReverse.Files
 			{
 				File.WriteAllBytes(path, this._data);
 			}
-			else if(data_out is BinaryWriter stream)
+			else if(data_out is Serializer serializer)
 			{
-				stream.Write(this._data);
+				serializer.WriteBytes(this._data);
 			}
 			else
 			{
