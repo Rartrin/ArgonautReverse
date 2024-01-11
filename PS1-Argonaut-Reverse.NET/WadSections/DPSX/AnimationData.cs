@@ -1,4 +1,5 @@
 using System.Numerics;
+using ArgonautReverse.IO;
 
 namespace ArgonautReverse.WadSections.DPSX
 {
@@ -17,10 +18,10 @@ namespace ArgonautReverse.WadSections.DPSX
 
 		public int n_vertices_groups => this.header.n_vertices_groups;
 
-		public static AnimationData parse(Parser data_in, Configuration conf)
+		public static AnimationData parse(WadReader data_in)
 		{
 			//base.parse(data_in, conf);
-			var header = AnimationHeader.parse(data_in, conf);
+			var header = AnimationHeader.parse(data_in);
 
 			var frame_indexes = new List<int>();
 			if(header.n_total_frames == header.n_stored_frames)

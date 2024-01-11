@@ -1,3 +1,5 @@
+using ArgonautReverse.IO;
+
 namespace ArgonautReverse.WadSections.SPSX
 {
 	public abstract class SoundsContainer
@@ -21,11 +23,11 @@ namespace ArgonautReverse.WadSections.SPSX
 			}
 		}
 
-		public virtual void parse_vags(Parser data_in, Configuration conf)
+		public virtual void parse_vags(WadReader data_in)
 		{
 			foreach(var sound in Sounds)
 			{
-				sound.parse_vag(data_in, conf);
+				sound.parse_vag(data_in);
 			}
 		}
 
@@ -59,7 +61,7 @@ namespace ArgonautReverse.WadSections.SPSX
 
 		//public int size => Sounds.Sum(sound => sound.size);
 
-		public static LevelSFXGroupContainer parse(Parser data_in, Configuration conf)
+		public static LevelSFXGroupContainer parse(WadReader data_in)
 		{
 			data_in.Seek(4, SeekOrigin.Current);//Group header offset
 			int n_sound_effects = data_in.ReadInt32();
@@ -76,11 +78,11 @@ namespace ArgonautReverse.WadSections.SPSX
 			data_out.WriteInt32(this.size);
 		}
 
-		public void parse_children(Parser data_in, Configuration conf)
+		public void parse_children(WadReader data_in)
 		{
 			for(int i=0; i<_n_sound_effects; i++)
 			{
-				Sounds.Add(EffectSound.parse(data_in, conf));
+				Sounds.Add(EffectSound.parse(data_in));
 			}
 			this._n_sound_effects = null;
 		}
@@ -127,19 +129,19 @@ namespace ArgonautReverse.WadSections.SPSX
 			}
 		}
 
-		public void parse_groups(Parser data_in, Configuration conf)
+		public void parse_groups(WadReader data_in)
 		{
 			foreach(var group in Groups)
 			{
-				group.parse_children(data_in, conf);
+				group.parse_children(data_in);
 			}
 		}
-		public void parse_vags(Parser data_in, Configuration conf)
+		public void parse_vags(WadReader data_in)
 		{
 			foreach(var group in Groups)
 			{
 				data_in.Seek(2048 * (int)Math.Ceiling(data_in.Position / 2048.0));
-				group.parse_vags(data_in, conf);
+				group.parse_vags(data_in);
 			}
 		}
 		public void serialize_vags(Serializer data_out, Configuration conf)
@@ -156,12 +158,12 @@ namespace ArgonautReverse.WadSections.SPSX
 	{
 		public DialoguesBGMsContainer(IReadOnlyList<Sound> sounds = null):base(sounds){}
 
-		public override void parse_vags(Parser data_in, Configuration conf)
+		public override void parse_vags(WadReader data_in)
 		{
 			foreach(var sound in this.Sounds)
 			{
 				data_in.Seek(2048 * (int)Math.Ceiling(data_in.Position / 2048.0));
-				sound.parse_vag(data_in, conf);
+				sound.parse_vag(data_in);
 			}
 		}
 

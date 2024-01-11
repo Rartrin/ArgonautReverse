@@ -1,4 +1,5 @@
 using System.Text;
+using ArgonautReverse.IO;
 
 namespace ArgonautReverse.WadSections.SPSX
 {
@@ -25,7 +26,6 @@ namespace ArgonautReverse.WadSections.SPSX
 		public readonly byte[] data;
 		public readonly int n_channels;
 		public readonly uint sampling_rate;
-		public readonly Configuration conf;
 
 		private static unsafe void WriteInt32BE(Serializer writer, int value)
 		{
@@ -36,7 +36,7 @@ namespace ArgonautReverse.WadSections.SPSX
 			}
 		}
 
-		public VAGSoundData(byte[] data, int n_channels, uint sampling_rate, Configuration conf)
+		public VAGSoundData(byte[] data, int n_channels, uint sampling_rate)
 		{
 			if(n_channels != MONO && n_channels != STEREO)
 			{
@@ -45,20 +45,18 @@ namespace ArgonautReverse.WadSections.SPSX
 			this.data = data;
 			this.n_channels = n_channels;
 			this.sampling_rate = sampling_rate;
-			this.conf = conf;
 		}
 		
 		public int size => this.data.Length;
 
-		public static VAGSoundData parse(Parser data_in, Configuration conf, int size, int n_channels, uint sampling_rate)
+		public static VAGSoundData parse(WadReader data_in, int size, int n_channels, uint sampling_rate)
 		{
 			var data = data_in.ReadBytes(size);
 			return new VAGSoundData
 			(
 				data,
 				n_channels,
-				sampling_rate,
-				conf
+				sampling_rate
 			);
 		}
 

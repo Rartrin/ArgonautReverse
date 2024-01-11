@@ -1,4 +1,6 @@
 using System.Text;
+using ArgonautReverse.Engine.Versions;
+using ArgonautReverse.IO;
 using ArgonautReverse.WadSections;
 using ArgonautReverse.WadSections.DPSX;
 using ArgonautReverse.WadSections.SPSX;
@@ -344,7 +346,7 @@ namespace ArgonautReverse.Files
 
 		public override unsafe void Parse(Configuration conf)
 		{
-			using var data_in = new Parser(new MemoryStream(this._data));
+			using var data_in = new WadReader(conf, new MemoryStream(this._data));
 			var sections_offsets = new Dictionary<uint,int>();
 			void parse_sections()
 			{
@@ -379,15 +381,15 @@ namespace ArgonautReverse.Files
 				if(WADFile.sections_conf.ContainsKey(codename_bytes))
 				{
 					var section = WADFile.sections_conf[codename_bytes];
-					if(section.supported_games.Contains(conf.game))
+					if(section.supported_games.Contains(data_in.Version))
 					{
 						if(codename_bytes != ENDSectionInfo.Instance.codename_raw)
 						{
-							this.dict.Add(codename_bytes, section.Parse(data_in, conf));
+							this.dict.Add(codename_bytes, section.Parse(data_in));
 						}
 						else
 						{
-							this.dict.Add(codename_bytes, ((ENDSectionInfo)section).Parse(data_in, conf, spsx_section:this.dict.GetValueOrDefault(SPSXSectionInfo.Instance.codename_raw) as SPSXSection));
+							this.dict.Add(codename_bytes, ((ENDSectionInfo)section).Parse(data_in, spsx_section:this.dict.GetValueOrDefault(SPSXSectionInfo.Instance.codename_raw) as SPSXSection));
 						}
 					}
 					else
@@ -403,10 +405,8 @@ namespace ArgonautReverse.Files
 				}
 			}
 		}
-		public override void Serialize(object file_path_or_data_out, Configuration conf)
+		public override void Serialize(Serializer data_out, Configuration conf)
 		{
-			var data_out = (file_path_or_data_out is Serializer serializer) ? serializer : new Serializer(new MemoryStream());
-
 			var wad_size_offset = data_out.Position;
 
 			//TODO: Understand data
@@ -414,32 +414,16 @@ namespace ArgonautReverse.Files
 			foreach(var section in this.dict.Values)
 			{
 				section.serialize(data_out, conf);
-				//if(section.serialize == BaseWADSection.serialize)// FIXME Dirty
-				//{
-				//	section.fallback_serialize(data_out);
-				//}
-				//else
-				//{
-				//	section.serialize(data_out, conf);
-				//}
 			}
 			var end_offset = data_out.Position;
 			var wad_size = end_offset - wad_size_offset;
-			if(conf.game==CROC_2_PS1.Instance || conf.game==HARRY_POTTER_1_PS1.Instance || conf.game==HARRY_POTTER_2_PS1.Instance)
+			if(conf.InputVersion==CROC_2_PS1.Instance || conf.InputVersion==HARRY_POTTER_1_PS1.Instance || conf.InputVersion==HARRY_POTTER_2_PS1.Instance)
 			{
 				wad_size += 2048;
 			}
 			data_out.Position += wad_size_offset;
 			data_out.WriteInt32(wad_size);
 			data_out.Position += end_offset;
-
-			if(file_path_or_data_out is string filePath)
-			{
-				data_out.Position = 0;
-				using var output_file = File.OpenWrite(filePath);
-				data_out.CopyTo(output_file);
-				data_out.Close();
-			}
 		}
 	}
 }

@@ -1,4 +1,6 @@
-﻿namespace ArgonautReverse.WadSections.TPSX
+﻿using ArgonautReverse.IO;
+
+namespace ArgonautReverse.WadSections.TPSX
 {
 	public sealed class Font
 	{
@@ -15,7 +17,7 @@
 			Height = height;
 		}
 
-		public static Font Parse(Parser parser)
+		public static Font Parse(WadReader parser)
 		{
 			return new Font
 			(

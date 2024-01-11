@@ -1,3 +1,5 @@
+using ArgonautReverse.IO;
+
 namespace ArgonautReverse.WadSections.DPSX
 {
 	public sealed class ActorData:BaseDataClass
@@ -10,7 +12,7 @@ namespace ArgonautReverse.WadSections.DPSX
 
 		public int Size => this.data.Length;
 
-		public static ActorData Parse(Parser data_in, Configuration conf)
+		public static ActorData Parse(WadReader data_in)
 		{
 			var size = 4 * data_in.ReadInt32();
 			return new ActorData(data_in.ReadBytes(size));

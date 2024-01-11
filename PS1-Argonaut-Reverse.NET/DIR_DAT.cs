@@ -1,4 +1,6 @@
+using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.Files;
+using ArgonautReverse.IO;
 using ArgonautReverse.WadSections.TPSX;
 
 namespace ArgonautReverse
@@ -37,8 +39,8 @@ namespace ArgonautReverse
 			if(Directory.Exists(input_path))
 			{
 				// CROC 2 DEMO DUMMY file has no .DIR file
-				dir_path = conf.game != CROC_2_DEMO_PS1_DUMMY.Instance ? Path.Combine(input_path, conf.game.FilenameDIR) : null;
-				dat_path = Path.Combine(input_path, conf.game.FilenameDAT);
+				dir_path = conf.InputVersion != CROC_2_DEMO_PS1_DUMMY.Instance ? Path.Combine(input_path, conf.InputVersion.FilenameDIR) : null;
+				dat_path = Path.Combine(input_path, conf.InputVersion.FilenameDAT);
 			}
 			else if(File.Exists(input_path))
 			{
@@ -49,7 +51,7 @@ namespace ArgonautReverse
 				}
 				else
 				{
-					if(conf.game.DirFormat != null)
+					if(conf.InputVersion.DirFormat != null)
 					{
 						dir_path = Path.ChangeExtension(input_path, ".DIR");
 					}
@@ -72,15 +74,15 @@ namespace ArgonautReverse
 			var (dir_path, dat_path) = find_dir_dat_files(input_path, conf);
 			var files = new List<DATFile>();
 
-			using(var dat_data = new Parser(File.OpenRead(dat_path)))
+			using(var dat_data = new WadReader(conf, File.OpenRead(dat_path)))
 			{
 				if(dir_path is not null)
 				{
-					using var dir_data = new Parser(File.OpenRead(dir_path));
+					using var dir_data = new WadReader(conf, File.OpenRead(dir_path));
 					var n_files = dir_data.ReadInt32();
 					for(int i=0; i<n_files; i++)
 					{
-						conf.game.DirFormat.Unpack(dir_data, out var name, out var size, out var start);
+						conf.InputVersion.DirFormat.Unpack(dir_data, out var name, out var size, out var start);
 						dat_data.Seek(start, SeekOrigin.Begin);
 						files.Add(parse_dat_file(name.Trim('\0'), dat_data.ReadBytes(size)));
 					}
@@ -143,8 +145,8 @@ namespace ArgonautReverse
 		}
 		public void Serialize(string output_folder, Configuration conf)
 		{
-			using var dir_output = new Serializer(File.OpenWrite(Path.Join(output_folder, conf.game.FilenameDIR)));
-			using var dat_output = new Serializer(File.OpenWrite(Path.Join(output_folder, conf.game.FilenameDAT)));
+			using var dir_output = new Serializer(File.OpenWrite(Path.Join(output_folder, conf.InputVersion.FilenameDIR)));
+			using var dat_output = new Serializer(File.OpenWrite(Path.Join(output_folder, conf.InputVersion.FilenameDAT)));
 
 			if(File.Exists(output_folder))
 			{
@@ -154,7 +156,7 @@ namespace ArgonautReverse
 			{
 				Directory.CreateDirectory(output_folder);
 			}
-			if(conf.game != CROC_1_PS1.Instance)
+			if(conf.InputVersion != CROC_1_PS1.Instance)
 			{
 				dir_output.WriteInt32(Files.Count);
 			}
@@ -164,7 +166,7 @@ namespace ArgonautReverse
 				file.Serialize(dat_output, conf);
 				var size = dat_output.Position - start;
 				Utils.pad_out_2048_bytes(dat_output);
-				conf.game.DirFormat.Pack(dir_output, file.Name, size, start);
+				conf.InputVersion.DirFormat.Pack(dir_output, file.Name, size, start);
 			}
 		}
 	}

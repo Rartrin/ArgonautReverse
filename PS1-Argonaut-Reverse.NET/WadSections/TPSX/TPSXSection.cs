@@ -1,4 +1,7 @@
 using System.Text;
+using ArgonautReverse.Engine;
+using ArgonautReverse.Engine.Versions;
+using ArgonautReverse.IO;
 
 namespace ArgonautReverse.WadSections.TPSX
 {
@@ -15,18 +18,18 @@ namespace ArgonautReverse.WadSections.TPSX
 		public static readonly TPSXSectionInfo Instance = new TPSXSectionInfo();
 
 		public override string codename_str => "TPSX";//"XSPT";
-		public override Game[] supported_games => Configuration.PARSABLE_GAMES;
+		public override VersionInfo[] supported_games => Configuration.PARSABLE_GAMES;
 		public override string section_content_description => "textures";
 
-		public override TPSXSection Parse(Parser data_in, Configuration conf)
+		public override TPSXSection Parse(WadReader data_in)
 		{
 			var fallback_data = fallback_parse_data(data_in);
-			var (size, start) = base.parseInner(data_in, conf);
+			var (size, start) = base.parseInner(data_in);
 			bool hasMemoryCardIcons;
 			bool compressed16bit;
 			string[] titles;
 			Font[] fontLookup;
-			if(conf.game == CROC_2_DEMO_PS1_DUMMY.Instance)
+			if(data_in.Version == CROC_2_DEMO_PS1_DUMMY.Instance)
 			{
 				hasMemoryCardIcons = false;
 				titles = Array.Empty<string>();
@@ -42,7 +45,7 @@ namespace ArgonautReverse.WadSections.TPSX
 				compressed16bit = (tpsx_flags & TextureFlag.Compressed16Bit) != 0;
 
 				//TODO: Ensure these always match
-				bool rle = conf.game == CROC_2_PS1.Instance || conf.game == CROC_2_DEMO_PS1.Instance || conf.game == HARRY_POTTER_1_PS1.Instance || conf.game == HARRY_POTTER_2_PS1.Instance;
+				bool rle = data_in.Version == CROC_2_PS1.Instance || data_in.Version == CROC_2_DEMO_PS1.Instance || data_in.Version == HARRY_POTTER_1_PS1.Instance || data_in.Version == HARRY_POTTER_2_PS1.Instance;
 				if(compressed16bit != rle)
 				{
 					throw new Exception();
@@ -64,6 +67,7 @@ namespace ArgonautReverse.WadSections.TPSX
 						titles = new[]{Encoding.Latin1.GetString(data_in.ReadBytes(32)).Trim('\0')};
 					}
 
+					//TODO: Why are these also in DPSX?
 					var spriteOffset = data_in.ReadInt32();
 
 					fontLookup = new Font[256];
@@ -78,7 +82,7 @@ namespace ArgonautReverse.WadSections.TPSX
 					fontLookup = Array.Empty<Font>();
 				}
 			}
-			var texture_file = TextureFile.parse(data_in, conf, compressed16bit:compressed16bit, hasMemoryCardIcons:hasMemoryCardIcons, end:start + size);
+			var texture_file = TextureFile.parse(data_in, compressed16bit:compressed16bit, hasMemoryCardIcons:hasMemoryCardIcons, end:start + size);
 
 			check_size(size, start, data_in.Position);
 			return new TPSXSection(texture_file, titles, fontLookup, fallback_data);

@@ -10,7 +10,7 @@ namespace ArgonautReverse
 			//parser.add_argument(
 			//    "game",
 			//    type=str,
-			//    choices=[game.title for game in Configuration.SLICEABLE_GAMES],
+			//    choices=[game.title for game in Configuration.SUPPORTED_GAMES],
 			//    help="The game the files are from. If it is not listed, choose one you think is the closest.",
 			//)
 			//parser.add_argument("dirdat", type=str, help="Where the DIR/DAT files are located.")
@@ -39,7 +39,7 @@ namespace ArgonautReverse
 		public static void Extract(Dictionary<string,string> args)
 		{
 			var game = Configuration.SUPPORTED_GAMES.Single(game => game.Title == args["-game"]);
-			var conf = new Configuration(game, true, false);
+			var conf = new Configuration(game, true);
 
 			var input_path = args["-dirdat"];
 			var output_path = args["-output_dir"];
@@ -57,7 +57,8 @@ namespace ArgonautReverse
 			}
 			foreach(var dat_file in dir_dat.Files)
 			{
-				dat_file.Serialize(Path.Join(output_path, dat_file.Name), conf);
+				using var data_out = new Serializer(File.OpenWrite(Path.Join(output_path, dat_file.Name)));
+				dat_file.Serialize(data_out, conf);
 			}
 			Console.Write($"{dir_dat.Files.Count} files successfully extracted to {output_path}");
 		}

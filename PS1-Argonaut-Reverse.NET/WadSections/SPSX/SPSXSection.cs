@@ -1,3 +1,7 @@
+using ArgonautReverse.Engine;
+using ArgonautReverse.Engine.Versions;
+using ArgonautReverse.IO;
+
 namespace ArgonautReverse.WadSections.SPSX
 {
 	public sealed class SPSXSectionInfo:BaseWADSectionInfo<SPSXSection>
@@ -6,12 +10,12 @@ namespace ArgonautReverse.WadSections.SPSX
 
 		public override string codename_str => "SPSX";
 		public override string section_content_description => "sound effects, background music & dialogues";
-		public override Game[] supported_games{get;} = new Game[]{/*CROC_2_DEMO_PS1_DUMMY.Instance,*/ HARRY_POTTER_1_PS1.Instance, HARRY_POTTER_2_PS1.Instance};
+		public override VersionInfo[] supported_games{get;} = new VersionInfo[]{/*CROC_2_DEMO_PS1_DUMMY.Instance,*/ HARRY_POTTER_1_PS1.Instance, HARRY_POTTER_2_PS1.Instance};
 
-		public override SPSXSection Parse(Parser data_in, Configuration conf)
+		public override SPSXSection Parse(WadReader data_in)
 		{
-			bool isHarryPotterGame = conf.game==HARRY_POTTER_1_PS1.Instance || conf.game==HARRY_POTTER_2_PS1.Instance;
-			var (size, start) = base.parseInner(data_in, conf);
+			bool isHarryPotterGame = data_in.Version==HARRY_POTTER_1_PS1.Instance || data_in.Version==HARRY_POTTER_2_PS1.Instance;
+			var (size, start) = base.parseInner(data_in);
 
 			var spsx_flags = (SPSXFlags)data_in.ReadUInt32();
 			Utils.Assert(!isHarryPotterGame || (spsx_flags & SPSXFlags.AMBIENTSEP) == 0);// Bit 1 is always unset
@@ -30,7 +34,7 @@ namespace ArgonautReverse.WadSections.SPSX
 				var sounds = new EffectSound[n_sfx];
 				for(int i = 0; i<n_sfx; i++)
 				{
-					sounds[i] = EffectSound.parse(data_in, conf);
+					sounds[i] = EffectSound.parse(data_in);
 				}
 				common_sfx = new CommonSFXContainer(sounds);
 			}
@@ -44,7 +48,7 @@ namespace ArgonautReverse.WadSections.SPSX
 				var sounds = new AmbientSound[n_ambient_tracks];
 				for(int i = 0; i<n_ambient_tracks; i++)
 				{
-					sounds[i] = AmbientSound.parse(data_in, conf);
+					sounds[i] = AmbientSound.parse(data_in);
 				}
 				ambient_tracks = new AmbientContainer(sounds);
 			}
@@ -63,12 +67,12 @@ namespace ArgonautReverse.WadSections.SPSX
 				var groups = new LevelSFXGroupContainer[n_level_sfx_groups];
 				for(int i = 0; i<n_level_sfx_groups; i++)
 				{
-					groups[i] = LevelSFXGroupContainer.parse(data_in, conf);
+					groups[i] = LevelSFXGroupContainer.parse(data_in);
 				}
 				level_sfx_groups = new LevelSFXContainer(groups);
-				level_sfx_groups.parse_groups(data_in, conf);
+				level_sfx_groups.parse_groups(data_in);
 				Utils.Assert(n_unique_level_sfx <= level_sfx_groups.n_sounds);
-				level_sfx_mapping = LevelSFXMapping.parse(data_in, conf, n_unique_level_sfx:n_unique_level_sfx);
+				level_sfx_mapping = LevelSFXMapping.parse(data_in, n_unique_level_sfx:n_unique_level_sfx);
 			}
 
 			//Dialogues & BGMs
@@ -86,21 +90,21 @@ namespace ArgonautReverse.WadSections.SPSX
 				var sounds = new DialogueBGMSound[n_dialogues_bgms];
 				for(int i=0; i<n_dialogues_bgms; i++)
 				{
-					sounds[i] = DialogueBGMSound.parse(data_in, conf);
+					sounds[i] = DialogueBGMSound.parse(data_in);
 				}
 				dialogues_bgms = new DialoguesBGMsContainer(sounds);
 
 				// Common sound effects audio data
 				var common_sfx_total_size = data_in.ReadInt32();
 				Utils.Assert(common_sfx_total_size == common_sfx.size);
-				common_sfx.parse_vags(data_in, conf);
+				common_sfx.parse_vags(data_in);
 			}
 			// Ambient tracks audio data
 			if((spsx_flags&SPSXFlags.HAS_AMBIENT_TRACKS)!=0)
 			{
 				var ambient_tracks_total_size = data_in.ReadInt32();
 				Utils.Assert(ambient_tracks_total_size == ambient_tracks.size);
-				ambient_tracks.parse_vags(data_in, conf);
+				ambient_tracks.parse_vags(data_in);
 			}
 			this.check_size(size, start, data_in.Position);
 			return new SPSXSection(spsx_flags, common_sfx, ambient_tracks, level_sfx_groups, level_sfx_mapping, idk1, idk2, dialogues_bgms);

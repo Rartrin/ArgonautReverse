@@ -1,16 +1,3 @@
-//from collections.abc import Iterable
-//from enum import Enum
-//from itertools import accumulate
-
-//import numpy as np
-//from PIL import Image
-
-//from ps1_argonaut.BaseDataClasses import BaseDataClass
-//from ps1_argonaut.configuration import Configuration
-//from ps1_argonaut.files.DATFile import DATFile
-//from ps1_argonaut.utils import parse_4bits_paletted, parse_high_color, parse_palette, XY
-
-using System.Collections;
 using System.Drawing;
 using System.Drawing.Imaging;
 

@@ -1,3 +1,8 @@
+using ArgonautReverse.Engine;
+using ArgonautReverse.Engine.Versions;
+using ArgonautReverse.IO;
+using ArgonautReverse.WadSections.TPSX;
+
 namespace ArgonautReverse.WadSections.DPSX
 {
 	public sealed class DPSXSectionInfo:BaseWADSectionInfo<DPSXSection>
@@ -5,7 +10,7 @@ namespace ArgonautReverse.WadSections.DPSX
 		public static readonly DPSXSectionInfo Instance = new DPSXSectionInfo();
 		public override string codename_str => "DPSX";//"XSPD"
 													  // FIXME DEBUG
-		public override Game[] supported_games{get;} =
+		public override VersionInfo[] supported_games{get;} =
 		{
 			CROC_2_PS1.Instance,
 			CROC_2_DEMO_PS1_DUMMY.Instance,
@@ -14,55 +19,68 @@ namespace ArgonautReverse.WadSections.DPSX
 		};
 		public override string section_content_description => "3D models, animations & level geometry";
 
-		public override DPSXSection Parse(Parser data_in, Configuration conf)
+		public override DPSXSection Parse(WadReader data_in)
 		{
 			var fallback_data = fallback_parse_data(data_in);
-			var (size, start) = base.parseInner(data_in, conf);
-			var idk1 = data_in.ReadBytes(4);
-			var n_idk_unique_textures = data_in.ReadInt32();
+			var (size, start) = base.parseInner(data_in);
 
-			//TODO:Fonts and Sprites?
-			if(conf.game != CROC_2_DEMO_PS1_DUMMY.Instance)
+			//TODO: WadFlag and SpriteOffset
+			WadFlag wadFlag = (WadFlag)data_in.ReadUInt32();
+
+			//TODO: Why are these also in TPSX?
+			var spriteOffset = data_in.ReadInt32();
+
+			var fontLookup = new Font[256];
+			for(var i=0; i<256; i++)
 			{
-				data_in.Seek(2048, SeekOrigin.Current);
+				fontLookup[i] = Font.Parse(data_in);
 			}
-			else
+
+			if(data_in.Version == CROC_2_DEMO_PS1_DUMMY.Instance)
 			{
-				data_in.Seek(2052, SeekOrigin.Current);
+				//TODO: What is this for?
+				//This is in the DUMMY wads but not the main demo wads.
+				var unknown = data_in.ReadInt32();
 			}
 
 			var n_models_3d = data_in.ReadInt32();
 			var models_3d = new Object3DData[n_models_3d];
 			for(int i=0; i<n_models_3d; i++)
 			{
-				models_3d[i]=Object3DData.Parse(data_in, conf);
+				models_3d[i]=Object3DData.Parse(data_in);
 			}
 
 			var n_animations = data_in.ReadInt32();
 			var animations = new AnimationData[n_animations];
 			for(int i=0; i<n_animations; i++)
 			{
-				animations[i] = AnimationData.parse(data_in, conf);
+				animations[i] = AnimationData.parse(data_in);
 			}
 
-			//TODO: Cutscene data?
-			if(conf.game==CROC_2_PS1.Instance || conf.game==CROC_2_DEMO_PS1.Instance)
+			if((wadFlag&WadFlag.WF_HASCUTSCENES) != 0)//if(data_in.Version==CROC_2_PS1.Instance || data_in.Version==CROC_2_DEMO_PS1.Instance)
 			{
+				//TODO: Cutscene data
+				//This probably shouldn't be a fixed amount
 				var n_dpsx_legacy_textures = data_in.ReadInt32();
 				data_in.Seek(n_dpsx_legacy_textures * 3072, SeekOrigin.Current);
+			}
+
+			if((wadFlag&WadFlag.WF_HASHEADS) != 0)
+			{
+				throw new NotImplementedException();
 			}
 
 			var n_actors = data_in.ReadInt32();
 			var actors = new ActorData[n_actors];
 			for(int i=0; i<n_actors; i++)
 			{
-				actors[i] = ActorData.Parse(data_in, conf);
+				actors[i] = ActorData.Parse(data_in);
 			}
 
-			var level_file = LevelFile.parse(data_in, conf);
+			var level_file = LevelFile.parse(data_in, wadFlag);
 
 			// FIXME End of Croc 2 & Croc 2 Demo Dummy's level files aren't reversed yet
-			if(conf.game!=CROC_2_PS1.Instance && conf.game!=CROC_2_DEMO_PS1_DUMMY.Instance)
+			if(data_in.Version!=CROC_2_PS1.Instance && data_in.Version!=CROC_2_DEMO_PS1_DUMMY.Instance)
 			{
 				check_size(size, start, data_in.Position);
 			}

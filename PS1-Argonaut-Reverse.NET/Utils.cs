@@ -1,5 +1,6 @@
-
 using System.Drawing;
+
+using ArgonautReverse.IO;
 
 namespace ArgonautReverse
 {
@@ -22,7 +23,7 @@ namespace ArgonautReverse
 		}
 
 
-		public static void pad_in_2048_bytes(Parser bio)
+		public static void pad_in_2048_bytes(WadReader bio)
 		{
 			bio.Position = round_up_padding(bio.Position);
 		}

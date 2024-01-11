@@ -1,20 +1,17 @@
 using System.Text;
+using ArgonautReverse.Engine;
+using ArgonautReverse.IO;
 
 namespace ArgonautReverse
 {
 	public interface BaseDataClass
 	{
-		//public /*static*/ abstract void parse(Parser data_in, Configuration conf);
-
-		//public abstract void serialize(BinaryWriter data_out, Configuration conf);
-
-
 		//Add in Pack/Repack/Write
 	}
 
 	public abstract class BaseWADSectionInfo
 	{
-		public abstract Game[] supported_games{get;}
+		public abstract VersionInfo[] supported_games{get;}
 		public abstract string section_content_description{get;}
 		//Big endian
 		public abstract string codename_str{get;}
@@ -37,7 +34,7 @@ namespace ArgonautReverse
 			}
 		}
 
-		public unsafe void check_codename(Parser data_in)
+		public unsafe void check_codename(WadReader data_in)
 		{
 			var found_codename = data_in.ReadUInt32();
 			if(found_codename != codename_raw)
@@ -55,18 +52,18 @@ namespace ArgonautReverse
 			}
 		}
 
-		protected (int,int) parseInner(Parser data_in, Configuration conf)
+		protected (int,int) parseInner(WadReader data_in)
 		{
-			if(!supported_games.Contains(conf.game))
+			if(!supported_games.Contains(data_in.Version))
 			{
 				throw new UnsupportedParsing(section_content_description);
 			}
 			check_codename(data_in);
 			return (data_in.ReadInt32(), data_in.Position);
 		}
-		public abstract BaseWADSection Parse(Parser data_in, Configuration conf);
+		public abstract BaseWADSection Parse(WadReader data_in);
 
-		protected static byte[] fallback_parse_data(Parser data_in)
+		protected static byte[] fallback_parse_data(WadReader data_in)
 		{
 			var start = data_in.Position;
 			var codename = data_in.ReadUInt32();
@@ -79,11 +76,11 @@ namespace ArgonautReverse
 			return data;
 		}
 
-		public abstract BaseWADSection fallback_parse(Parser data_in);
+		public abstract BaseWADSection fallback_parse(WadReader data_in);
 	}
 	public abstract class BaseWADSectionInfo<T>:BaseWADSectionInfo where T:BaseWADSection
 	{
-		public sealed override BaseWADSection fallback_parse(Parser data_in)
+		public sealed override BaseWADSection fallback_parse(WadReader data_in)
 		{
 			return (T)Activator.CreateInstance(typeof(T), this, fallback_parse_data(data_in));
 		}
@@ -92,7 +89,7 @@ namespace ArgonautReverse
 	public abstract class BaseWADSection:BaseDataClass
 	{
 		public readonly BaseWADSectionInfo Info;
-		public Game[] supported_games => Info.supported_games;
+		public VersionInfo[] supported_games => Info.supported_games;
 		public string section_content_description => Info.section_content_description;
 		public string codename_str => Info.codename_str;
 		public byte[] codename_bytes => Info.codename_bytes;
@@ -116,7 +113,8 @@ namespace ArgonautReverse
 		}
 		protected int serializeInner(Serializer data_out, Configuration conf)
 		{
-			if(!this.supported_games.Contains(conf.game))
+			//TODO: InputVersion used in serialize
+			if(!this.supported_games.Contains(conf.InputVersion))
 			{
 				throw new UnsupportedSerialization(this.section_content_description);
 			}
@@ -142,7 +140,7 @@ namespace ArgonautReverse
 
 	public sealed class UnknownSectionInfo:BaseWADSectionInfo<UnknownSection>
 	{
-		public override Game[] supported_games => Configuration.SUPPORTED_GAMES;
+		public override VersionInfo[] supported_games => Configuration.SUPPORTED_GAMES;
 
 		public override string section_content_description => $"{codename_str} chunk";
 		public override string codename_str{get;}
@@ -160,7 +158,7 @@ namespace ArgonautReverse
 			this.codename_bytes = BitConverter.GetBytes(codename_raw);
 		}
 
-		public override UnknownSection Parse(Parser data_in, Configuration conf)
+		public override UnknownSection Parse(WadReader data_in)
 		{
 			return (UnknownSection)fallback_parse(data_in);
 		}

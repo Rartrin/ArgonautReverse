@@ -1,3 +1,6 @@
+using ArgonautReverse.Engine;
+using ArgonautReverse.Engine.Versions;
+using ArgonautReverse.IO;
 using ArgonautReverse.WadSections.SPSX;
 
 namespace ArgonautReverse.WadSections
@@ -8,28 +11,28 @@ namespace ArgonautReverse.WadSections
 
 		public override string codename_str => "END ";
 		public override string section_content_description => "sound effects, background music & dialogues";
-		public override Game[] supported_games{get;} = Configuration.SUPPORTED_GAMES;//new[]{HARRY_POTTER_1_PS1.Instance, HARRY_POTTER_2_PS1.Instance};
+		public override VersionInfo[] supported_games{get;} = Configuration.PARSABLE_GAMES;//new[]{HARRY_POTTER_1_PS1.Instance, HARRY_POTTER_2_PS1.Instance};
 
-		public override ENDSection Parse(Parser data_in, Configuration conf)
+		public override ENDSection Parse(WadReader data_in)
 		{
 			throw new Exception("Use other Parse function");
 		}
-		public ENDSection Parse(Parser data_in, Configuration conf, SPSXSection spsx_section)
+		public ENDSection Parse(WadReader data_in, SPSXSection spsx_section)
 		{
 			if(spsx_section != null)
 			{
-				var (size, start) = base.parseInner(data_in, conf);
+				var (size, start) = base.parseInner(data_in);
 				if(size != 0)
 				{
 					if((spsx_section.spsx_flags&SPSXFlags.HAS_LEVEL_SFX)!=0)
 					{
-						spsx_section.level_sfx_groups.parse_vags(data_in, conf);
+						spsx_section.level_sfx_groups.parse_vags(data_in);
 						spsx_section.level_sfx_mapping.parse_mapping(spsx_section.level_sfx_groups);
 					}
 					data_in.Seek(2048 * (int)Math.Ceiling(data_in.Position / 2048.0));
-					spsx_section.dialogues_bgms.parse_vags(data_in, conf);
+					spsx_section.dialogues_bgms.parse_vags(data_in);
 
-					if(conf.game == HARRY_POTTER_2_PS1.Instance)
+					if(data_in.Version == HARRY_POTTER_2_PS1.Instance)
 					{
 						data_in.Seek(2048 * (int)Math.Ceiling(data_in.Position / 2048.0));
 					}
@@ -64,7 +67,7 @@ namespace ArgonautReverse.WadSections
 					this.spsx_section.dialogues_bgms.serialize_vags(data_out, conf);
 				}
 
-				if(conf.game == HARRY_POTTER_2_PS1.Instance)
+				if(conf.InputVersion == HARRY_POTTER_2_PS1.Instance)
 				{
 					Utils.pad_out_2048_bytes(data_out);
 				}

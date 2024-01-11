@@ -1,5 +1,7 @@
 using System.Drawing;
 using System.Drawing.Imaging;
+using ArgonautReverse.Engine.Versions;
+using ArgonautReverse.IO;
 
 namespace ArgonautReverse.WadSections.TPSX
 {
@@ -27,7 +29,7 @@ namespace ArgonautReverse.WadSections.TPSX
 
 		public int n_textures => Textures.Count;
 
-		public static TextureFile parse(Parser data_in, Configuration conf, bool compressed16bit, bool hasMemoryCardIcons, int end)
+		public static TextureFile parse(WadReader data_in, bool compressed16bit, bool hasMemoryCardIcons, int end)
 		{
 			var textures = new List<TextureData>();
 			int n_textures = data_in.ReadInt32();
@@ -35,7 +37,7 @@ namespace ArgonautReverse.WadSections.TPSX
 
 			if(n_textures > 4000 || ((n_rows<0) || (4<n_rows)))
 			{
-				if(conf.ignore_warnings)
+				if(data_in.Configuration.IgnoreWarnings)
 				{
 					TexturesWarning.Warn(n_textures, n_rows);
 				}
@@ -47,15 +49,15 @@ namespace ArgonautReverse.WadSections.TPSX
 
 			// In Harry Potter, the last 16 textures are empty (full of 00 bytes)
 			int n_stored_textures = n_textures;
-			if(conf.game == HARRY_POTTER_1_PS1.Instance || conf.game==HARRY_POTTER_2_PS1.Instance)
+			if(data_in.Version == HARRY_POTTER_1_PS1.Instance || data_in.Version==HARRY_POTTER_2_PS1.Instance)
 			{
 				n_stored_textures = n_textures - 16;
 			}
 			for(int texture_id=0; texture_id<n_stored_textures; texture_id++)
 			{
-				textures.Add(TextureData.parse(data_in, conf));
+				textures.Add(TextureData.parse(data_in));
 			}
-			if(conf.game == HARRY_POTTER_1_PS1.Instance || conf.game==HARRY_POTTER_2_PS1.Instance)
+			if(data_in.Version == HARRY_POTTER_1_PS1.Instance || data_in.Version==HARRY_POTTER_2_PS1.Instance)
 			{
 				data_in.Position += 192; // 16 textures x 12 bytes
 			}
@@ -102,7 +104,7 @@ namespace ArgonautReverse.WadSections.TPSX
 				raw_texturesStream.Position = 0;
 				textures_data = raw_texturesStream.ToArray();//.read();
 				raw_texturesStream.Close();
-				if (conf.game == CROC_2_DEMO_PS1.Instance)  // Patch for Croc 2 Demo (non-dummy) last end offset error
+				if (data_in.Version == CROC_2_DEMO_PS1.Instance)  // Patch for Croc 2 Demo (non-dummy) last end offset error
 				{
 					data_in.Position -= 2;
 				}
@@ -114,7 +116,7 @@ namespace ArgonautReverse.WadSections.TPSX
 				textures_data = new byte[image_size + padding_size];
 				data_in.Read(textures_data, 0, image_size);
 			}
-			bool legacy_alpha = (conf.game==CROC_2_DEMO_PS1.Instance) || (conf.game==CROC_2_DEMO_PS1_DUMMY.Instance);
+			bool legacy_alpha = (data_in.Version==CROC_2_DEMO_PS1.Instance) || (data_in.Version==CROC_2_DEMO_PS1_DUMMY.Instance);
 			return new TextureFile(n_rows, textures_data, legacy_alpha, textures);
 		}
 

@@ -1,3 +1,7 @@
+using ArgonautReverse.Engine;
+using ArgonautReverse.Engine.Versions;
+using ArgonautReverse.IO;
+
 namespace ArgonautReverse.WadSections
 {
 	public class PORTSectionInfo:BaseWADSectionInfo<PORTSection>
@@ -5,13 +9,13 @@ namespace ArgonautReverse.WadSections
 		public static readonly PORTSectionInfo Instance = new PORTSectionInfo();
 
 		public override string codename_str => "PORT";//"TROP";
-		public override Game[] supported_games{get;} = new Game[]{HARRY_POTTER_1_PS1.Instance, HARRY_POTTER_2_PS1.Instance};
+		public override VersionInfo[] supported_games{get;} = new VersionInfo[]{HARRY_POTTER_1_PS1.Instance, HARRY_POTTER_2_PS1.Instance};
 		public override string section_content_description => "chunk zone ids";
 
-		public override PORTSection Parse(Parser data_in, Configuration conf)
+		public override PORTSection Parse(WadReader data_in)
 		{
 			var fallback_data = fallback_parse_data(data_in);
-			var (size, start) = base.parseInner(data_in, conf);
+			var (size, start) = base.parseInner(data_in);
 			var n_zones = data_in.ReadInt32();
 			var n_idk1 = data_in.ReadInt32();
 			var idk1 = new byte[n_idk1][];

@@ -1,3 +1,5 @@
+using ArgonautReverse.IO;
+
 namespace ArgonautReverse.WadSections.SPSX
 {
 	public enum SoundEffectsAmbientFlags:uint{}
@@ -25,7 +27,7 @@ namespace ArgonautReverse.WadSections.SPSX
 		
 		public int size => this.vag!=null ? this.vag.size : (this._size ?? 0);
 
-		public virtual void parse_vag(Parser data_in, Configuration conf)
+		public virtual void parse_vag(WadReader data_in)
 		{
 			this._size = null;
 		}
@@ -53,7 +55,7 @@ namespace ArgonautReverse.WadSections.SPSX
 			this.uk2 = uk2;
 		}
 		
-		protected static void ParseInner(Parser data_in, Configuration conf, out uint sampling_rate, out short volume_level, out SoundEffectsAmbientFlags flags, out ushort uk1, out ushort uk2, out int size)
+		protected static void ParseInner(WadReader data_in, out uint sampling_rate, out short volume_level, out SoundEffectsAmbientFlags flags, out ushort uk1, out ushort uk2, out int size)
 		{
 			sampling_rate = data_in.ReadUInt32();
 			//TODO: Seek
@@ -81,17 +83,16 @@ namespace ArgonautReverse.WadSections.SPSX
 				(uint)this.size
 			);
 		}
-		public override void parse_vag(Parser data_in, Configuration conf)
+		public override void parse_vag(WadReader data_in)
 		{
 			this.vag = VAGSoundData.parse
 			(
 				data_in,
-				conf,
 				size:this._size.Value,
 				n_channels:VAGSoundData.MONO,
 				sampling_rate:this.sampling_rate
 			);
-			base.parse_vag(data_in, conf);
+			base.parse_vag(data_in);
 		}
 
 		protected static void PackIHHI2s2sI(Serializer writer, uint samplingRate, ushort roundedSamplingRate, ushort volumeLevel, SoundEffectsAmbientFlags flags, ushort uk1, ushort uk2, uint size)
@@ -111,9 +112,9 @@ namespace ArgonautReverse.WadSections.SPSX
 	{
 		private AmbientSound(uint sampling_rate, int volume_level, SoundEffectsAmbientFlags flags, ushort uk1, ushort uk2, int size, VAGSoundData vag = null) : base(sampling_rate, volume_level, flags, uk1, uk2, size, vag){}
 
-		public static AmbientSound parse(Parser data_in, Configuration conf)
+		public static AmbientSound parse(WadReader data_in)
 		{
-			ParseInner(data_in, conf, out var sampling_rate, out var volume_level, out var flags, out var uk1, out var uk2, out var size);
+			ParseInner(data_in, out var sampling_rate, out var volume_level, out var flags, out var uk1, out var uk2, out var size);
 			return new AmbientSound(sampling_rate, volume_level, flags, uk1, uk2, size);
 		}
 
@@ -139,9 +140,9 @@ namespace ArgonautReverse.WadSections.SPSX
 	{
 		private EffectSound(uint sampling_rate, int volume_level, SoundEffectsAmbientFlags flags, ushort uk1, ushort uk2, int size, VAGSoundData vag = null) : base(sampling_rate, volume_level, flags, uk1, uk2, size, vag){}
 
-		public static EffectSound parse(Parser data_in, Configuration conf)
+		public static EffectSound parse(WadReader data_in)
 		{
-			ParseInner(data_in, conf, out var sampling_rate, out var volume_level, out var flags, out var uk1, out var uk2, out var size);
+			ParseInner(data_in, out var sampling_rate, out var volume_level, out var flags, out var uk1, out var uk2, out var size);
 			var res = new EffectSound(sampling_rate, volume_level, flags, uk1, uk2, size);
 			Utils.Assert(known_values_1st_flags_byte.Contains((uint)res.flagsAndLoop & 0x000000FF));
 			Utils.Assert(known_values_2nd_2rd_flags_bytes.Contains((uint)res.flagsAndLoop & 0x00FFFF00));
@@ -161,7 +162,7 @@ namespace ArgonautReverse.WadSections.SPSX
 			this.uk1 = uk1;
 		}
 
-		public static DialogueBGMSound parse(Parser data_in, Configuration conf)
+		public static DialogueBGMSound parse(WadReader data_in)
 		{
 			data_in.Seek(4, SeekOrigin.Current);// END section offset
 			var sampling_rate = (uint)Math.Round((data_in.ReadUInt16() * 44100) / 4096.0);
@@ -184,17 +185,16 @@ namespace ArgonautReverse.WadSections.SPSX
 				(uint)this.size
 			);
 		}
-		public override void parse_vag(Parser data_in, Configuration conf)
+		public override void parse_vag(WadReader data_in)
 		{
 			this.vag = VAGSoundData.parse
 			(
 				data_in,
-				conf,
 				size:this._size.Value,
 				sampling_rate:this.sampling_rate,
 				n_channels: (this.flagsAndLoop&DialoguesBGMsSoundFlags.IS_STEREO)!= 0 ? VAGSoundData.STEREO : VAGSoundData.MONO
 			);
-			base.parse_vag(data_in, conf);
+			base.parse_vag(data_in);
 		}
 
 		private static void PackIHH4sI(Serializer writer, uint end_section_offset, ushort rounded_sampling_rate, DialoguesBGMsSoundFlags flags, uint uk1, uint size)

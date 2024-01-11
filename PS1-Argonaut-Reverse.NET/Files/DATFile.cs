@@ -1,3 +1,5 @@
+using ArgonautReverse.IO;
+
 namespace ArgonautReverse.Files
 {
 	public abstract class DATFile
@@ -29,20 +31,9 @@ namespace ArgonautReverse.Files
 
 		public virtual void Parse(Configuration conf){}
 
-		public virtual void Serialize(object data_out, Configuration conf)
+		public virtual void Serialize(Serializer data_out, Configuration conf)
 		{
-			if(data_out is string path)
-			{
-				File.WriteAllBytes(path, this._data);
-			}
-			else if(data_out is Serializer serializer)
-			{
-				serializer.WriteBytes(this._data);
-			}
-			else
-			{
-				throw new Exception();
-			}
+			data_out.WriteBytes(this._data);
 		}
 	}
 }

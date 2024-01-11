@@ -1,3 +1,5 @@
+using ArgonautReverse.IO;
+
 namespace ArgonautReverse.WadSections.TPSX
 {
 	public record class Box(int _0,int _1,int _2,int _3);
@@ -18,7 +20,7 @@ namespace ArgonautReverse.WadSections.TPSX
 			this.palette_start = palette_start;
 		}
 
-		public static TextureData parse(Parser data_in, Configuration conf)
+		public static TextureData parse(WadReader data_in)
 		{
 			//Bottom Right
 			var brX = data_in.ReadByte();

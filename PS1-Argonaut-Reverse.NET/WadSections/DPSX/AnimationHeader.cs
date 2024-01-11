@@ -1,3 +1,6 @@
+using ArgonautReverse.Engine.Versions;
+using ArgonautReverse.IO;
+
 namespace ArgonautReverse.WadSections.DPSX
 {
 	public sealed class AnimationHeader:BaseDataClass
@@ -36,7 +39,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			this.sub_frame_size = old_animation_format ? 24 : 16;
 		}
 
-		public static AnimationHeader parse(Parser data_in, Configuration conf)
+		public static AnimationHeader parse(WadReader data_in)
 		{
 			//base.parse(data_in, conf);
 			int n_flags = data_in.ReadInt32();
@@ -46,7 +49,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			bool has_additional_data = has_additional_frame_data_value == 0;
 			int n_stored_frames = 0;
 			int n_inter_frames;
-			if(conf.game==CROC_2_PS1.Instance || conf.game==CROC_2_DEMO_PS1.Instance || conf.game==CROC_2_DEMO_PS1_DUMMY.Instance)
+			if(data_in.Version==CROC_2_PS1.Instance || data_in.Version==CROC_2_DEMO_PS1.Instance || data_in.Version==CROC_2_DEMO_PS1_DUMMY.Instance)
 			{
 				n_inter_frames = data_in.ReadInt32();
 				if(n_inter_frames != 0)
@@ -57,13 +60,14 @@ namespace ArgonautReverse.WadSections.DPSX
 			}
 			else// Harry Potter 1 & 2
 			{
+				//TODO: What data is here?
 				data_in.Position += 8;
 				n_inter_frames = 0;
 			}
 			int n_vertex_groups = data_in.ReadInt32();
 			data_in.Seek(4, SeekOrigin.Current);
 
-			if(conf.game==HARRY_POTTER_1_PS1.Instance || conf.game==HARRY_POTTER_2_PS1.Instance)
+			if(data_in.Version==HARRY_POTTER_1_PS1.Instance || data_in.Version==HARRY_POTTER_2_PS1.Instance)
 			{
 				n_stored_frames = data_in.ReadInt32();
 				data_in.Seek(12, SeekOrigin.Current);
@@ -79,7 +83,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			}
 			data_in.Seek(4 * n_total_frames, SeekOrigin.Current);  // Total frames info
 			data_in.Seek(n_inter_frames * inter_frames_header_size, SeekOrigin.Current);  // Inter-frames header
-			if ((conf.game==HARRY_POTTER_1_PS1.Instance || conf.game==HARRY_POTTER_2_PS1.Instance) || n_inter_frames != 0)
+			if ((data_in.Version==HARRY_POTTER_1_PS1.Instance || data_in.Version==HARRY_POTTER_2_PS1.Instance) || n_inter_frames != 0)
 			{
 				data_in.Seek(4 * n_stored_frames, SeekOrigin.Current);  // Stored frames info
 			}
@@ -95,7 +99,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			}
 			if(n_total_frames > 500 || n_total_frames == 0)
 			{
-				if(conf.ignore_warnings)
+				if(data_in.Configuration.IgnoreWarnings)
 				{
 					AnimationsWarning.Warn(n_total_frames);
 				}

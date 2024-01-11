@@ -1,4 +1,6 @@
 using System.Numerics;
+using ArgonautReverse.Engine.Versions;
+using ArgonautReverse.IO;
 using ArgonautReverse.WadSections.TPSX;
 
 namespace ArgonautReverse.WadSections.DPSX
@@ -49,16 +51,16 @@ namespace ArgonautReverse.WadSections.DPSX
 
 		public int n_bounding_box_info => this.header.n_bounding_box_info;
 
-		public static Model3DData Parse(Parser data_in, Configuration conf, Model3DHeader header, bool is_world_model_3d)
+		public static Model3DData Parse(WadReader data_in, Model3DHeader header, bool is_world_model_3d)
 		{
-			static IReadOnlyList<IReadOnlyList<Vector3>> parse_vertices_normals(Parser data_in, Model3DHeader header, int mode)
+			static IReadOnlyList<IReadOnlyList<Vector3>> parse_vertices_normals(WadReader data_in, Model3DHeader header, int mode)
 			{
-				var res = new List<Vector3[]>();//was List<np.array>
+				var res = new List<Vector3[]>();
 				var group = new List<Vector3>();
 				for(int v=0; v<header.n_vertices; v++)
 				{
 					// Vertices
-					var xyz = new Vector3//short[]
+					var xyz = new Vector3
 					(
 						data_in.ReadInt16(),//Signed
 						data_in.ReadInt16(),//Signed
@@ -87,7 +89,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			var n_vertices_groups = vertices.Count;
 			IReadOnlyList<IReadOnlyList<Vector3>> normals;
 
-			if(!(is_world_model_3d && (conf.game==HARRY_POTTER_1_PS1.Instance || conf.game==HARRY_POTTER_2_PS1.Instance)))
+			if(!(is_world_model_3d && (data_in.Version==HARRY_POTTER_1_PS1.Instance || data_in.Version==HARRY_POTTER_2_PS1.Instance)))
 			{
 				normals = parse_vertices_normals(data_in, header, 1);
 				var n_normals_groups = normals.Count;
@@ -106,7 +108,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			var tris = new List<Vector3>();
 			var faces_normals = new List<Vector3>();
 			var faces_texture_ids = new List<int>();
-			if ((conf.game == CROC_2_DEMO_PS1_DUMMY.Instance) || !is_world_model_3d)
+			if ((data_in.Version == CROC_2_DEMO_PS1_DUMMY.Instance) || !is_world_model_3d)
 			{
 				// Large face headers (Actors' models)
 				for(int face_id=0; face_id<header.n_faces; face_id++)
@@ -127,7 +129,7 @@ namespace ArgonautReverse.WadSections.DPSX
 					{
 						//TODO: Validate this
 						// 1st vertex, then 2nd, 4th and 3rd, except in Croc 2 Demo Dummy WADs
-						if(conf.game != CROC_2_DEMO_PS1_DUMMY.Instance)
+						if(data_in.Version != CROC_2_DEMO_PS1_DUMMY.Instance)
 						{
 							// FIXME
 							//quads.Add(new int[]{raw_face_data4, raw_face_data5, raw_face_data7, raw_face_data6})
@@ -174,15 +176,7 @@ namespace ArgonautReverse.WadSections.DPSX
 				// Small face headers (Subchunks' models)
 				for(int face_id=0; face_id<header.n_faces; face_id++)
 				{
-					var raw_face_data = new ushort[]
-					{
-						data_in.ReadUInt16(),
-						data_in.ReadUInt16(),
-						data_in.ReadUInt16(),
-						data_in.ReadUInt16(),
-						data_in.ReadUInt16(),
-						data_in.ReadUInt16(),
-					};
+					var raw_face_data = data_in.ReadArray<ushort>(6);
 					if((raw_face_data[5] & 0x0800)!=0)
 					{
 						quads.Add(new int[]
@@ -200,8 +194,9 @@ namespace ArgonautReverse.WadSections.DPSX
 					faces_texture_ids.Add(raw_face_data[4]);
 				}
 			}
+			//TODO: Determine dynamically
 			int bounding_box_info_size;
-			if(conf.game==CROC_2_PS1.Instance || conf.game==CROC_2_DEMO_PS1.Instance || conf.game==CROC_2_DEMO_PS1_DUMMY.Instance)
+			if(data_in.Version==CROC_2_PS1.Instance || data_in.Version==CROC_2_DEMO_PS1.Instance || data_in.Version==CROC_2_DEMO_PS1_DUMMY.Instance)
 			{
 				bounding_box_info_size = 44;
 			}
@@ -380,10 +375,10 @@ namespace ArgonautReverse.WadSections.DPSX
 			Data = data;
 		}
 
-		public static Object3DData Parse(Parser data_in, Configuration conf)
+		public static Object3DData Parse(WadReader data_in)
 		{
-			var header = Model3DHeader.Parse(data_in, conf);
-			var data = Model3DData.Parse(data_in, conf, header, is_world_model_3d:false);
+			var header = Model3DHeader.Parse(data_in);
+			var data = Model3DData.Parse(data_in, header, is_world_model_3d:false);
 			return new Object3DData(header, data);
 		}
 
@@ -434,9 +429,9 @@ namespace ArgonautReverse.WadSections.DPSX
 			Data = data;
 		}
 
-		public static LevelGeom3DData Parse(Parser data_in, Configuration conf, Model3DHeader header)
+		public static LevelGeom3DData Parse(WadReader data_in, Model3DHeader header)
 		{
-			var data = Model3DData.Parse(data_in, conf, header, is_world_model_3d:true);
+			var data = Model3DData.Parse(data_in, header, is_world_model_3d:true);
 			return new LevelGeom3DData(header, data);
 		}
 	}

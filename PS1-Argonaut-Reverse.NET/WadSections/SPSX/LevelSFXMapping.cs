@@ -1,4 +1,5 @@
 using System.Text;
+using ArgonautReverse.IO;
 
 namespace ArgonautReverse.WadSections.SPSX
 {
@@ -15,7 +16,7 @@ namespace ArgonautReverse.WadSections.SPSX
 		
 		public int n_unique_level_sfx => this._mapping!=null ? this._mapping.Count : this.sounds_hashes.Count;
 
-		public static LevelSFXMapping parse(Parser data_in, Configuration conf, int n_unique_level_sfx)
+		public static LevelSFXMapping parse(WadReader data_in, int n_unique_level_sfx)
 		{
 			var mapping = new string[n_unique_level_sfx];
 			for(int i=0; i<n_unique_level_sfx; i++)

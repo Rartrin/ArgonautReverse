@@ -1,3 +1,6 @@
+using ArgonautReverse.Engine.Versions;
+using ArgonautReverse.IO;
+
 namespace ArgonautReverse.WadSections.DPSX
 {
 	public sealed class Model3DHeader:BaseDataClass
@@ -12,7 +15,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			this.n_bounding_box_info = n_bounding_box_info;
 		}
 
-		public static Model3DHeader Parse(Parser data_in, Configuration conf)
+		public static Model3DHeader Parse(WadReader data_in)
 		{
 			//base.parse(data_in, conf);
 			data_in.Seek(72, SeekOrigin.Current);//sizeof(SVECTOR) * 9//Bounding box
@@ -23,7 +26,7 @@ namespace ArgonautReverse.WadSections.DPSX
 
 			if(n_vertices > 1000 || n_faces > 1000)
 			{
-				if(conf.ignore_warnings)
+				if(data_in.Configuration.IgnoreWarnings)
 				{
 					Models3DWarning.Warn(n_vertices, n_faces);
 				}
@@ -39,20 +42,7 @@ namespace ArgonautReverse.WadSections.DPSX
 				
 			//TODO: Find way to determine NEW_COLLISION programmatically
 			//TODO: Works with both levels and models?
-			bool NEW_COLLISION;
-			if(conf.game==HARRY_POTTER_1_PS1.Instance || conf.game==HARRY_POTTER_2_PS1.Instance)
-			{
-				NEW_COLLISION = true;
-			}
-			else if(conf.game==CROC_2_PS1.Instance || conf.game==CROC_2_DEMO_PS1.Instance || conf.game==CROC_2_DEMO_PS1_DUMMY.Instance)
-			{
-				NEW_COLLISION = false;
-			}
-			else
-			{
-				throw new NotImplementedException();
-			}
-			if(NEW_COLLISION)
+			if(data_in.Version.NEW_COLLISION)
 			{
 				n_bounding_box_info += data_in.ReadUInt16();//nwall
 				data_in.ReadUInt16();//Pad
