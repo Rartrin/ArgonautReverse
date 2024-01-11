@@ -21,7 +21,7 @@ namespace ArgonautReverse.WadSections
 		{
 			if(spsx_section != null)
 			{
-				var (size, start) = base.parseInner(data_in);
+				base.parseInner(data_in, out var size, out var start);
 				if(size != 0)
 				{
 					if((spsx_section.spsx_flags&SPSXFlags.HAS_LEVEL_SFX)!=0)
@@ -32,7 +32,7 @@ namespace ArgonautReverse.WadSections
 					data_in.Seek(2048 * (int)Math.Ceiling(data_in.Position / 2048.0));
 					spsx_section.dialogues_bgms.parse_vags(data_in);
 
-					if(data_in.Version == HARRY_POTTER_2_PS1.Instance)
+					if(data_in.ReadVersion == HARRY_POTTER_2_PS1.Instance)
 					{
 						data_in.Seek(2048 * (int)Math.Ceiling(data_in.Position / 2048.0));
 					}
@@ -51,25 +51,25 @@ namespace ArgonautReverse.WadSections
 			this.spsx_section = spsx_section;
 		}
 		
-		public override void serialize(Serializer data_out, Configuration conf)
+		public override void serialize(Serializer data_out)
 		{
-			var start = base.serializeInner(data_out, conf);
+			var start = base.serializeInner(data_out);
 			if(spsx_section!=null)
 			{
 				if((this.spsx_section.spsx_flags&SPSXFlags.HAS_LEVEL_SFX)!=0)
 				{
-					this.spsx_section.level_sfx_groups.serialize_vags(data_out, conf);
+					this.spsx_section.level_sfx_groups.serialize_vags(data_out);
 				}
 
 				if((this.spsx_section.spsx_flags&SPSXFlags.HAS_COMMON_SFX_AND_DIALOGUES_BGMS)!=0)
 				{
-					Utils.pad_out_2048_bytes(data_out);
-					this.spsx_section.dialogues_bgms.serialize_vags(data_out, conf);
+					Utils.PadOut2048Bytes(data_out);
+					this.spsx_section.dialogues_bgms.serialize_vags(data_out);
 				}
 
-				if(conf.InputVersion == HARRY_POTTER_2_PS1.Instance)
+				if(data_out.WriteVersion == HARRY_POTTER_2_PS1.Instance)
 				{
-					Utils.pad_out_2048_bytes(data_out);
+					Utils.PadOut2048Bytes(data_out);
 				}
 			}
 

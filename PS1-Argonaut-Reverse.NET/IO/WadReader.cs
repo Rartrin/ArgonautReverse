@@ -6,14 +6,14 @@ namespace ArgonautReverse.IO
 	{
 		public static abstract T Parse(WadReader parser);
 	}
-	public sealed class WadReader : FileReader
+	public sealed class WadReader : BaseReader
 	{
-		public readonly VersionInfo Version;
+		public readonly VersionInfo ReadVersion;
 		public readonly Configuration Configuration;
 
 		public WadReader(Configuration conf, Stream stream) : base(stream)
 		{
-			Version = conf.InputVersion;
+			ReadVersion = conf.ReadVersion;
 		}
 	}
 

@@ -8,31 +8,46 @@ namespace ArgonautReverse
 {
 	public static class ExportAssets
 	{
-		public static Dictionary<string,string> ParseArgs(string[] args)
+		public sealed class ProgramArgs
 		{
-			var parsedArgs = new Dictionary<string,string>();
+			public string ReadFormat;
+			public string WriteFormat;
+			public string DirDat;//Path to DIR/DAT files
+			public string Files;//Path to WAD files
+			public string ExportTextures;//Output path for textures
+			public string ExportModels;//Output path for models
+			public string ExportAudio;//Output path for WAV audio
+			public string UnpackAudio;//Output path for unpacked PS1 WAG audio
+			public string ExportLevels;//Output path for level's model geometry
+			public string ExportImages;//Output path for images
+			public string ExportActors;//Output path for actors
+					
+			public bool IgnoreWarnings;
+			public bool NoConfirm;
+		}
+		public static ProgramArgs ParseArgs(string[] args)
+		{
+			var parsedArgs = new ProgramArgs();
 			for(int i=0; i<args.Length; i++)
 			{
 				switch(args[i])
 				{
-					case "-export-assets":continue;
-					case "-game":
-					case "-dirdat"://Path to DIR/DAT files
-					case "-files"://Path to WAD files
-					case "-textures"://Output path for textures
-					case "-models"://Output path for models
-					case "-audio"://Output path for WAV audio
-					case "-unpack-audio"://Output path for unpacked PS1 WAG audio
-					case "-levels"://Output path for level's model geometry
-					case "-images"://Output path for images
-					case "-actors"://Output path for actors
-						parsedArgs[args[i]] = args[++i];
-						break;
-					case "-v":
-					case "--ignore-warnings":
-					case "--no-confirm":
-						parsedArgs[args[i]] = "true";
-						break;
+					case "--read-format":parsedArgs.ReadFormat = args[++i];break;
+					case "--write-format":parsedArgs.WriteFormat = args[++i];break;
+					case "--dirdat":parsedArgs.DirDat = args[++i];break;
+					case "--files":parsedArgs.Files = args[++i];break;
+					case "--export-textures":parsedArgs.ExportTextures = args[++i];break;
+					case "--export-models":parsedArgs.ExportModels = args[++i];break;
+					case "--export-audio":parsedArgs.ExportAudio = args[++i];break;
+					case "--unpack-audio":parsedArgs.UnpackAudio = args[++i];break;
+					case "--export-levels":parsedArgs.ExportLevels = args[++i];break;
+					case "--export-images":parsedArgs.ExportImages = args[++i];break;
+					case "--export-actors":parsedArgs.ExportActors = args[++i];break;
+
+					case "--ignore-warnings":parsedArgs.IgnoreWarnings = true;break;
+					case "--no-confirm":parsedArgs.NoConfirm = true;break;
+
+					default:throw new Exception("Unknown argument: " + args[i]);
 				}
 			}
 			return parsedArgs;
@@ -65,50 +80,50 @@ namespace ArgonautReverse
 			}
 		}
 
-		public static void ExportAssetsFromWad(WADFile wad_file, Dictionary<string,string> args, Configuration conf)
+		public static void ExportAssetsFromWad(WADFile wadFile, ProgramArgs args, Configuration conf)
 		{
-			if(TPSXSectionInfo.Instance.supported_games.Contains(conf.InputVersion))
+			if(TPSXSectionInfo.Instance.supported_games.Contains(conf.ReadVersion))
 			{
-				if(args.TryGetValue("-textures", out var export_textures))
+				if(args.ExportTextures is string exportTextures)
 				{
-					wad_file.tpsx.TextureFile.to_colorized_texture().Save(Path.Join(export_textures, $"{wad_file.Stem}.PNG"), ImageFormat.Png);
+					wadFile.tpsx.TextureFile.to_colorized_texture().Save(Path.Join(exportTextures, $"{wadFile.Stem}.PNG"), ImageFormat.Png);
 				}
 			}
 
-			if(SPSXSectionInfo.Instance.supported_games.Contains(conf.InputVersion))
+			if(SPSXSectionInfo.Instance.supported_games.Contains(conf.ReadVersion))
 			{
-				if(args.TryGetValue("-audio", out var export_audio))
+				if(args.ExportAudio is string exportAudio)
 				{
-					var wad_audio_export_folder_path = Path.Join(export_audio, wad_file.Stem);
+					var wad_audio_export_folder_path = Path.Join(exportAudio, wadFile.Stem);
 					CreateExportDirectory(wad_audio_export_folder_path);
-					wad_file.export_audio_to_wav(wad_audio_export_folder_path, wad_file.Stem);
+					wadFile.export_audio_to_wav(wad_audio_export_folder_path, wadFile.Stem);
 				}
-				if(args.TryGetValue("-unpack_audio", out var unpack_audio))
+				if(args.UnpackAudio is string unpackAudio)
 				{
-					var wad_audio_unpack_folder_path = Path.Join(unpack_audio, wad_file.Stem);
+					var wad_audio_unpack_folder_path = Path.Join(unpackAudio, wadFile.Stem);
 					CreateExportDirectory(wad_audio_unpack_folder_path);
-					wad_file.export_audio_to_vag(wad_audio_unpack_folder_path, wad_file.Stem);
+					wadFile.export_audio_to_vag(wad_audio_unpack_folder_path, wadFile.Stem);
 				}
 			}
-			if(DPSXSectionInfo.Instance.supported_games.Contains(conf.InputVersion))
+			if(DPSXSectionInfo.Instance.supported_games.Contains(conf.ReadVersion))
 			{
-				if(args.TryGetValue("-actors", out var export_actors))
+				if(args.ExportActors is string exportActors)
 				{
-					var wad_actors_folder_path = Path.Join(export_actors, wad_file.Stem);
+					var wad_actors_folder_path = Path.Join(exportActors, wadFile.Stem);
 					CreateExportDirectory(wad_actors_folder_path);
-					wad_file.ExportActors(wad_actors_folder_path, wad_file.Stem);
+					wadFile.ExportActors(wad_actors_folder_path, wadFile.Stem);
 				}
-				if(args.TryGetValue("-models", out var export_models))
+				if(args.ExportModels is string exportModels)
 				{
-					var wad_models_3d_folder_path = Path.Join(export_models, wad_file.Stem);
+					var wad_models_3d_folder_path = Path.Join(exportModels, wadFile.Stem);
 					CreateExportDirectory(wad_models_3d_folder_path);
-					wad_file.export_experimental_models(wad_models_3d_folder_path, wad_file.Stem);
+					wadFile.export_experimental_models(wad_models_3d_folder_path, wadFile.Stem);
 				}
-				if(args.TryGetValue("-levels", out var export_levels))
+				if(args.ExportLevels is string exportLevels)
 				{
-					var wad_level_folder_path = Path.Join(export_levels, wad_file.Stem);
+					var wad_level_folder_path = Path.Join(exportLevels, wadFile.Stem);
 					CreateExportDirectory(wad_level_folder_path);
-					wad_file.export_level(wad_level_folder_path, wad_file.Stem);
+					wadFile.export_level(wad_level_folder_path, wadFile.Stem);
 				}
 			}
 		}
@@ -116,27 +131,28 @@ namespace ArgonautReverse
 		public static void Run(string[] args)
 		{
 			var parsedArgs = ParseArgs(args);
-			if(parsedArgs.ContainsKey("-export_models") && !parsedArgs.ContainsKey("--no_confirm"))
+			if(parsedArgs.ExportModels != null && !parsedArgs.NoConfirm)
 			{
 				Console.WriteLine("Models export is VERY EXPERIMENTAL, some models will be completely broken or even missing.");
 				Console.WriteLine("Press <Enter> to continue.");
 				Console.ReadLine();
 			}
 
-			var game = Configuration.SUPPORTED_GAMES.SingleOrDefault(g => g.Title == parsedArgs["-game"]);
-			if(!Configuration.PARSABLE_GAMES.Contains(game))
+			var readFormat = Configuration.SUPPORTED_GAMES.SingleOrDefault(g => g.Title == parsedArgs.ReadFormat);
+			var writeFormat = Configuration.SUPPORTED_GAMES.SingleOrDefault(g => g.Title == parsedArgs.WriteFormat);
+			if(!Configuration.PARSABLE_GAMES.Contains(readFormat))
 			{
 				throw new NotImplementedException("Files from this game can be extracted, but not reversed (yet). If you just want to extract them, use the extract_files_from_dat.py script.");
-			};
+			}
 
-			var conf = new Configuration(game, parsedArgs.ContainsKey("-ignore_warnings"));
+			var conf = new Configuration(readFormat, writeFormat, parsedArgs.IgnoreWarnings);
 
 			DIR_DAT dir_dat;
-			if(parsedArgs.TryGetValue("-dirdat", out var dirdat))
+			if(parsedArgs.DirDat is string dirdat)
 			{
 				dir_dat = DIR_DAT.FromDirDat(dirdat, conf);
 			}
-			else if(parsedArgs.TryGetValue("-files", out var files))
+			else if(parsedArgs.Files is string files)
 			{
 				dir_dat = DIR_DAT.FromFiles(files.Split(','));
 			}
@@ -148,20 +164,20 @@ namespace ArgonautReverse
 
 			var export_paths = new string[]
 			{
-				parsedArgs.GetValueOrDefault("-images"),
-				parsedArgs.GetValueOrDefault("-textures"),
-				parsedArgs.GetValueOrDefault("-models"),
-				parsedArgs.GetValueOrDefault("-audio"),
-				parsedArgs.GetValueOrDefault("-unpack_audio"),
-				parsedArgs.GetValueOrDefault("-levels"),
+				parsedArgs.ExportImages,
+				parsedArgs.ExportTextures,
+				parsedArgs.ExportModels,
+				parsedArgs.ExportAudio,
+				parsedArgs.UnpackAudio,
+				parsedArgs.ExportLevels,
 			};
 			bool wads_parsing_needed =
 			(
-				parsedArgs.ContainsKey("-textures") ||
-				parsedArgs.ContainsKey("-models") ||
-				parsedArgs.ContainsKey("-audio") ||
-				parsedArgs.ContainsKey("-unpack_audio") ||
-				parsedArgs.ContainsKey("-levels")
+				parsedArgs.ExportTextures!=null ||
+				parsedArgs.ExportModels!=null ||
+				parsedArgs.ExportAudio!=null ||
+				parsedArgs.UnpackAudio!=null ||
+				parsedArgs.ExportLevels!=null
 			);
 			foreach(var export_part in export_paths)
 			{
@@ -180,7 +196,7 @@ namespace ArgonautReverse
 				Console.Write($"[{(i + 1).ToString().PadLeft(n_digits)}/{n_files}] {datFile.Name:12}: ");
 				try
 				{
-					if(datFile is IMGFile imgFile && parsedArgs.TryGetValue("-images", out var export_images))
+					if(datFile is IMGFile imgFile && parsedArgs.ExportImages is string export_images)
 					{
 						imgFile.Parse(conf);
 						ExportImagesFromImg(imgFile, export_images);

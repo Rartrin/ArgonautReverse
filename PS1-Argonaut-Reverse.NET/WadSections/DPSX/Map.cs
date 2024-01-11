@@ -124,7 +124,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			map.NumberOfStrats = data_in.ReadUInt16();
 
 			//TODO: What are these values
-			if(data_in.Version != CROC_2_DEMO_PS1_DUMMY.Instance)
+			if(data_in.ReadVersion != CROC_2_DEMO_PS1_DUMMY.Instance)
 			{
 				//Guessing here
 				map.PolyListSize = data_in.ReadUInt16();
@@ -144,7 +144,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			ushort? n_lighting_headers;
 			ushort? n_add_sub_chunks_lighting;
 			int? idk3;
-			if(data_in.Version != CROC_2_DEMO_PS1_DUMMY.Instance)
+			if(data_in.ReadVersion != CROC_2_DEMO_PS1_DUMMY.Instance)
 			{
 				n_lighting_headers = data_in.ReadUInt16();
 				n_add_sub_chunks_lighting = data_in.ReadUInt16();
@@ -166,7 +166,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			}
 			map.NumberOfWP = data_in.ReadUInt32();//n_idk4
 
-			if(data_in.Version != CROC_2_DEMO_PS1_DUMMY.Instance)
+			if(data_in.ReadVersion != CROC_2_DEMO_PS1_DUMMY.Instance)
 			{
 				//Skips the rest of the map
 				data_in.Seek(116, SeekOrigin.Current);

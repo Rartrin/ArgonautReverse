@@ -15,7 +15,7 @@ namespace ArgonautReverse.WadSections
 		public override PORTSection Parse(WadReader data_in)
 		{
 			var fallback_data = fallback_parse_data(data_in);
-			var (size, start) = base.parseInner(data_in);
+			base.parseInner(data_in, out var size, out var start);
 			var n_zones = data_in.ReadInt32();
 			var n_idk1 = data_in.ReadInt32();
 			var idk1 = new byte[n_idk1][];

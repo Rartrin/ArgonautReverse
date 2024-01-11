@@ -1,7 +1,15 @@
-﻿namespace ArgonautReverse.IO
+﻿using ArgonautReverse.Engine;
+
+namespace ArgonautReverse.IO
 {
-	public sealed class Serializer : FileWriter
+	public sealed class Serializer : BaseWriter
 	{
-		public Serializer(Stream stream) : base(stream){}
+		public readonly Configuration Configuration;
+		public readonly VersionInfo WriteVersion;
+
+		public Serializer(Configuration configuration, Stream stream):base(stream)
+		{
+			WriteVersion = configuration.WriteVersion;
+		}
 	}
 }

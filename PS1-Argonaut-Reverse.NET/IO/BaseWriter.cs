@@ -2,7 +2,7 @@
 
 namespace ArgonautReverse.IO
 {
-	public class FileWriter:IDisposable
+	public class BaseWriter:IDisposable
 	{
 		private Stream writer;
 
@@ -13,7 +13,7 @@ namespace ArgonautReverse.IO
 		}
 		public int Length => (int)writer.Length;
 
-		public FileWriter(Stream stream)
+		public BaseWriter(Stream stream)
 		{
 			writer = stream;
 		}

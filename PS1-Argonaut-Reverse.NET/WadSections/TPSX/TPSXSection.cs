@@ -24,12 +24,13 @@ namespace ArgonautReverse.WadSections.TPSX
 		public override TPSXSection Parse(WadReader data_in)
 		{
 			var fallback_data = fallback_parse_data(data_in);
-			var (size, start) = base.parseInner(data_in);
+			base.parseInner(data_in, out var size, out var start);
+
 			bool hasMemoryCardIcons;
 			bool compressed16bit;
 			string[] titles;
 			Font[] fontLookup;
-			if(data_in.Version == CROC_2_DEMO_PS1_DUMMY.Instance)
+			if(data_in.ReadVersion == CROC_2_DEMO_PS1_DUMMY.Instance)
 			{
 				hasMemoryCardIcons = false;
 				titles = Array.Empty<string>();
@@ -45,7 +46,7 @@ namespace ArgonautReverse.WadSections.TPSX
 				compressed16bit = (tpsx_flags & TextureFlag.Compressed16Bit) != 0;
 
 				//TODO: Ensure these always match
-				bool rle = data_in.Version == CROC_2_PS1.Instance || data_in.Version == CROC_2_DEMO_PS1.Instance || data_in.Version == HARRY_POTTER_1_PS1.Instance || data_in.Version == HARRY_POTTER_2_PS1.Instance;
+				bool rle = data_in.ReadVersion == CROC_2_PS1.Instance || data_in.ReadVersion == CROC_2_DEMO_PS1.Instance || data_in.ReadVersion == HARRY_POTTER_1_PS1.Instance || data_in.ReadVersion == HARRY_POTTER_2_PS1.Instance;
 				if(compressed16bit != rle)
 				{
 					throw new Exception();

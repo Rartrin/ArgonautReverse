@@ -22,7 +22,7 @@ namespace ArgonautReverse.WadSections.DPSX
 		public override DPSXSection Parse(WadReader data_in)
 		{
 			var fallback_data = fallback_parse_data(data_in);
-			var (size, start) = base.parseInner(data_in);
+			base.parseInner(data_in, out var size, out var start);
 
 			//TODO: WadFlag and SpriteOffset
 			WadFlag wadFlag = (WadFlag)data_in.ReadUInt32();
@@ -36,7 +36,7 @@ namespace ArgonautReverse.WadSections.DPSX
 				fontLookup[i] = Font.Parse(data_in);
 			}
 
-			if(data_in.Version == CROC_2_DEMO_PS1_DUMMY.Instance)
+			if(data_in.ReadVersion == CROC_2_DEMO_PS1_DUMMY.Instance)
 			{
 				//TODO: What is this for?
 				//This is in the DUMMY wads but not the main demo wads.
@@ -80,7 +80,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			var level_file = LevelFile.parse(data_in, wadFlag);
 
 			// FIXME End of Croc 2 & Croc 2 Demo Dummy's level files aren't reversed yet
-			if(data_in.Version!=CROC_2_PS1.Instance && data_in.Version!=CROC_2_DEMO_PS1_DUMMY.Instance)
+			if(data_in.ReadVersion!=CROC_2_PS1.Instance && data_in.ReadVersion!=CROC_2_DEMO_PS1_DUMMY.Instance)
 			{
 				check_size(size, start, data_in.Position);
 			}

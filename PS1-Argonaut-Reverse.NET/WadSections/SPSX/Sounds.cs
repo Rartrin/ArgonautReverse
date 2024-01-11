@@ -32,9 +32,9 @@ namespace ArgonautReverse.WadSections.SPSX
 			this._size = null;
 		}
 
-		public void serialize_vag(Serializer data_out, Configuration conf) => this.vag.serialize(data_out, conf);
+		public void serialize_vag(Serializer data_out) => this.vag.serialize(data_out);
 
-		public abstract void serialize(Serializer data_out, Configuration conf, uint end_section_offset);
+		public abstract void serialize(Serializer data_out, uint end_section_offset);
 	}
 
 	public abstract class _AmbientOrEffectSound:Sound
@@ -68,7 +68,7 @@ namespace ArgonautReverse.WadSections.SPSX
 			//return new cls(sampling_rate, volume_level, flags, uk1, uk2, size);
 		}
 
-		public override void serialize(Serializer data_out, Configuration conf, uint end_section_offset)
+		public override void serialize(Serializer data_out, uint end_section_offset)
 		{
 			var rounded_sampling_rate = (ushort)Math.Round((this.sampling_rate * 4096) / 44100.0);
 			PackIHHI2s2sI
@@ -118,7 +118,7 @@ namespace ArgonautReverse.WadSections.SPSX
 			return new AmbientSound(sampling_rate, volume_level, flags, uk1, uk2, size);
 		}
 
-		public override void serialize(Serializer data_out, Configuration conf, uint end_section_offset)
+		public override void serialize(Serializer data_out, uint end_section_offset)
 		{
 			var rounded_sampling_rate = (ushort)Math.Round((this.sampling_rate * 4096) / 48000.0);
 			PackIHHI2s2sI
@@ -172,7 +172,7 @@ namespace ArgonautReverse.WadSections.SPSX
 			return new DialogueBGMSound(sampling_rate, flags, uk1, size);
 		}
 
-		public override void serialize(Serializer data_out, Configuration conf, uint end_section_offset)
+		public override void serialize(Serializer data_out, uint end_section_offset)
 		{
 			var rounded_sampling_rate = (ushort)Math.Round((this.sampling_rate * 4096) / 44100.0);
 			PackIHH4sI

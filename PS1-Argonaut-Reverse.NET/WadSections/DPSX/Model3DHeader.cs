@@ -42,7 +42,7 @@ namespace ArgonautReverse.WadSections.DPSX
 				
 			//TODO: Find way to determine NEW_COLLISION programmatically
 			//TODO: Works with both levels and models?
-			if(data_in.Version.NEW_COLLISION)
+			if(data_in.ReadVersion.NEW_COLLISION)
 			{
 				n_bounding_box_info += data_in.ReadUInt16();//nwall
 				data_in.ReadUInt16();//Pad

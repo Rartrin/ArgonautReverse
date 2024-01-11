@@ -13,19 +13,19 @@
     },
     "Export Jungle Level 1": {
       "commandName": "Project",
-      "commandLineArgs": "-export-assets -game \"Croc 2 Demo PS1 (Dummy)\" -files \"GameFiles/DUMMY/Wads/00FFF800.WAD\" -levels \"GameFiles/DUMMY/00FFF800\""
+      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --files \"GameFiles/DUMMY/Wads/00FFF800.WAD\" --export-levels \"GameFiles/DUMMY/00FFF800\""
     },
     "Export DUMMY": {
       "commandName": "Project",
-      "commandLineArgs": "-export-assets -game \"Croc 2 Demo PS1 (Dummy)\" -dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" -levels \"GameFiles/DUMMY\" -strats \"GameFiles/DUMMY\" -textures \"GameFiles/DUMMY/Textures\" -models \"GameFiles/DUMMY/Models\""
+      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --export-levels \"GameFiles/DUMMY\" --export-actors \"GameFiles/DUMMY\" --export-textures \"GameFiles/DUMMY/Textures\" --export-models \"GameFiles/DUMMY/Models\" --no-confirm"
     },
     "Export DUMMY - Actors": {
       "commandName": "Project",
-      "commandLineArgs": "-export-assets -game \"Croc 2 Demo PS1 (Dummy)\" -dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" -actors \"GameFiles/DUMMY/Actors\""
+      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --export-actors \"GameFiles/DUMMY/Actors\""
     },
     "Export DUMMY - Levels+Models+Textures": {
       "commandName": "Project",
-      "commandLineArgs": "-export-assets -game \"Croc 2 Demo PS1 (Dummy)\" -dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" -levels \"GameFiles/DUMMY\" -textures \"GameFiles/DUMMY/Textures\" -models \"GameFiles/DUMMY/Models\""
+      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --export-levels \"GameFiles/DUMMY\" --export-textures \"GameFiles/DUMMY/Textures\" --export-models \"GameFiles/DUMMY/Models\" --no-confirm"
     }
   }
 }

@@ -14,8 +14,8 @@ namespace ArgonautReverse.WadSections.SPSX
 
 		public override SPSXSection Parse(WadReader data_in)
 		{
-			bool isHarryPotterGame = data_in.Version==HARRY_POTTER_1_PS1.Instance || data_in.Version==HARRY_POTTER_2_PS1.Instance;
-			var (size, start) = base.parseInner(data_in);
+			bool isHarryPotterGame = data_in.ReadVersion==HARRY_POTTER_1_PS1.Instance || data_in.ReadVersion==HARRY_POTTER_2_PS1.Instance;
+			base.parseInner(data_in, out var size, out var start);
 
 			var spsx_flags = (SPSXFlags)data_in.ReadUInt32();
 			Utils.Assert(!isHarryPotterGame || (spsx_flags & SPSXFlags.AMBIENTSEP) == 0);// Bit 1 is always unset
@@ -155,22 +155,22 @@ namespace ArgonautReverse.WadSections.SPSX
 
 		public int n_dialogues_bgms => this.dialogues_bgms.Sounds.Count;
 
-		public int end_gap => this.level_sfx_groups.Groups.Sum(group => Utils.round_up_padding(group.size));
+		public int end_gap => this.level_sfx_groups.Groups.Sum(group => Utils.RoundUpPadding(group.size));
 
-		public override void serialize(Serializer data_out, Configuration conf)
+		public override void serialize(Serializer data_out)
 		{
-			var start = base.serializeInner(data_out, conf);
+			var start = base.serializeInner(data_out);
 
 			data_out.WriteUInt32((uint)this.spsx_flags);
 			data_out.WriteInt32(this.n_common_sfx);
 			if((this.spsx_flags&SPSXFlags.HAS_COMMON_SFX_AND_DIALOGUES_BGMS)!=0)
 			{
-				this.common_sfx.serialize(data_out, conf);
+				this.common_sfx.serialize(data_out);
 			}
 			if((this.spsx_flags&SPSXFlags.HAS_AMBIENT_TRACKS)!=0)
 			{
 				data_out.WriteInt32((20 * this.n_ambient_tracks));
-				this.ambient_tracks.serialize(data_out, conf);
+				this.ambient_tracks.serialize(data_out);
 			}
 			if((this.spsx_flags&SPSXFlags.HAS_LEVEL_SFX)!=0)
 			{
@@ -179,18 +179,18 @@ namespace ArgonautReverse.WadSections.SPSX
 				data_out.WriteInt32(this.idk2.Value);
 				data_out.WriteInt32(this.level_sfx_mapping.n_unique_level_sfx);
 
-				this.level_sfx_groups.serialize(data_out, conf);
+				this.level_sfx_groups.serialize(data_out);
 				foreach(var group in this.level_sfx_groups.Groups)
 				{
-					group.serialize_children(data_out, conf);
+					group.serialize_children(data_out);
 				}
-				this.level_sfx_mapping.serialize(data_out, conf, level_sfx_groups:this.level_sfx_groups);
+				this.level_sfx_mapping.serialize(data_out, level_sfx_groups:this.level_sfx_groups);
 			}
 			data_out.WriteInt32(this.n_dialogues_bgms);
 			if((this.spsx_flags&SPSXFlags.HAS_COMMON_SFX_AND_DIALOGUES_BGMS)!=0)
 			{
 				data_out.WriteInt32(this.end_gap);
-				this.dialogues_bgms.serialize(data_out, conf);
+				this.dialogues_bgms.serialize(data_out);
 				data_out.WriteInt32(this.common_sfx_size);
 				foreach(var vag in this.common_sfx.vags)
 				{

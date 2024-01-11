@@ -2,7 +2,7 @@
 
 namespace ArgonautReverse.IO
 {
-	public class FileReader:IDisposable
+	public class BaseReader:IDisposable
 	{
 		private Stream reader;
 
@@ -13,7 +13,7 @@ namespace ArgonautReverse.IO
 		}
 		public int Length => (int)reader.Length;
 
-		public FileReader(Stream stream)
+		public BaseReader(Stream stream)
 		{
 			if (stream.Length > int.MaxValue)
 			{

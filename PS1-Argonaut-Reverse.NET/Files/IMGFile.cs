@@ -3,7 +3,7 @@ using System.Drawing.Imaging;
 
 namespace ArgonautReverse.Files
 {
-	public sealed class ImageType//(Enum):
+	public sealed class ImageType
 	{
 		public int bytes_size;
 		public XY dimensions;
@@ -99,10 +99,11 @@ namespace ArgonautReverse.Files
 
 	public sealed class IMGFile:DATFile, BaseDataClass
 	{
-		//suffix = "IMG"
+		public override string Suffix => "IMG";
+
 		public IReadOnlyList<Bitmap> Images{get;private set;}
 
-		public IMGFile(string stem, string suffix = null, byte[] data = null):base(stem, suffix, data:data){}
+		public IMGFile(string stem, byte[] data):base(stem, data){}
 	
 		public override string ToString()
 		{

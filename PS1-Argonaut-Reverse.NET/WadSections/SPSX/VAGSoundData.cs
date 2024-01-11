@@ -27,7 +27,7 @@ namespace ArgonautReverse.WadSections.SPSX
 		public readonly int n_channels;
 		public readonly uint sampling_rate;
 
-		private static unsafe void WriteInt32BE(Serializer writer, int value)
+		private static unsafe void WriteInt32BE(BaseWriter writer, int value)
 		{
 			var bytes = (byte*)&value;
 			for(int i=3; i>=0; i--)
@@ -60,7 +60,7 @@ namespace ArgonautReverse.WadSections.SPSX
 			);
 		}
 
-		public void serialize(Serializer data_out, Configuration conf)
+		public void serialize(Serializer data_out)
 		{
 			data_out.WriteBytes(this.data);
 		}
@@ -71,7 +71,7 @@ namespace ArgonautReverse.WadSections.SPSX
 			if(with_headers)
 			{
 				header = new byte[48];
-				using var headerStream = new Serializer(new MemoryStream(header));
+				using var headerStream = new BaseWriter(new MemoryStream(header));
 				headerStream.WriteBytes(vagpBytes);
 				headerStream.Seek(8, SeekOrigin.Current);//TODO: What is this?
 				WriteInt32BE(headerStream, (int)(this.size / this.n_channels));
@@ -143,7 +143,7 @@ namespace ArgonautReverse.WadSections.SPSX
 
 			var total_wav_size = 44 + audio_data_size;
 			var ret = new byte[total_wav_size];
-			using(var headerStream = new Serializer(new MemoryStream(ret)))
+			using(var headerStream = new BaseWriter(new MemoryStream(ret)))
 			{
 				//RIFF header
 				headerStream.WriteBytes(riffBytes);

@@ -2,42 +2,65 @@ namespace ArgonautReverse.Files
 {
 	public sealed class DATFileType
 	{
-		public static readonly DATFileType BIN = new DATFileType("BIN",typeof(BINFile));
-		public static readonly DATFileType DEM = new DATFileType("DEM",typeof(DEMFile));
-		public static readonly DATFileType IMG = new DATFileType("IMG",typeof(IMGFile), "SECURITY", "KEEP");
-		public static readonly DATFileType WAD = new DATFileType("WAD",typeof(WADFile), "FESOUND", "FETHUND");
-		public static readonly DATFileType NON_PARSABLE = new DATFileType("NON_PARSABLE");
+		public delegate DATFile DelCreateDatFile(string stem, byte[] data);
 
-		public static readonly Dictionary<string,DATFileType> Members = new Dictionary<string,DATFileType>
+		public static readonly DATFileType BIN = new DATFileType
+		(
+			"BIN",
+			(stem, data) => new BINFile(stem, data)
+		);
+		public static readonly DATFileType DEM = new DATFileType
+		(
+			"DEM",
+			(stem, data) => new DEMFile(stem, data)
+		);
+		public static readonly DATFileType IMG = new DATFileType
+		(
+			"IMG",
+			(stem, data) => new IMGFile(stem, data),
+			"SECURITY", "KEEP"
+		);
+		public static readonly DATFileType WAD = new DATFileType
+		(
+			"WAD",
+			(stem, data) => new WADFile(stem, data),
+			"FESOUND", "FETHUND"
+		);
+		public static readonly DATFileType NON_PARSABLE = new DATFileType
+		(
+			"NON_PARSABLE",
+			null
+		);
+
+		private static readonly DATFileType[] fileTypes = new DATFileType[]
 		{
-			["BIN"] = BIN,
-			["DEM"] = DEM,
-			["IMG"] = IMG,
-			["WAD"] = WAD,
-			["NON_PARSABLE"] = NON_PARSABLE
+			BIN,
+			DEM,
+			IMG,
+			WAD
 		};
 
-		public readonly Type file_class;
-		public readonly string[] excluded_stems;
-		public readonly string suffix;
+		public readonly DelCreateDatFile CreateDatFile;
+		public readonly string[] ExcludedStems;
+		public readonly string Suffix;
 
-		public DATFileType(string suffix, Type file_class=null, params string[] excluded_stems)
+		private DATFileType(string suffix, DelCreateDatFile createDatFile, params string[] excludedStems)
 		{
-			this.suffix = suffix;
-			this.file_class = file_class;
-			this.excluded_stems = excluded_stems ?? Array.Empty<string>();
+			Suffix = suffix;
+			CreateDatFile = createDatFile;
+			ExcludedStems = excludedStems;
 		}
 
-		public static DATFileType guess_dat_file_type(string stem, string suffix)
+		public static DATFile ParseDatFile(string stem, string suffix, byte[] data)
 		{
-			foreach(var (dat_file_type_suffix,dat_file_type) in Members)// type: DATFileType
+			foreach(var fileType in fileTypes)
 			{
-				if(suffix == dat_file_type_suffix && !dat_file_type.excluded_stems.Contains(stem))
+				if(suffix == fileType.Suffix && !fileType.ExcludedStems.Contains(stem))
 				{
-					return dat_file_type;
+					return fileType.CreateDatFile(stem, data);
 				}
 			}
-			return NON_PARSABLE;
+			return new UnknownFile(stem, suffix, data);
 		}
 	}
 }

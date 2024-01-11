@@ -26,7 +26,7 @@ namespace ArgonautReverse.WadSections.SPSX
 			return new LevelSFXMapping(mapping:mapping);
 		}
 
-		public void serialize(Serializer data_out, Configuration conf, LevelSFXContainer level_sfx_groups)
+		public void serialize(Serializer data_out, LevelSFXContainer level_sfx_groups)
 		{
 			var mapping = new byte[this.n_unique_level_sfx][];
 			for(int i=0; i<this.n_unique_level_sfx; i++)

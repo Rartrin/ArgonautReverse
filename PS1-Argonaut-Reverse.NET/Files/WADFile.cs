@@ -21,7 +21,9 @@ namespace ArgonautReverse.Files
 			[ENDSectionInfo.Instance.codename_raw] = ENDSectionInfo.Instance,
 		};
 
-		public WADFile(string stem, string suffix = null, byte[] data = null):base(stem, suffix, data:data){}
+		public override string Suffix => "WAD";
+
+		public WADFile(string stem, byte[] data):base(stem, data){}
 
 		public override string ToString()
 		{
@@ -51,15 +53,15 @@ namespace ArgonautReverse.Files
 		}
 		// WAD sections
 
-		public TPSXSection tpsx => (TPSXSection)this.dict.GetValueOrDefault(TPSXSectionInfo.Instance.codename_raw);
+		public TPSXSection tpsx => this.dict.GetValueOrDefault(TPSXSectionInfo.Instance.codename_raw) as TPSXSection;
 
 		public SPSXSection spsx => this.dict.GetValueOrDefault(SPSXSectionInfo.Instance.codename_raw) as SPSXSection;
 
-		public DPSXSection dpsx => (DPSXSection)this.dict.GetValueOrDefault(DPSXSectionInfo.Instance.codename_raw);
+		public DPSXSection dpsx => this.dict.GetValueOrDefault(DPSXSectionInfo.Instance.codename_raw) as DPSXSection;
 
-		public PORTSection port => (PORTSection)this.dict.GetValueOrDefault(PORTSectionInfo.Instance.codename_raw);
+		public PORTSection port => this.dict.GetValueOrDefault(PORTSectionInfo.Instance.codename_raw) as PORTSection;
 
-		public ENDSection end => (ENDSection)this.dict.GetValueOrDefault(ENDSectionInfo.Instance.codename_raw);
+		public ENDSection end => this.dict.GetValueOrDefault(ENDSectionInfo.Instance.codename_raw) as ENDSection;
 
 		// TPSX
 
@@ -381,7 +383,7 @@ namespace ArgonautReverse.Files
 				if(WADFile.sections_conf.ContainsKey(codename_bytes))
 				{
 					var section = WADFile.sections_conf[codename_bytes];
-					if(section.supported_games.Contains(data_in.Version))
+					if(section.supported_games.Contains(data_in.ReadVersion))
 					{
 						if(codename_bytes != ENDSectionInfo.Instance.codename_raw)
 						{
@@ -405,7 +407,7 @@ namespace ArgonautReverse.Files
 				}
 			}
 		}
-		public override void Serialize(Serializer data_out, Configuration conf)
+		public override void Serialize(Serializer data_out)
 		{
 			var wad_size_offset = data_out.Position;
 
@@ -413,11 +415,11 @@ namespace ArgonautReverse.Files
 			data_out.WriteUInt32(0);//b"\x00\x00\x00\x00"
 			foreach(var section in this.dict.Values)
 			{
-				section.serialize(data_out, conf);
+				section.serialize(data_out);
 			}
 			var end_offset = data_out.Position;
 			var wad_size = end_offset - wad_size_offset;
-			if(conf.InputVersion==CROC_2_PS1.Instance || conf.InputVersion==HARRY_POTTER_1_PS1.Instance || conf.InputVersion==HARRY_POTTER_2_PS1.Instance)
+			if(data_out.WriteVersion==CROC_2_PS1.Instance || data_out.WriteVersion==HARRY_POTTER_1_PS1.Instance || data_out.WriteVersion==HARRY_POTTER_2_PS1.Instance)
 			{
 				wad_size += 2048;
 			}

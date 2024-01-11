@@ -15,11 +15,11 @@ namespace ArgonautReverse.WadSections.SPSX
 
 		public IEnumerable<VAGSoundData> vags => Sounds.Select(sound => sound.vag);
 
-		public virtual void serialize(Serializer data_out, Configuration conf)
+		public virtual void serialize(Serializer data_out)
 		{
 			foreach(var sound in Sounds)
 			{
-				sound.serialize(data_out, conf, 0);
+				sound.serialize(data_out, 0);
 			}
 		}
 
@@ -31,11 +31,11 @@ namespace ArgonautReverse.WadSections.SPSX
 			}
 		}
 
-		public void serialize_vags(Serializer data_out, Configuration conf)
+		public void serialize_vags(Serializer data_out)
 		{
 			foreach(var sound in Sounds)
 			{
-				sound.serialize_vag(data_out, conf);
+				sound.serialize_vag(data_out);
 			}
 		}
 	}
@@ -69,8 +69,8 @@ namespace ArgonautReverse.WadSections.SPSX
 			return new LevelSFXGroupContainer(Array.Empty<Sound>(), n_sound_effects);
 		}
 
-		public override void serialize(Serializer data_out, Configuration conf) => throw new Exception();
-		public void serialize(Serializer data_out, Configuration conf, int group_header_offset, int end_offset)
+		public override void serialize(Serializer data_out) => throw new Exception();
+		public void serialize(Serializer data_out, int group_header_offset, int end_offset)
 		{
 			data_out.WriteInt32(group_header_offset);
 			data_out.WriteInt32(Sounds.Count);
@@ -87,11 +87,11 @@ namespace ArgonautReverse.WadSections.SPSX
 			this._n_sound_effects = null;
 		}
 
-		public void serialize_children(Serializer data_out, Configuration conf)
+		public void serialize_children(Serializer data_out)
 		{
 			foreach(var sound in Sounds)
 			{
-				sound.serialize(data_out, conf, 0);
+				sound.serialize(data_out, 0);
 			}
 		}
 	}
@@ -112,7 +112,7 @@ namespace ArgonautReverse.WadSections.SPSX
 
 		public IEnumerable<VAGSoundData> vags => Groups.SelectMany(group => group.Sounds.Select(sound => sound.vag));
 
-		public void serialize(Serializer data_out, Configuration conf)
+		public void serialize(Serializer data_out)
 		{
 			int group_header_offset = 0;
 			int end_offset = 0;
@@ -120,12 +120,11 @@ namespace ArgonautReverse.WadSections.SPSX
 			{
 				group.serialize(
 					data_out,
-					conf,
 					group_header_offset:group_header_offset,
 					end_offset:end_offset
 				);
 				group_header_offset += 20 * group.Sounds.Count;
-				end_offset += Utils.round_up_padding(group.size);
+				end_offset += Utils.RoundUpPadding(group.size);
 			}
 		}
 
@@ -144,12 +143,12 @@ namespace ArgonautReverse.WadSections.SPSX
 				group.parse_vags(data_in);
 			}
 		}
-		public void serialize_vags(Serializer data_out, Configuration conf)
+		public void serialize_vags(Serializer data_out)
 		{
 			foreach(var group in Groups)
 			{
 				data_out.Seek(2048 * (int)Math.Ceiling(data_out.Position / 2048.0), SeekOrigin.Begin);
-				group.serialize_vags(data_out, conf);
+				group.serialize_vags(data_out);
 			}
 		}
 	}
@@ -167,12 +166,12 @@ namespace ArgonautReverse.WadSections.SPSX
 			}
 		}
 
-		public override void serialize(Serializer data_out, Configuration conf)
+		public override void serialize(Serializer data_out)
 		{
 			int end_section_offset = 0;
 			foreach(var sound in Sounds)
 			{
-				sound.serialize(data_out, conf, end_section_offset:(uint)end_section_offset);
+				sound.serialize(data_out, end_section_offset:(uint)end_section_offset);
 				end_section_offset += sound.size;
 			}
 		}

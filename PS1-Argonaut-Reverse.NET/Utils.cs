@@ -8,24 +8,24 @@ namespace ArgonautReverse
 
 	public static class Utils
 	{
-		public const int padding_size = 2048;
+		public const int PaddingSize = 2048;
 
 
 		//Padding
 
-		public static int round_up_padding(int n) => (n + padding_size - 1) & (-padding_size);
+		public static int RoundUpPadding(int n) => (n + PaddingSize - 1) & (-PaddingSize);
 
 
-		public static void pad_out_2048_bytes(Serializer bio)
+		public static void PadOut2048Bytes(Serializer bio)
 		{
-			var padding = new byte[round_up_padding(bio.Position) - bio.Position];
+			var padding = new byte[RoundUpPadding(bio.Position) - bio.Position];
 			bio.WriteBytes(padding);
 		}
 
 
-		public static void pad_in_2048_bytes(WadReader bio)
+		public static void PadIn2048Bytes(WadReader bio)
 		{
-			bio.Position = round_up_padding(bio.Position);
+			bio.Position = RoundUpPadding(bio.Position);
 		}
 
 

@@ -5,13 +5,15 @@ namespace ArgonautReverse
 {
 	public sealed class Configuration
 	{
-		public readonly VersionInfo InputVersion;
+		public readonly VersionInfo ReadVersion;
+		public readonly VersionInfo WriteVersion;
 
 		public readonly bool IgnoreWarnings;
-		public Configuration(VersionInfo game, bool ignoreWarnings)
+		public Configuration(VersionInfo input, VersionInfo output, bool ignoreWarnings)
 		{
-			this.InputVersion = game;
-			this.IgnoreWarnings = ignoreWarnings;
+			ReadVersion = input;
+			WriteVersion = output;
+			IgnoreWarnings = ignoreWarnings;
 			//logging.basicConfig(format="%(message)s", level=logging.DEBUG if debug else logging.WARNING)
 		}
 

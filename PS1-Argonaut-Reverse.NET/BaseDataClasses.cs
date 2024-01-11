@@ -11,7 +11,10 @@ namespace ArgonautReverse
 
 	public abstract class BaseWADSectionInfo
 	{
+		//TODO: Separate into Read and Write
 		public abstract VersionInfo[] supported_games{get;}
+
+
 		public abstract string section_content_description{get;}
 		//Big endian
 		public abstract string codename_str{get;}
@@ -52,14 +55,15 @@ namespace ArgonautReverse
 			}
 		}
 
-		protected (int,int) parseInner(WadReader data_in)
+		protected void parseInner(WadReader data_in, out int size, out int start)
 		{
-			if(!supported_games.Contains(data_in.Version))
+			if(!supported_games.Contains(data_in.ReadVersion))
 			{
 				throw new UnsupportedParsing(section_content_description);
 			}
 			check_codename(data_in);
-			return (data_in.ReadInt32(), data_in.Position);
+			size = data_in.ReadInt32();
+			start = data_in.Position;
 		}
 		public abstract BaseWADSection Parse(WadReader data_in);
 
@@ -107,14 +111,13 @@ namespace ArgonautReverse
 		}
 
 	
-		public virtual void serialize(Serializer data_out, Configuration conf)
+		public virtual void serialize(Serializer data_out)
 		{
 			fallback_serialize(data_out);
 		}
-		protected int serializeInner(Serializer data_out, Configuration conf)
+		protected int serializeInner(Serializer data_out)
 		{
-			//TODO: InputVersion used in serialize
-			if(!this.supported_games.Contains(conf.InputVersion))
+			if(!this.supported_games.Contains(data_out.WriteVersion))
 			{
 				throw new UnsupportedSerialization(this.section_content_description);
 			}

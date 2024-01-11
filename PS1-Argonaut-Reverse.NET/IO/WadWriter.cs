@@ -1,9 +1,15 @@
-﻿namespace ArgonautReverse.IO
+﻿using ArgonautReverse.Engine;
+
+namespace ArgonautReverse.IO
 {
-	public class WadWriter:FileWriter
+	public class WadWriter:BaseWriter
 	{
-		public WadWriter(Stream stream):base(stream)
+		public readonly Configuration Configuration;
+		public readonly VersionInfo WriteVersion;
+
+		public WadWriter(Configuration configuration, Stream stream):base(stream)
 		{
+			WriteVersion = configuration.WriteVersion;
 		}
 	}
 }

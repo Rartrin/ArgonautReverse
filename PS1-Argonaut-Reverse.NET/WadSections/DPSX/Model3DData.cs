@@ -89,7 +89,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			var n_vertices_groups = vertices.Count;
 			IReadOnlyList<IReadOnlyList<Vector3>> normals;
 
-			if(!(is_world_model_3d && (data_in.Version==HARRY_POTTER_1_PS1.Instance || data_in.Version==HARRY_POTTER_2_PS1.Instance)))
+			if(!(is_world_model_3d && (data_in.ReadVersion==HARRY_POTTER_1_PS1.Instance || data_in.ReadVersion==HARRY_POTTER_2_PS1.Instance)))
 			{
 				normals = parse_vertices_normals(data_in, header, 1);
 				var n_normals_groups = normals.Count;
@@ -108,7 +108,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			var tris = new List<Vector3>();
 			var faces_normals = new List<Vector3>();
 			var faces_texture_ids = new List<int>();
-			if ((data_in.Version == CROC_2_DEMO_PS1_DUMMY.Instance) || !is_world_model_3d)
+			if ((data_in.ReadVersion == CROC_2_DEMO_PS1_DUMMY.Instance) || !is_world_model_3d)
 			{
 				// Large face headers (Actors' models)
 				for(int face_id=0; face_id<header.n_faces; face_id++)
@@ -129,7 +129,7 @@ namespace ArgonautReverse.WadSections.DPSX
 					{
 						//TODO: Validate this
 						// 1st vertex, then 2nd, 4th and 3rd, except in Croc 2 Demo Dummy WADs
-						if(data_in.Version != CROC_2_DEMO_PS1_DUMMY.Instance)
+						if(data_in.ReadVersion != CROC_2_DEMO_PS1_DUMMY.Instance)
 						{
 							// FIXME
 							//quads.Add(new int[]{raw_face_data4, raw_face_data5, raw_face_data7, raw_face_data6})
@@ -196,7 +196,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			}
 			//TODO: Determine dynamically
 			int bounding_box_info_size;
-			if(data_in.Version==CROC_2_PS1.Instance || data_in.Version==CROC_2_DEMO_PS1.Instance || data_in.Version==CROC_2_DEMO_PS1_DUMMY.Instance)
+			if(data_in.ReadVersion==CROC_2_PS1.Instance || data_in.ReadVersion==CROC_2_DEMO_PS1.Instance || data_in.ReadVersion==CROC_2_DEMO_PS1_DUMMY.Instance)
 			{
 				bounding_box_info_size = 44;
 			}
