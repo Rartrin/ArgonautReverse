@@ -10,11 +10,11 @@ namespace ArgonautReverse.WadSections.SPSX
 
 		public override string codename_str => "SPSX";
 		public override string section_content_description => "sound effects, background music & dialogues";
-		public override VersionInfo[] supported_games{get;} = new VersionInfo[]{/*CROC_2_DEMO_PS1_DUMMY.Instance,*/ HARRY_POTTER_1_PS1.Instance, HARRY_POTTER_2_PS1.Instance};
+		public override WadVersion[] supported_games{get;} = new WadVersion[]{/*CROC_2_DEMO_PS1_DUMMY.Instance,*/ HARRY_POTTER_1_PS1.WadVersion, HARRY_POTTER_2_PS1.WadVersion};
 
 		public override SPSXSection Parse(WadReader data_in)
 		{
-			bool isHarryPotterGame = data_in.ReadVersion==HARRY_POTTER_1_PS1.Instance || data_in.ReadVersion==HARRY_POTTER_2_PS1.Instance;
+			bool isHarryPotterGame = data_in.ReadVersion==HARRY_POTTER_1_PS1.WadVersion || data_in.ReadVersion==HARRY_POTTER_2_PS1.WadVersion;
 			base.parseInner(data_in, out var size, out var start);
 
 			var spsx_flags = (SPSXFlags)data_in.ReadUInt32();

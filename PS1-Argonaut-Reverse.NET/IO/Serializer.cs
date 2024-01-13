@@ -5,11 +5,12 @@ namespace ArgonautReverse.IO
 	public sealed class Serializer : BaseWriter
 	{
 		public readonly Configuration Configuration;
-		public readonly VersionInfo WriteVersion;
+		public readonly DatVersion DatVersion;
+		public WadVersion WriteVersion{get;set;}
 
 		public Serializer(Configuration configuration, Stream stream):base(stream)
 		{
-			WriteVersion = configuration.WriteVersion;
+			DatVersion = configuration.WriteVersion;
 		}
 	}
 }

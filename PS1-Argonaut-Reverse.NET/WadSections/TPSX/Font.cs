@@ -19,13 +19,11 @@ namespace ArgonautReverse.WadSections.TPSX
 
 		public static Font Parse(WadReader parser)
 		{
-			return new Font
-			(
-				texture:parser.ReadUInt16(),
-				baseLine:parser.ReadUInt16(),
-				width:parser.ReadUInt16(),
-				height:parser.ReadUInt16()
-			);
+			var texture = parser.Read<ushort>();
+			var baseLine = parser.Read<ushort>();
+			var width = parser.Read<ushort>();
+			var height = parser.Read<ushort>();
+			return new Font(texture, baseLine, width, height);
 		}
 	}
 }

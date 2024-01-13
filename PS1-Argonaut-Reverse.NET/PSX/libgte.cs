@@ -23,7 +23,7 @@ namespace ArgonautReverse.LibGTE
 			{
 				m[i] = parser.ReadArray<short>(3);
 			}
-			var padding = parser.ReadInt16();
+			var padding = parser.Read<short>();
 			if(padding != 0 )
 			{
 				throw new Exception("Matrix padding is not 0");
@@ -57,6 +57,11 @@ namespace ArgonautReverse.LibGTE
 			var vz = parser.Read<int>();
 			var pad = parser.Read<int>();
 
+			if(pad != 0 )
+			{
+				throw new Exception("VECTOR padding is not 0");
+			}
+
 			return new VECTOR(vx, vy, vz, pad);
 		}
 	}
@@ -83,6 +88,11 @@ namespace ArgonautReverse.LibGTE
 			var vy = parser.Read<short>();
 			var vz = parser.Read<short>();
 			var pad = parser.Read<short>();
+
+			if(pad != 0 )
+			{
+				throw new Exception("SVECTOR padding is not 0");
+			}
 
 			return new SVECTOR(vx, vy, vz, pad);
 		}

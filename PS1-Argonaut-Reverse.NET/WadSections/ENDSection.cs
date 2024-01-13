@@ -11,7 +11,7 @@ namespace ArgonautReverse.WadSections
 
 		public override string codename_str => "END ";
 		public override string section_content_description => "sound effects, background music & dialogues";
-		public override VersionInfo[] supported_games{get;} = Configuration.PARSABLE_GAMES;//new[]{HARRY_POTTER_1_PS1.Instance, HARRY_POTTER_2_PS1.Instance};
+		public override WadVersion[] supported_games{get;} = Configuration.PARSABLE_WADS;//new[]{HARRY_POTTER_1_PS1.Instance, HARRY_POTTER_2_PS1.Instance};
 
 		public override ENDSection Parse(WadReader data_in)
 		{
@@ -32,7 +32,7 @@ namespace ArgonautReverse.WadSections
 					data_in.Seek(2048 * (int)Math.Ceiling(data_in.Position / 2048.0));
 					spsx_section.dialogues_bgms.parse_vags(data_in);
 
-					if(data_in.ReadVersion == HARRY_POTTER_2_PS1.Instance)
+					if(data_in.ReadVersion == HARRY_POTTER_2_PS1.WadVersion)
 					{
 						data_in.Seek(2048 * (int)Math.Ceiling(data_in.Position / 2048.0));
 					}
@@ -67,7 +67,7 @@ namespace ArgonautReverse.WadSections
 					this.spsx_section.dialogues_bgms.serialize_vags(data_out);
 				}
 
-				if(data_out.WriteVersion == HARRY_POTTER_2_PS1.Instance)
+				if(data_out.WriteVersion == HARRY_POTTER_2_PS1.WadVersion)
 				{
 					Utils.PadOut2048Bytes(data_out);
 				}

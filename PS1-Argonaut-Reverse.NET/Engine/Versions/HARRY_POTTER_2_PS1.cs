@@ -1,17 +1,32 @@
 ﻿namespace ArgonautReverse.Engine.Versions
 {
-	public sealed class HARRY_POTTER_2_PS1:VersionInfo
+	public static class HARRY_POTTER_2_PS1
 	{
-		public static HARRY_POTTER_2_PS1 Instance{get;} = new HARRY_POTTER_2_PS1();
+		public static DatVersion DatVersion => HARRY_POTTER_2_PS1_Dat.Instance;
+		public static WadVersion WadVersion => HARRY_POTTER_2_PS1_Wad.Instance;
+		public static DirFormat DirFormat => CROC_2_PS1.DirFormat;
 
-		public override string Title => "Harry Potter 2 PS1";
-		public override DateTime BuildDate => new DateTime(2002, 11, 5);
-		public override string FilenameDAT => "POTTER.DAT";
-		public override string FilenameDIR => "POTTER.DIR";
-		public override DirFormat DirFormat => DirFormat_Croc2.Instance;
+		private sealed class HARRY_POTTER_2_PS1_Dat:DatVersion
+		{
+			public static readonly DatVersion Instance = new HARRY_POTTER_2_PS1_Dat();
 
-		public override bool NEW_COLLISION => true;
+			public override string Title => "Harry Potter 2 PS1";
+			public override string FilenameDAT => "POTTER.DAT";
+			public override string FilenameDIR => "POTTER.DIR";
+			public override DirFormat DirFormat => HARRY_POTTER_2_PS1.DirFormat;
 
-		private HARRY_POTTER_2_PS1(){}
+			public override WadVersion GetWadVersion(string wadName) => WadVersion;
+
+			public override IReadOnlyList<WadVersion> WadVersions{get;} = new[]{WadVersion};
+		}
+
+		private sealed class HARRY_POTTER_2_PS1_Wad:WadVersion
+		{
+			public static readonly WadVersion Instance = new HARRY_POTTER_2_PS1_Wad();
+
+			public override DateTime BuildDate => new DateTime(2002, 11, 5);
+			
+			public override bool NEW_COLLISION => true;
+		}
 	}
 }

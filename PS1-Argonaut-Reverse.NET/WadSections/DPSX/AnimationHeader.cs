@@ -49,7 +49,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			bool has_additional_data = has_additional_frame_data_value == 0;
 			int n_stored_frames = 0;
 			int n_inter_frames;
-			if(data_in.ReadVersion==CROC_2_PS1.Instance || data_in.ReadVersion==CROC_2_DEMO_PS1.Instance || data_in.ReadVersion==CROC_2_DEMO_PS1_DUMMY.Instance)
+			if(data_in.ReadVersion==CROC_2_PS1.WadVersion || data_in.ReadVersion==CROC_2_DEMO_PS1.WadVersion || data_in.DatVersion==CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
 				n_inter_frames = data_in.ReadInt32();
 				if(n_inter_frames != 0)
@@ -67,7 +67,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			int n_vertex_groups = data_in.ReadInt32();
 			data_in.Seek(4, SeekOrigin.Current);
 
-			if(data_in.ReadVersion==HARRY_POTTER_1_PS1.Instance || data_in.ReadVersion==HARRY_POTTER_2_PS1.Instance)
+			if(data_in.ReadVersion==HARRY_POTTER_1_PS1.WadVersion || data_in.ReadVersion==HARRY_POTTER_2_PS1.WadVersion)
 			{
 				n_stored_frames = data_in.ReadInt32();
 				data_in.Seek(12, SeekOrigin.Current);
@@ -83,7 +83,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			}
 			data_in.Seek(4 * n_total_frames, SeekOrigin.Current);  // Total frames info
 			data_in.Seek(n_inter_frames * inter_frames_header_size, SeekOrigin.Current);  // Inter-frames header
-			if ((data_in.ReadVersion==HARRY_POTTER_1_PS1.Instance || data_in.ReadVersion==HARRY_POTTER_2_PS1.Instance) || n_inter_frames != 0)
+			if ((data_in.ReadVersion==HARRY_POTTER_1_PS1.WadVersion || data_in.ReadVersion==HARRY_POTTER_2_PS1.WadVersion) || n_inter_frames != 0)
 			{
 				data_in.Seek(4 * n_stored_frames, SeekOrigin.Current);  // Stored frames info
 			}

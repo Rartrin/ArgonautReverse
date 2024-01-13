@@ -348,14 +348,14 @@ namespace ArgonautReverse.Files
 
 		public override unsafe void Parse(Configuration conf)
 		{
-			using var data_in = new WadReader(conf, new MemoryStream(this._data));
+			using var data_in = new WadReader(conf, conf.ReadVersion.GetWadVersion(Stem), new MemoryStream(this._data));
 			var sections_offsets = new Dictionary<uint,int>();
 			void parse_sections()
 			{
 				data_in.Seek(4);
 				while(true)
 				{
-					var codename = data_in.ReadUInt32();
+					var codename = data_in.Read<uint>();
 
 					// Detects incorrect WADs like FESOUND or FETHUND
 					if (sections_offsets.Count == 0 & codename != TPSXSectionInfo.Instance.codename_raw)
@@ -369,7 +369,7 @@ namespace ArgonautReverse.Files
 						break;
 					}
 
-					var offset = data_in.ReadInt32();
+					var offset = data_in.Read<int>();
 					data_in.Position += offset;
 				}
 			}
@@ -419,7 +419,7 @@ namespace ArgonautReverse.Files
 			}
 			var end_offset = data_out.Position;
 			var wad_size = end_offset - wad_size_offset;
-			if(data_out.WriteVersion==CROC_2_PS1.Instance || data_out.WriteVersion==HARRY_POTTER_1_PS1.Instance || data_out.WriteVersion==HARRY_POTTER_2_PS1.Instance)
+			if(data_out.WriteVersion==CROC_2_PS1.WadVersion || data_out.WriteVersion==HARRY_POTTER_1_PS1.WadVersion || data_out.WriteVersion==HARRY_POTTER_2_PS1.WadVersion)
 			{
 				wad_size += 2048;
 			}

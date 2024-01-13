@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Text;
 
 namespace ArgonautReverse.IO
 {
@@ -24,48 +25,76 @@ namespace ArgonautReverse.IO
 
 		public void Seek(int offset, SeekOrigin origin = SeekOrigin.Begin) => reader.Seek(offset, origin);
 
-		public sbyte ReadSByte() => Read<sbyte>();
-		public short ReadInt16() => Read<short>();
-		public int ReadInt32() => Read<int>();
+		[Obsolete]public short ReadInt16() => Read<short>();
+		[Obsolete]public int ReadInt32() => Read<int>();
 
-		public byte ReadByte() => Read<byte>();
-		public ushort ReadUInt16() => Read<ushort>();
-		public uint ReadUInt32() => Read<uint>();
+		[Obsolete]public byte ReadByte() => Read<byte>();
+		[Obsolete]public ushort ReadUInt16() => Read<ushort>();
+		[Obsolete]public uint ReadUInt32() => Read<uint>();
 
-		public byte[] ReadBytes(int amount) => ReadArray<byte>(amount);
+		[Obsolete]public byte[] ReadBytes(int amount) => ReadArray<byte>(amount);
+
+		public unsafe void Read<T>(out T value) where T : unmanaged, IBinaryInteger<T>
+		{
+			fixed(T* value0 = &value)
+			{
+				reader.ReadExactly(new Span<byte>((byte*)value0, sizeof(T)));
+			}
+		}
 
 		public unsafe T Read<T>() where T : unmanaged, IBinaryInteger<T>
 		{
-			T ret;
-			reader.ReadExactly(new Span<byte>((byte*)&ret, sizeof(T)));
+			Read(out T ret);
 			return ret;
+		}
+
+		public unsafe void ReadArray<T>(Span<T> array) where T : unmanaged, IBinaryInteger<T>
+		{
+			fixed (T* ret0 = array)
+			{
+				reader.ReadExactly(new Span<byte>((byte*)ret0, sizeof(T) * array.Length));
+			}
+		}
+
+		public unsafe void ReadData<T>(T* array, int count) where T : unmanaged, IBinaryInteger<T>
+		{
+			reader.ReadExactly(new Span<byte>((byte*)array, sizeof(T) * count));
 		}
 
 		public unsafe T[] ReadArray<T>(int length) where T : unmanaged, IBinaryInteger<T>
 		{
+			if(length == 0){return Array.Empty<T>();}
+
 			var ret = new T[length];
-			fixed (T* ret0 = ret)
-			{
-				reader.ReadExactly(new Span<byte>((byte*)ret0, sizeof(T) * length));
-			}
+			ReadArray<T>(ret);
 			return ret;
 		}
 
-
-
-		public int Read(byte[] dest, int index, int count) => reader.Read(dest, index, count);
-
-		//BigEndian
-		public unsafe uint ReadUInt32BE()
+		/// <summary>Reads a fixed length ASCII string</summary>
+		public string ReadString(int length)
 		{
-			Span<byte> raw = stackalloc byte[4];
-			byte* ret = stackalloc byte[4];
-			reader.ReadExactly(raw);
-			for (int i = 0; i < 4; i++)
+			Span<byte> str = stackalloc byte[length];
+			ReadArray(str);
+			return Encoding.ASCII.GetString(str);
+		}
+
+		public T ReadEmptyReference<T>() where T:class
+		{
+			int value = Read<int>();
+			if(value != 0)
 			{
-				ret[i] = raw[3 - i];
+				throw new Exception();
 			}
-			return *(uint*)ret;
+			return null;
+		}
+
+		public void AssertRead<T>(T expected) where T : unmanaged, IBinaryInteger<T>
+		{
+			var value = Read<T>();
+			if(value != expected)
+			{
+				throw new Exception($"Expected {expected} but read {value}");
+			}
 		}
 
 		public unsafe uint[] ReadUInt32Array(int length) => ReadArray<uint>(length);
@@ -77,7 +106,7 @@ namespace ArgonautReverse.IO
 			var ret = new byte[arrayCount][];
 			for (int i = 0; i < arrayCount; i++)
 			{
-				ret[i] = ReadBytes(byteCount);
+				ret[i] = ReadArray<byte>(byteCount);
 			}
 			return ret;
 		}

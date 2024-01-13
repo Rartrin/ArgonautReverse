@@ -82,7 +82,7 @@ namespace ArgonautReverse
 
 		public static void ExportAssetsFromWad(WADFile wadFile, ProgramArgs args, Configuration conf)
 		{
-			if(TPSXSectionInfo.Instance.supported_games.Contains(conf.ReadVersion))
+			if(TPSXSectionInfo.Instance.supported_games.Intersect(conf.ReadVersion.WadVersions).Any())
 			{
 				if(args.ExportTextures is string exportTextures)
 				{
@@ -90,7 +90,7 @@ namespace ArgonautReverse
 				}
 			}
 
-			if(SPSXSectionInfo.Instance.supported_games.Contains(conf.ReadVersion))
+			if(SPSXSectionInfo.Instance.supported_games.Intersect(conf.ReadVersion.WadVersions).Any())
 			{
 				if(args.ExportAudio is string exportAudio)
 				{
@@ -105,7 +105,7 @@ namespace ArgonautReverse
 					wadFile.export_audio_to_vag(wad_audio_unpack_folder_path, wadFile.Stem);
 				}
 			}
-			if(DPSXSectionInfo.Instance.supported_games.Contains(conf.ReadVersion))
+			if(DPSXSectionInfo.Instance.supported_games.Intersect(conf.ReadVersion.WadVersions).Any())
 			{
 				if(args.ExportActors is string exportActors)
 				{

@@ -18,7 +18,7 @@ namespace ArgonautReverse.WadSections.TPSX
 		public static readonly TPSXSectionInfo Instance = new TPSXSectionInfo();
 
 		public override string codename_str => "TPSX";//"XSPT";
-		public override VersionInfo[] supported_games => Configuration.PARSABLE_GAMES;
+		public override WadVersion[] supported_games => Configuration.PARSABLE_WADS;
 		public override string section_content_description => "textures";
 
 		public override TPSXSection Parse(WadReader data_in)
@@ -30,7 +30,7 @@ namespace ArgonautReverse.WadSections.TPSX
 			bool compressed16bit;
 			string[] titles;
 			Font[] fontLookup;
-			if(data_in.ReadVersion == CROC_2_DEMO_PS1_DUMMY.Instance)
+			if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
 				hasMemoryCardIcons = false;
 				titles = Array.Empty<string>();
@@ -39,14 +39,14 @@ namespace ArgonautReverse.WadSections.TPSX
 			}
 			else
 			{
-				var tpsx_flags = (TextureFlag)data_in.ReadInt32();
+				var tpsx_flags = (TextureFlag)data_in.Read<int>();
 				var hasLongLevelName = (tpsx_flags & TextureFlag.HasLongLevelName) != 0;
 				hasMemoryCardIcons = (tpsx_flags & TextureFlag.HasMemoryCardIcons) != 0;
 				var hasLevelName = (tpsx_flags & TextureFlag.HasLevelName) != 0;
 				compressed16bit = (tpsx_flags & TextureFlag.Compressed16Bit) != 0;
 
 				//TODO: Ensure these always match
-				bool rle = data_in.ReadVersion == CROC_2_PS1.Instance || data_in.ReadVersion == CROC_2_DEMO_PS1.Instance || data_in.ReadVersion == HARRY_POTTER_1_PS1.Instance || data_in.ReadVersion == HARRY_POTTER_2_PS1.Instance;
+				bool rle = data_in.ReadVersion == CROC_2_PS1.WadVersion || data_in.ReadVersion == CROC_2_DEMO_PS1.WadVersion || data_in.ReadVersion == HARRY_POTTER_1_PS1.WadVersion || data_in.ReadVersion == HARRY_POTTER_2_PS1.WadVersion;
 				if(compressed16bit != rle)
 				{
 					throw new Exception();

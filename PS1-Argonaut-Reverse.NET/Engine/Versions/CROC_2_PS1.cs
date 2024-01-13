@@ -3,43 +3,56 @@ using ArgonautReverse.IO;
 
 namespace ArgonautReverse.Engine.Versions
 {
-	public sealed class CROC_2_PS1:VersionInfo
+	//Croc 2 PS1 NA Release
+	public static class CROC_2_PS1
 	{
-		//Croc 2 PS1 NA Release
-		public static CROC_2_PS1 Instance{get;} = new CROC_2_PS1();
+		public static DatVersion DatVersion => CROC_2_PS1_Dat.Instance;
+		public static WadVersion WadVersion => CROC_2_PS1_Wad.Instance;
+		public static DirFormat DirFormat => CROC_2_PS1_DirFormat.Instance;
 
-		public override string Title => "Croc 2 PS1";
-		public override DateTime BuildDate => new DateTime(1999, 7, 1);
-		public override string FilenameDAT => "CROCII.DAT";
-		public override string FilenameDIR => "CROCII.DIR";
-		public override DirFormat DirFormat => DirFormat_Croc2.Instance;
-
-		public override bool NEW_COLLISION => false;
-
-		private CROC_2_PS1(){}
-	}
-
-	public class DirFormat_Croc2:DirFormat
-	{
-		public static readonly DirFormat_Croc2 Instance = new DirFormat_Croc2();
-
-		protected DirFormat_Croc2(){}
-
-		public override void Unpack(WadReader reader, out string name, out int size, out int start)
+		private sealed class CROC_2_PS1_Dat:DatVersion
 		{
-			//Little Endian, 12 byte string, followed by two 32-bit integers
-			//Struct("<12sII")
-			name = Encoding.ASCII.GetString(reader.ReadBytes(12));
-			size = reader.ReadInt32();
-			start = reader.ReadInt32();
+			public static readonly DatVersion Instance = new CROC_2_PS1_Dat();
+
+			public override string Title => "Croc 2 PS1";
+			public override string FilenameDAT => "CROCII.DAT";
+			public override string FilenameDIR => "CROCII.DIR";
+			public override DirFormat DirFormat => CROC_2_PS1.DirFormat;
+
+			public override WadVersion GetWadVersion(string wadName) => WadVersion;
+
+			public override IReadOnlyList<WadVersion> WadVersions{get;} = new[]{WadVersion};
 		}
-		public override void Pack(Serializer writer, string name, int size, int start)
+
+		private sealed class CROC_2_PS1_Wad:WadVersion
 		{
+			public static readonly WadVersion Instance = new CROC_2_PS1_Wad();
+
+			public override DateTime BuildDate => new DateTime(1999, 7, 1);
+			
+			public override bool NEW_COLLISION => false;
+		}
+
+		public sealed class CROC_2_PS1_DirFormat:DirFormat
+		{
+			public static readonly DirFormat Instance = new CROC_2_PS1_DirFormat();
+
 			//Little Endian, 12 byte string, followed by two 32-bit integers
 			//Struct("<12sII")
-			writer.WriteBytes(Encoding.ASCII.GetBytes(name.PadRight(12, '\0')));
-			writer.WriteInt32(size);
-			writer.WriteInt32(start);
+			public override void Unpack(BaseReader reader, out string name, out int size, out int start)
+			{
+				name = reader.ReadString(12);
+				size = reader.Read<int>();
+				start = reader.Read<int>();
+			}
+			public override void Pack(Serializer writer, string name, int size, int start)
+			{
+				writer.WriteBytes(Encoding.ASCII.GetBytes(name.PadRight(12, '\0')));
+				writer.WriteInt32(size);
+				writer.WriteInt32(start);
+			}
+
+			private CROC_2_PS1_DirFormat(){}
 		}
 	}
 }

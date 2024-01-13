@@ -12,7 +12,7 @@ namespace ArgonautReverse
 	public abstract class BaseWADSectionInfo
 	{
 		//TODO: Separate into Read and Write
-		public abstract VersionInfo[] supported_games{get;}
+		public abstract WadVersion[] supported_games{get;}
 
 
 		public abstract string section_content_description{get;}
@@ -93,7 +93,7 @@ namespace ArgonautReverse
 	public abstract class BaseWADSection:BaseDataClass
 	{
 		public readonly BaseWADSectionInfo Info;
-		public VersionInfo[] supported_games => Info.supported_games;
+		public WadVersion[] supported_games => Info.supported_games;
 		public string section_content_description => Info.section_content_description;
 		public string codename_str => Info.codename_str;
 		public byte[] codename_bytes => Info.codename_bytes;
@@ -143,7 +143,7 @@ namespace ArgonautReverse
 
 	public sealed class UnknownSectionInfo:BaseWADSectionInfo<UnknownSection>
 	{
-		public override VersionInfo[] supported_games => Configuration.SUPPORTED_GAMES;
+		public override WadVersion[] supported_games => Configuration.ALL_WADS;
 
 		public override string section_content_description => $"{codename_str} chunk";
 		public override string codename_str{get;}

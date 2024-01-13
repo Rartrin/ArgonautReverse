@@ -49,7 +49,7 @@ namespace ArgonautReverse.WadSections.TPSX
 
 			// In Harry Potter, the last 16 textures are empty (full of 00 bytes)
 			int n_stored_textures = n_textures;
-			if(data_in.ReadVersion == HARRY_POTTER_1_PS1.Instance || data_in.ReadVersion==HARRY_POTTER_2_PS1.Instance)
+			if(data_in.ReadVersion == HARRY_POTTER_1_PS1.WadVersion || data_in.ReadVersion==HARRY_POTTER_2_PS1.WadVersion)
 			{
 				n_stored_textures = n_textures - 16;
 			}
@@ -57,7 +57,7 @@ namespace ArgonautReverse.WadSections.TPSX
 			{
 				textures.Add(TextureData.parse(data_in));
 			}
-			if(data_in.ReadVersion == HARRY_POTTER_1_PS1.Instance || data_in.ReadVersion==HARRY_POTTER_2_PS1.Instance)
+			if(data_in.ReadVersion == HARRY_POTTER_1_PS1.WadVersion || data_in.ReadVersion==HARRY_POTTER_2_PS1.WadVersion)
 			{
 				data_in.Position += 192; // 16 textures x 12 bytes
 			}
@@ -104,7 +104,7 @@ namespace ArgonautReverse.WadSections.TPSX
 				raw_texturesStream.Position = 0;
 				textures_data = raw_texturesStream.ToArray();//.read();
 				raw_texturesStream.Close();
-				if (data_in.ReadVersion == CROC_2_DEMO_PS1.Instance)  // Patch for Croc 2 Demo (non-dummy) last end offset error
+				if (data_in.ReadVersion == CROC_2_DEMO_PS1.WadVersion)  // Patch for Croc 2 Demo (non-dummy) last end offset error
 				{
 					data_in.Position -= 2;
 				}
@@ -114,9 +114,9 @@ namespace ArgonautReverse.WadSections.TPSX
 				var image_size = n_rows * (image_bytes_size / 4);//Floor division
 				var padding_size = image_bytes_size - image_size;
 				textures_data = new byte[image_size + padding_size];
-				data_in.Read(textures_data, 0, image_size);
+				data_in.ReadArray(textures_data.AsSpan(0, image_size));
 			}
-			bool legacy_alpha = (data_in.ReadVersion==CROC_2_DEMO_PS1.Instance) || (data_in.ReadVersion==CROC_2_DEMO_PS1_DUMMY.Instance);
+			bool legacy_alpha = (data_in.ReadVersion==CROC_2_DEMO_PS1.WadVersion) || (data_in.DatVersion==CROC_2_DEMO_PS1_DUMMY.DatVersion);
 			return new TextureFile(n_rows, textures_data, legacy_alpha, textures);
 		}
 

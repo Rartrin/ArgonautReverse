@@ -2,12 +2,12 @@ using System.Collections;
 
 namespace ArgonautReverse.WadSections.DPSX
 {
-	public enum ChunkRotation//(IntEnum)
+	public enum ChunkRotation
 	{
 		TOP = 0,
-		RIGHT = 4,
-		BOTTOM = 8,
-		LEFT = 12,
+		RIGHT = 1,
+		BOTTOM = 2,
+		LEFT = 3,
 	}
 
 	public sealed class SubChunk:BaseDataClass
@@ -26,17 +26,17 @@ namespace ArgonautReverse.WadSections.DPSX
 	public sealed class ChunkHolder:BaseDataClass,IReadOnlyList<SubChunk>
 	{
 		private readonly IReadOnlyList<SubChunk> list;
-		public readonly int? zone_id;
-		public readonly byte[] fvw_data;
+		public readonly ZONE zone_id;
+		public readonly LightTuple? LightTuples;
 
 		public int Count => list.Count;
 		public SubChunk this[int index] => list[index];
 
-		public ChunkHolder(IReadOnlyList<SubChunk> sub_chunks = null, int? zone_id = null, byte[] fvw_data = null)
+		public ChunkHolder(IReadOnlyList<SubChunk> sub_chunks = null, ZONE zone_id = null, LightTuple? lightTuples = null)
 		{
 			list = sub_chunks ?? Array.Empty<SubChunk>();
 			this.zone_id = zone_id;
-			this.fvw_data = fvw_data;
+			this.LightTuples = lightTuples;
 		}
 
 		public IEnumerator<SubChunk> GetEnumerator() => list.GetEnumerator();
@@ -50,7 +50,7 @@ namespace ArgonautReverse.WadSections.DPSX
 		public readonly int n_rows;
 		public readonly int n_columns;
 		public readonly bool has_zone_ids;
-		public readonly int? max_zone_id;
+		public readonly ZONE max_zone_id;
 
 		public int Count => list.Count;
 		public ChunkHolder this[int index] => list[index];
@@ -66,7 +66,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			this.chunks_models = chunks_models;
 			if(has_zone_ids)
 			{
-				this.max_zone_id = chunks_holders.Select(chunk_holder => chunk_holder.zone_id).Max();
+				this.max_zone_id = chunks_holders.Select(chunk_holder => chunk_holder.zone_id).MaxBy(zone => zone.Zone);
 			}
 			else
 			{
@@ -145,9 +145,9 @@ namespace ArgonautReverse.WadSections.DPSX
 						res.Write(' ');
 					}
 					var zone_id = this[x * this.n_columns + y].zone_id;
-					if(zone_id is not null && zone_id != this.max_zone_id)
+					if(zone_id is not null && zone_id.Zone != this.max_zone_id.Zone)
 					{
-						res.Write(zone_id.ToString().PadRight(3));
+						res.Write($"{zone_id.Zone,-3}");
 					}
 					else
 					{

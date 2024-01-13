@@ -5,11 +5,13 @@ namespace ArgonautReverse.IO
 	public class WadWriter:BaseWriter
 	{
 		public readonly Configuration Configuration;
-		public readonly VersionInfo WriteVersion;
+		public readonly DatVersion DatVersion;
+		public readonly WadVersion WriteVersion;
 
-		public WadWriter(Configuration configuration, Stream stream):base(stream)
+		public WadWriter(Configuration configuration, WadVersion wadVersion, Stream stream):base(stream)
 		{
-			WriteVersion = configuration.WriteVersion;
+			DatVersion = configuration.WriteVersion;
+			WriteVersion = wadVersion;
 		}
 	}
 }

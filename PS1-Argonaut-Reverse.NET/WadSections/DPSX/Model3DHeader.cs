@@ -1,55 +1,57 @@
-using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
 
 namespace ArgonautReverse.WadSections.DPSX
 {
-	public sealed class Model3DHeader:BaseDataClass
+	public abstract class Model3DHeader
 	{
-		public readonly int n_vertices;
-		public readonly int n_faces;
-		public readonly int n_bounding_box_info;
-		public Model3DHeader(int n_vertices, int n_faces, int n_bounding_box_info)
+		public int n_vertices{get;protected set;}
+		public int n_faces{get;protected set;}
+		public int n_bounding_box_info{get;protected set;}
+
+		public static Model3DHeader Parse(WadReader data_in, bool track)
 		{
-			this.n_vertices = n_vertices;
-			this.n_faces = n_faces;
-			this.n_bounding_box_info = n_bounding_box_info;
+			if(track)
+			{
+				return new Model3DHeader_Track(TOBJECT.Parse(data_in));
+			}
+			else
+			{
+				return new Model3DHeader_Object(OBJECT.Parse(data_in));
+			}
 		}
+	}
 
-		public static Model3DHeader Parse(WadReader data_in)
+	public sealed class Model3DHeader_Object:Model3DHeader
+	{
+		public readonly OBJECT Object;
+
+		public Model3DHeader_Object(OBJECT obj)
 		{
-			//base.parse(data_in, conf);
-			data_in.Seek(72, SeekOrigin.Current);//sizeof(SVECTOR) * 9//Bounding box
-			var n_vertices = data_in.ReadInt32();
-			data_in.Seek(4, SeekOrigin.Current);//Placeholder for list of vertices
-			data_in.Seek(4, SeekOrigin.Current);//Placeholder for list of normals
-			var n_faces = data_in.ReadInt32();
-
-			if(n_vertices > 1000 || n_faces > 1000)
+			Object = obj;
+			n_vertices = (int)obj.nvert;
+			n_faces = (int)obj.nface;
+			n_bounding_box_info = obj.nfloor + obj.nceil;
+			if(obj.nwall.HasValue)
 			{
-				if(data_in.Configuration.IgnoreWarnings)
-				{
-					Models3DWarning.Warn(n_vertices, n_faces);
-				}
-				else
-				{
-					throw new Models3DWarning(data_in.Position, n_vertices, n_faces);
-				}
+				n_bounding_box_info += obj.nwall.Value;
 			}
-			data_in.Seek(4, SeekOrigin.Current);//Placeholder for list of faces
-			var n_bounding_box_info
-				= data_in.ReadUInt16()	//nfloors
-				+ data_in.ReadUInt16();	//nceil
-				
-			//TODO: Find way to determine NEW_COLLISION programmatically
-			//TODO: Works with both levels and models?
-			if(data_in.ReadVersion.NEW_COLLISION)
-			{
-				n_bounding_box_info += data_in.ReadUInt16();//nwall
-				data_in.ReadUInt16();//Pad
-			}
-			data_in.Seek(4, SeekOrigin.Current);//List of collision faces
+		}
+	}
 
-			return new Model3DHeader(n_vertices, n_faces, n_bounding_box_info);
+	public sealed class Model3DHeader_Track:Model3DHeader
+	{
+		public readonly TOBJECT TrackObject;
+
+		public Model3DHeader_Track(TOBJECT trackObj)
+		{
+			TrackObject = trackObj;
+			n_vertices = (int)trackObj.nvert;
+			n_faces = (int)trackObj.nface;
+			n_bounding_box_info = trackObj.nfloor + trackObj.nceil;
+			if(trackObj.nwall.HasValue)
+			{
+				n_bounding_box_info += trackObj.nwall.Value;
+			}
 		}
 	}
 }

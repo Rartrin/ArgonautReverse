@@ -10,13 +10,14 @@ namespace ArgonautReverse.WadSections.DPSX
 		public static readonly DPSXSectionInfo Instance = new DPSXSectionInfo();
 		public override string codename_str => "DPSX";//"XSPD"
 													  // FIXME DEBUG
-		public override VersionInfo[] supported_games{get;} =
+		public override WadVersion[] supported_games{get;} = new[]
 		{
-			CROC_2_PS1.Instance,
-			CROC_2_DEMO_PS1_DUMMY.Instance,
-			HARRY_POTTER_1_PS1.Instance,
-			HARRY_POTTER_2_PS1.Instance
-		};
+			CROC_2_PS1.DatVersion,
+			CROC_2_DEMO_PS1_DUMMY.DatVersion,
+			HARRY_POTTER_1_PS1.DatVersion,
+			HARRY_POTTER_2_PS1.DatVersion
+		}.SelectMany(datVersion => datVersion.WadVersions).ToArray();
+
 		public override string section_content_description => "3D models, animations & level geometry";
 
 		public override DPSXSection Parse(WadReader data_in)
@@ -25,10 +26,10 @@ namespace ArgonautReverse.WadSections.DPSX
 			base.parseInner(data_in, out var size, out var start);
 
 			//TODO: WadFlag and SpriteOffset
-			WadFlag wadFlag = (WadFlag)data_in.ReadUInt32();
+			WadFlag wadFlag = (WadFlag)data_in.Read<uint>();
 
 			//TODO: Why are these also in TPSX?
-			var spriteOffset = data_in.ReadInt32();
+			var spriteOffset = data_in.Read<int>();
 
 			var fontLookup = new Font[256];
 			for(var i=0; i<256; i++)
@@ -36,21 +37,21 @@ namespace ArgonautReverse.WadSections.DPSX
 				fontLookup[i] = Font.Parse(data_in);
 			}
 
-			if(data_in.ReadVersion == CROC_2_DEMO_PS1_DUMMY.Instance)
+			if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
 				//TODO: What is this for?
 				//This is in the DUMMY wads but not the main demo wads.
-				var unknown = data_in.ReadInt32();
+				var unknown = data_in.Read<int>();
 			}
 
-			var n_models_3d = data_in.ReadInt32();
+			var n_models_3d = data_in.Read<int>();
 			var models_3d = new Object3DData[n_models_3d];
 			for(int i=0; i<n_models_3d; i++)
 			{
 				models_3d[i]=Object3DData.Parse(data_in);
 			}
 
-			var n_animations = data_in.ReadInt32();
+			var n_animations = data_in.Read<int>();
 			var animations = new AnimationData[n_animations];
 			for(int i=0; i<n_animations; i++)
 			{
@@ -61,7 +62,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			{
 				//TODO: Cutscene data
 				//This probably shouldn't be a fixed amount
-				var n_dpsx_legacy_textures = data_in.ReadInt32();
+				var n_dpsx_legacy_textures = data_in.Read<int>();
 				data_in.Seek(n_dpsx_legacy_textures * 3072, SeekOrigin.Current);
 			}
 
@@ -70,7 +71,7 @@ namespace ArgonautReverse.WadSections.DPSX
 				throw new NotImplementedException();
 			}
 
-			var n_actors = data_in.ReadInt32();
+			var n_actors = data_in.Read<int>();
 			var actors = new ActorData[n_actors];
 			for(int i=0; i<n_actors; i++)
 			{
@@ -80,7 +81,7 @@ namespace ArgonautReverse.WadSections.DPSX
 			var level_file = LevelFile.parse(data_in, wadFlag);
 
 			// FIXME End of Croc 2 & Croc 2 Demo Dummy's level files aren't reversed yet
-			if(data_in.ReadVersion!=CROC_2_PS1.Instance && data_in.ReadVersion!=CROC_2_DEMO_PS1_DUMMY.Instance)
+			if(data_in.ReadVersion!=CROC_2_PS1.WadVersion && data_in.DatVersion!=CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
 				check_size(size, start, data_in.Position);
 			}

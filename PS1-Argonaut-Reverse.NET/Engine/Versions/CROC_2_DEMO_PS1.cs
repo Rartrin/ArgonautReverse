@@ -1,18 +1,33 @@
 ﻿namespace ArgonautReverse.Engine.Versions
 {
-	public sealed class CROC_2_DEMO_PS1:VersionInfo
+	//Croc 2 PS1 US Demo
+	public static class CROC_2_DEMO_PS1
 	{
-		//Croc 2 PS1 US Demo
-		public static CROC_2_DEMO_PS1 Instance{get;} = new CROC_2_DEMO_PS1();
+		public static DatVersion DatVersion => CROC_2_DEMO_PS1_Dat.Instance;
+		public static WadVersion WadVersion => CROC_2_DEMO_PS1_Wad.Instance;
+		public static DirFormat DirFormat => CROC_2_PS1.DirFormat;
 
-		public override string Title => "Croc 2 Demo PS1";
-		public override DateTime BuildDate => new DateTime(1999, 3, 4);
-		public override string FilenameDAT => "CROCII.DAT";
-		public override string FilenameDIR => "CROCII.DIR";
-		public override DirFormat DirFormat => DirFormat_Croc2.Instance;
+		private sealed class CROC_2_DEMO_PS1_Dat:DatVersion
+		{
+			public static readonly DatVersion Instance = new CROC_2_DEMO_PS1_Dat();
 
-		public override bool NEW_COLLISION => false;
+			public override string Title => "Croc 2 Demo PS1";
+			public override string FilenameDAT => "CROCII.DAT";
+			public override string FilenameDIR => "CROCII.DIR";
+			public override DirFormat DirFormat => CROC_2_DEMO_PS1.DirFormat;
 
-		private CROC_2_DEMO_PS1(){}
+			public override WadVersion GetWadVersion(string wadName) => WadVersion;
+
+			public override IReadOnlyList<WadVersion> WadVersions{get;} = new[]{WadVersion};
+		}
+
+		private sealed class CROC_2_DEMO_PS1_Wad:WadVersion
+		{
+			public static readonly WadVersion Instance = new CROC_2_DEMO_PS1_Wad();
+
+			public override DateTime BuildDate => new DateTime(1999, 3, 4);
+			
+			public override bool NEW_COLLISION => false;
+		}
 	}
 }

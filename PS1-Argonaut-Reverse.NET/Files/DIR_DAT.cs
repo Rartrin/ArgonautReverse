@@ -21,10 +21,8 @@ namespace ArgonautReverse.Files
             Files = files;
         }
 
-        private static (string dir_path, string dat_path) FindDirDatFiles(string inputPath, Configuration conf)
+        private static void FindDirDatFiles(string inputPath, Configuration conf, out string dirPath, out string datPath)
         {
-            string dirPath;
-            string datPath;
             if (Directory.Exists(inputPath))
             {
                 // CROC 2 DEMO DUMMY file has no .DIR file
@@ -62,25 +60,24 @@ namespace ArgonautReverse.Files
             {
                 throw new FileNotFoundException(inputPath);
             }
-            return (dirPath, datPath);
         }
 
         public static DIR_DAT FromDirDat(string inputPath, Configuration conf)
         {
-            var (dirPath, datPath) = FindDirDatFiles(inputPath, conf);
+            FindDirDatFiles(inputPath, conf, out var dirPath, out var datPath);
             var files = new List<DATFile>();
 
-            using (var datData = new WadReader(conf, File.OpenRead(datPath)))
+            using (var datData = new BaseReader(File.OpenRead(datPath)))
             {
                 if (dirPath is not null)
                 {
-                    using var dirData = new WadReader(conf, File.OpenRead(dirPath));
-                    var fileCount = dirData.ReadInt32();
+                    using var dirData = new BaseReader(File.OpenRead(dirPath));
+                    var fileCount = dirData.Read<int>();
                     for (int i = 0; i < fileCount; i++)
                     {
                         conf.ReadVersion.DirFormat.Unpack(dirData, out var name, out var size, out var start);
                         datData.Seek(start, SeekOrigin.Begin);
-                        files.Add(ParseDatFile(name.Trim('\0'), datData.ReadBytes(size)));
+                        files.Add(ParseDatFile(name.Trim('\0'), datData.ReadArray<byte>(size)));
                     }
                 }
                 else// Croc 2 Demo DUMMY
@@ -89,7 +86,7 @@ namespace ArgonautReverse.Files
                     {
                         var name = datData.Position.ToString("X8");
                         var startingPos = datData.Position;
-                        var size = datData.ReadInt32();
+                        var size = datData.Read<int>();
                         if (size == 0)
                         {
                             break;
@@ -98,7 +95,7 @@ namespace ArgonautReverse.Files
                         //TODO: WADs can also start with CWAD which indicates chunk compression
 
                         // WADs start with TPSX
-                        var codename = datData.ReadInt32();
+                        var codename = datData.Read<int>();
                         string suffix;
                         if(codename == TPSXSectionInfo.Instance.codename_raw)
                         {
@@ -115,7 +112,7 @@ namespace ArgonautReverse.Files
                         }
 
                         datData.Position = startingPos;
-                        var data = datData.ReadBytes(size);
+                        var data = datData.ReadArray<byte>(size);
 
                         Utils.PadIn2048Bytes(datData);
                         files.Add(ParseDatFile(name + suffix, data));
@@ -164,13 +161,18 @@ namespace ArgonautReverse.Files
 
             using var dirOutput = new Serializer(conf, File.OpenWrite(Path.Join(outputFolder, conf.WriteVersion.FilenameDIR)));
             using var datOutput = new Serializer(conf, File.OpenWrite(Path.Join(outputFolder, conf.WriteVersion.FilenameDAT)));
-
-            if (dirOutput.WriteVersion != CROC_1_PS1.Instance)
+            
+            if (dirOutput.DatVersion != CROC_1_PS1.DatVersion)
             {
+                //TODO: Make this part of DirFormat
                 dirOutput.WriteInt32(Files.Count);
             }
             foreach (var file in Files)
             {
+                var wadVerion = conf.WriteVersion.GetWadVersion(file.Stem);
+                dirOutput.WriteVersion = wadVerion;
+                datOutput.WriteVersion = wadVerion;
+
                 var start = datOutput.Position;
                 file.Serialize(datOutput);
                 var size = datOutput.Position - start;
