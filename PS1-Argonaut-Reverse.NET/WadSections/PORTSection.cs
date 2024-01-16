@@ -8,7 +8,7 @@ namespace ArgonautReverse.WadSections
 	{
 		public static readonly PORTSectionInfo Instance = new PORTSectionInfo();
 
-		public override string codename_str => "PORT";//"TROP";
+		public override ChunkType ChunkType => ChunkType.ID_PORT;
 		public override WadVersion[] supported_games{get;} = new WadVersion[]{HARRY_POTTER_1_PS1.WadVersion, HARRY_POTTER_2_PS1.WadVersion};
 		public override string section_content_description => "chunk zone ids";
 

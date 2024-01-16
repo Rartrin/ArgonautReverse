@@ -1,5 +1,6 @@
 ﻿namespace ArgonautReverse.WadSections
 {
+	[Flags]
 	public enum WadFlag:uint
 	{
 		WF_MAP					= 1 << 0,

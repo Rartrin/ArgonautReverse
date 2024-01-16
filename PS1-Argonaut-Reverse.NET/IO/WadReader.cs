@@ -1,4 +1,5 @@
 ﻿using ArgonautReverse.Engine;
+using ArgonautReverse.Files;
 
 namespace ArgonautReverse.IO
 {
@@ -6,16 +7,38 @@ namespace ArgonautReverse.IO
 	{
 		public static abstract T Parse(WadReader reader);
 	}
-	public sealed class WadReader : BaseReader
+	public class WadReader:BaseReader
 	{
+		public readonly WADFile WadFile;
+		
+		public readonly Configuration Configuration;
 		public readonly DatVersion DatVersion;
 		public readonly WadVersion ReadVersion;
-		public readonly Configuration Configuration;
 
-		public WadReader(Configuration conf, WadVersion wadVersion, Stream stream) : base(stream)
+		public WadReader(WADFile wadFile, Configuration conf, WadVersion wadVersion, Stream stream, bool handleStreamDisposal = true) : base(stream, handleStreamDisposal)
 		{
+			WadFile = wadFile;
+			Configuration = conf;
 			DatVersion = conf.ReadVersion;
 			ReadVersion = wadVersion;
+		}
+
+		public ChunkReader ReadChunk(int start, int length)
+		{
+			this.Seek(start);
+			return new ChunkReader(this, start, length);
+		}
+	}
+
+	public sealed class ChunkReader:WadReader
+	{
+		public readonly int Start;
+		public readonly int ChunkLength;
+
+		public ChunkReader(WadReader wadReader, int start, int length) : base(wadReader.WadFile, wadReader.Configuration, wadReader.ReadVersion, wadReader.Stream, false)
+		{
+			Start = start;
+			ChunkLength = length;
 		}
 	}
 
@@ -41,7 +64,7 @@ namespace ArgonautReverse.IO
 
 		public static void ReadArray<T>(this WadReader that, Span<T> array) where T : IReadable<T>
 		{
-			for (int i = 0; i < array.Length; i++)
+			for(int i = 0; i < array.Length; i++)
 			{
 				array[i] = T.Parse(that);
 			}

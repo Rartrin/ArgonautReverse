@@ -1,6 +1,7 @@
 using System.Text;
 using ArgonautReverse.Engine;
 using ArgonautReverse.IO;
+using ArgonautReverse.WadSections;
 
 namespace ArgonautReverse
 {
@@ -16,33 +17,17 @@ namespace ArgonautReverse
 
 
 		public abstract string section_content_description{get;}
-		//Big endian
-		public abstract string codename_str{get;}
-		//Little Endian
-		public byte[] codename_bytes{get;protected set;}
-		public uint codename_raw{get;protected set;}
+		
+		public abstract ChunkType ChunkType{get;}
 
-		public unsafe BaseWADSectionInfo()
-		{
-			if(codename_str != null)
-			{
-				if(codename_str.Length!=4){throw new Exception();}
-				codename_bytes = new byte[4];
-				for(int i=0; i<4; i++)
-				{
-					//String is in big endian for display so we need to swap it
-					codename_bytes[i] = (byte)codename_str[4-(i+1)];
-				}
-				codename_raw = BitConverter.ToUInt32(codename_bytes);
-			}
-		}
+		public BaseWADSectionInfo(){}
 
 		public unsafe void check_codename(WadReader data_in)
 		{
-			var found_codename = data_in.ReadUInt32();
-			if(found_codename != codename_raw)
+			var found_codename = (ChunkType)data_in.Read<uint>();
+			if(found_codename != ChunkType)
 			{
-				throw new SectionNameError(data_in.Position, codename_str, Encoding.Latin1.GetString((byte*)&found_codename, 4));
+				throw new SectionNameError(data_in.Position, ChunkType.ToString(), Encoding.Latin1.GetString((byte*)&found_codename, 4));
 			}
 		}
 
@@ -51,7 +36,7 @@ namespace ArgonautReverse
 			var calculated_size = current_position - section_start;
 			if(expected_size != calculated_size)
 			{
-				throw new SectionSizeMismatch(current_position, codename_str, expected_size, calculated_size);
+				throw new SectionSizeMismatch(current_position, ChunkType.ToString(), expected_size, calculated_size);
 			}
 		}
 
@@ -70,8 +55,8 @@ namespace ArgonautReverse
 		protected static byte[] fallback_parse_data(WadReader data_in)
 		{
 			var start = data_in.Position;
-			var codename = data_in.ReadUInt32();
-			var size = data_in.ReadInt32();
+			var chunkType = data_in.Read<uint>();
+			var size = data_in.Read<int>();
 
 			//var data = codename + size + data_in.read(int.from_bytes(size, "little"));
 			data_in.Position = start;
@@ -95,9 +80,6 @@ namespace ArgonautReverse
 		public readonly BaseWADSectionInfo Info;
 		public WadVersion[] supported_games => Info.supported_games;
 		public string section_content_description => Info.section_content_description;
-		public string codename_str => Info.codename_str;
-		public byte[] codename_bytes => Info.codename_bytes;
-		public uint codename_raw => Info.codename_raw;
 
 		public byte[] _data;
 
@@ -121,8 +103,8 @@ namespace ArgonautReverse
 			{
 				throw new UnsupportedSerialization(this.section_content_description);
 			}
-			data_out.WriteBytes(codename_bytes);
-			data_out.WriteInt32(0);// Section's size
+			data_out.Write((uint)Info.ChunkType);
+			data_out.Write<uint>(0);// Section's size
 			return data_out.Position;
 		}
 
@@ -145,20 +127,13 @@ namespace ArgonautReverse
 	{
 		public override WadVersion[] supported_games => Configuration.ALL_WADS;
 
-		public override string section_content_description => $"{codename_str} chunk";
-		public override string codename_str{get;}
+		public override string section_content_description => $"{ChunkType.GetRawName()} chunk";
 
-		public unsafe UnknownSectionInfo(uint codename_raw)
+		public override ChunkType ChunkType{get;}
+
+		public unsafe UnknownSectionInfo(ChunkType chunkType)
 		{
-			Span<char> str = stackalloc char[4];
-			byte* codename_raw0 = (byte*)&codename_raw;
-			for(int i = 0; i < 4; i++)
-			{
-				str[3-i] = (char)codename_raw0[i];
-			}
-			this.codename_str = new string(str);
-			this.codename_raw = codename_raw;
-			this.codename_bytes = BitConverter.GetBytes(codename_raw);
+			ChunkType = chunkType;
 		}
 
 		public override UnknownSection Parse(WadReader data_in)

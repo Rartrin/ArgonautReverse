@@ -9,18 +9,16 @@ namespace ArgonautReverse.WadSections
 	{
 		public static readonly ENDSectionInfo Instance = new ENDSectionInfo();
 
-		public override string codename_str => "END ";
+		public override ChunkType ChunkType => ChunkType.ID_END;
 		public override string section_content_description => "sound effects, background music & dialogues";
 		public override WadVersion[] supported_games{get;} = Configuration.PARSABLE_WADS;//new[]{HARRY_POTTER_1_PS1.Instance, HARRY_POTTER_2_PS1.Instance};
 
 		public override ENDSection Parse(WadReader data_in)
 		{
-			throw new Exception("Use other Parse function");
-		}
-		public ENDSection Parse(WadReader data_in, SPSXSection spsx_section)
-		{
+			var spsx_section = data_in.WadFile.spsx;
 			if(spsx_section != null)
 			{
+				//TODO: Implement sound for other games
 				base.parseInner(data_in, out var size, out var start);
 				if(size != 0)
 				{

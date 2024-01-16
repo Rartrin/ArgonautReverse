@@ -5,25 +5,28 @@ namespace ArgonautReverse.IO
 {
 	public class BaseReader:IDisposable
 	{
-		private Stream reader;
+		public Stream Stream{get;private set;}
 
 		public int Position
 		{
-			get => (int)reader.Position;
-			set => reader.Position = value;
+			get => (int)Stream.Position;
+			set => Stream.Position = value;
 		}
-		public int Length => (int)reader.Length;
+		public int Length => (int)Stream.Length;
 
-		public BaseReader(Stream stream)
+		private bool handleStreamDisposal;
+
+		public BaseReader(Stream stream, bool handleStreamDisposal = true)
 		{
 			if (stream.Length > int.MaxValue)
 			{
 				throw new Exception("Unsupported file size. Files can not be greater than 2GB (int.MaxValue).");
 			}
-			reader = stream;
+			this.handleStreamDisposal = handleStreamDisposal;
+			this.Stream = stream;
 		}
 
-		public void Seek(int offset, SeekOrigin origin = SeekOrigin.Begin) => reader.Seek(offset, origin);
+		public void Seek(int offset, SeekOrigin origin = SeekOrigin.Begin) => Stream.Seek(offset, origin);
 
 		[Obsolete]public short ReadInt16() => Read<short>();
 		[Obsolete]public int ReadInt32() => Read<int>();
@@ -36,29 +39,18 @@ namespace ArgonautReverse.IO
 
 		public unsafe void Read<T>(out T value) where T : unmanaged, IBinaryInteger<T>
 		{
-			fixed(T* value0 = &value)
-			{
-				reader.ReadExactly(new Span<byte>((byte*)value0, sizeof(T)));
-			}
+			ReadData(out value);
 		}
 
 		public unsafe T Read<T>() where T : unmanaged, IBinaryInteger<T>
 		{
-			Read(out T ret);
+			ReadData(out T ret);
 			return ret;
 		}
 
 		public unsafe void ReadArray<T>(Span<T> array) where T : unmanaged, IBinaryInteger<T>
 		{
-			fixed (T* ret0 = array)
-			{
-				reader.ReadExactly(new Span<byte>((byte*)ret0, sizeof(T) * array.Length));
-			}
-		}
-
-		public unsafe void ReadData<T>(T* array, int count) where T : unmanaged, IBinaryInteger<T>
-		{
-			reader.ReadExactly(new Span<byte>((byte*)array, sizeof(T) * count));
+			ReadData(array);
 		}
 
 		public unsafe T[] ReadArray<T>(int length) where T : unmanaged, IBinaryInteger<T>
@@ -66,9 +58,36 @@ namespace ArgonautReverse.IO
 			if(length == 0){return Array.Empty<T>();}
 
 			var ret = new T[length];
-			ReadArray<T>(ret);
+			ReadData<T>(ret);
 			return ret;
 		}
+
+
+		public unsafe void ReadData<T>(out T data) where T : unmanaged
+		{
+			fixed(T* data0 = &data)
+			{
+				Stream.ReadExactly(new Span<byte>((byte*)data0, sizeof(T)));
+			}
+		}
+		public unsafe void ReadData<T>(Span<T> array) where T : unmanaged
+		{
+			fixed (T* ret0 = array)
+			{
+				Stream.ReadExactly(new Span<byte>((byte*)ret0, sizeof(T) * array.Length));
+			}
+		}
+		public unsafe void ReadData<T>(T* array, int count = 1) where T : unmanaged
+		{
+			Stream.ReadExactly(new Span<byte>((byte*)array, sizeof(T) * count));
+		}
+		public unsafe T ReadData<T>() where T : unmanaged
+		{
+			ReadData(out T ret);
+			return ret;
+		}
+
+		
 
 		/// <summary>Reads a fixed length ASCII string</summary>
 		public string ReadString(int length)
@@ -113,9 +132,12 @@ namespace ArgonautReverse.IO
 
 		public void Dispose()
 		{
-			reader?.Close();
-			reader = null;
-			GC.SuppressFinalize(this);
+			if(handleStreamDisposal)
+			{
+				Stream?.Close();
+				Stream = null;
+				GC.SuppressFinalize(this);
+			}
 		}
 	}
 }

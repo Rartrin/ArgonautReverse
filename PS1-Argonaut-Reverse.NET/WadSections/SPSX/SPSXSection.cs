@@ -8,16 +8,29 @@ namespace ArgonautReverse.WadSections.SPSX
 	{
 		public static readonly SPSXSectionInfo Instance = new SPSXSectionInfo();
 
-		public override string codename_str => "SPSX";
+		public override ChunkType ChunkType => ChunkType.ID_SAMPLEPSX;
 		public override string section_content_description => "sound effects, background music & dialogues";
-		public override WadVersion[] supported_games{get;} = new WadVersion[]{/*CROC_2_DEMO_PS1_DUMMY.Instance,*/ HARRY_POTTER_1_PS1.WadVersion, HARRY_POTTER_2_PS1.WadVersion};
+		public override WadVersion[] supported_games{get;} = new[]
+		{
+			CROC_2_DEMO_PS1_DUMMY.DatVersion,
+			HARRY_POTTER_1_PS1.DatVersion,
+			HARRY_POTTER_2_PS1.DatVersion
+		}.SelectMany(dat => dat.WadVersions).ToArray();
 
 		public override SPSXSection Parse(WadReader data_in)
 		{
 			bool isHarryPotterGame = data_in.ReadVersion==HARRY_POTTER_1_PS1.WadVersion || data_in.ReadVersion==HARRY_POTTER_2_PS1.WadVersion;
 			base.parseInner(data_in, out var size, out var start);
 
-			var spsx_flags = (SPSXFlags)data_in.ReadUInt32();
+			var spsx_flags = (SPSXFlags)data_in.Read<uint>();
+
+			//TODO: Implement sound for other games
+			if(!isHarryPotterGame)
+			{
+				return new SPSXSection(spsx_flags, null, null, null, null, null, null, null);
+			}
+
+
 			Utils.Assert(!isHarryPotterGame || (spsx_flags & SPSXFlags.AMBIENTSEP) == 0);// Bit 1 is always unset
 			//Bit 0 and 4 are identical
 			Utils.Assert(((spsx_flags&SPSXFlags.HAS_AMBIENT_TRACKS)!=0) == ((spsx_flags&SPSXFlags.HAS_AMBIENT_TRACKS_)!=0));

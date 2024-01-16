@@ -1,5 +1,6 @@
 using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
+using ArgonautReverse.WadSections;
 using ArgonautReverse.WadSections.TPSX;
 
 namespace ArgonautReverse.Files
@@ -86,18 +87,19 @@ namespace ArgonautReverse.Files
                     {
                         var name = datData.Position.ToString("X8");
                         var startingPos = datData.Position;
-                        var size = datData.Read<int>();
+                        var size = datData.Read<int>();//Size of data, not inlcuding this field
                         if (size == 0)
                         {
+                            Console.WriteLine("Empty file found in DAT");
                             break;
                         }
 
                         //TODO: WADs can also start with CWAD which indicates chunk compression
 
                         // WADs start with TPSX
-                        var codename = datData.Read<int>();
+                        var codename = (ChunkType)datData.Read<uint>();
                         string suffix;
-                        if(codename == TPSXSectionInfo.Instance.codename_raw)
+                        if(codename == ChunkType.ID_TEXTPSX)
                         {
                             suffix = ".WAD";
                         }
@@ -112,7 +114,7 @@ namespace ArgonautReverse.Files
                         }
 
                         datData.Position = startingPos;
-                        var data = datData.ReadArray<byte>(size);
+                        var data = datData.ReadArray<byte>(size + sizeof(int));//Add in an int32 for the size field
 
                         Utils.PadIn2048Bytes(datData);
                         files.Add(ParseDatFile(name + suffix, data));

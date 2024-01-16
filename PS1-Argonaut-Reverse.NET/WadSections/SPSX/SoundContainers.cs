@@ -101,7 +101,7 @@ namespace ArgonautReverse.WadSections.SPSX
 
 		public LevelSFXContainer(IReadOnlyList<LevelSFXGroupContainer> groups = null)
 		{
-			Groups = groups;
+			Groups = groups ?? Array.Empty<LevelSFXGroupContainer>();
 		}
 		
 		public int n_sounds => Groups.Sum(group => group.Sounds.Count);

@@ -1,5 +1,7 @@
-﻿using ArgonautReverse.Engine.Versions;
+﻿using System.Runtime.InteropServices;
+using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
+using ArgonautReverse.LibGPU;
 using ArgonautReverse.LibGTE;
 
 namespace ArgonautReverse.WadSections.DPSX
@@ -251,5 +253,39 @@ namespace ArgonautReverse.WadSections.DPSX
 			ret.BaseParse(reader);
 			return ret;
 		}
+	}
+
+	[StructLayout(LayoutKind.Explicit, Pack = 1)]
+	public struct POLY_ALL:IReadable<POLY_ALL>//union
+	{
+		[FieldOffset(0)]public TILE_1   tile1;
+		[FieldOffset(0)]public TILE     tile;
+		[FieldOffset(0)]public SPRT     sprt;
+		[FieldOffset(0)]public POLY_F3  pf3;
+		[FieldOffset(0)]public POLY_FT3 pft3;
+		[FieldOffset(0)]public POLY_F4  pf4;
+		[FieldOffset(0)]public POLY_FT4 pft4;
+		[FieldOffset(0)]public POLY_G3  pg3;
+		[FieldOffset(0)]public POLY_GT3 pgt3;
+		[FieldOffset(0)]public POLY_G4  pg4;
+		[FieldOffset(0)]public POLY_GT4 pgt4;
+		[FieldOffset(0)]public DR_TPAGE drtpage;
+		[FieldOffset(0)]public DR_MODE  drmode;
+		[FieldOffset(0)]public DR_MOVE  drmove;
+		//DR_LOAD  drload;
+
+		public static unsafe POLY_ALL Parse(WadReader reader)
+		{
+			if(sizeof(POLY_ALL) != (sizeof(int)*13))
+			{
+				throw new NotImplementedException();
+			}
+			return reader.ReadData<POLY_ALL>();
+		}
+	}
+
+	public class PRE_LIT
+	{
+		public IReadOnlyList<POLY_ALL> lface;
 	}
 }

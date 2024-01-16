@@ -1,6 +1,7 @@
 namespace ArgonautReverse.WadSections.SPSX
 {
-	public enum SPSXFlags
+	[Flags]
+	public enum SPSXFlags:uint
 	{
 		HAS_AMBIENT_TRACKS		= 1<<0,//SF_HASAMBIENT
 		AMBIENTSEP				= 1<<1,//TODO: What is this?

@@ -17,7 +17,7 @@ namespace ArgonautReverse.WadSections.TPSX
 	{
 		public static readonly TPSXSectionInfo Instance = new TPSXSectionInfo();
 
-		public override string codename_str => "TPSX";//"XSPT";
+		public override ChunkType ChunkType => ChunkType.ID_TEXTPSX;
 		public override WadVersion[] supported_games => Configuration.PARSABLE_WADS;
 		public override string section_content_description => "textures";
 

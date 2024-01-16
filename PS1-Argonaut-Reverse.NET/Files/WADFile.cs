@@ -10,15 +10,15 @@ namespace ArgonautReverse.Files
 {
 	public class WADFile:DATFile
 	{
-		private readonly Dictionary<uint,BaseWADSection> dict = new Dictionary<uint,BaseWADSection>();
+		private readonly Dictionary<ChunkType,BaseWADSection> dict = new Dictionary<ChunkType,BaseWADSection>();
 
-		private static readonly Dictionary<uint,BaseWADSectionInfo> sections_conf = new Dictionary<uint, BaseWADSectionInfo>()
+		private static readonly Dictionary<ChunkType,BaseWADSectionInfo> sections_conf = new Dictionary<ChunkType, BaseWADSectionInfo>()
 		{
-			[TPSXSectionInfo.Instance.codename_raw] = TPSXSectionInfo.Instance,
-			[SPSXSectionInfo.Instance.codename_raw] = SPSXSectionInfo.Instance,
-			[DPSXSectionInfo.Instance.codename_raw] = DPSXSectionInfo.Instance,
-			[PORTSectionInfo.Instance.codename_raw] = PORTSectionInfo.Instance,
-			[ENDSectionInfo.Instance.codename_raw] = ENDSectionInfo.Instance,
+			[ChunkType.ID_TEXTPSX] = TPSXSectionInfo.Instance,
+			[ChunkType.ID_SAMPLEPSX] = SPSXSectionInfo.Instance,
+			[ChunkType.ID_DATAPSX] = DPSXSectionInfo.Instance,
+			[ChunkType.ID_PORT] = PORTSectionInfo.Instance,
+			[ChunkType.ID_END] = ENDSectionInfo.Instance,
 		};
 
 		public override string Suffix => "WAD";
@@ -53,15 +53,15 @@ namespace ArgonautReverse.Files
 		}
 		// WAD sections
 
-		public TPSXSection tpsx => this.dict.GetValueOrDefault(TPSXSectionInfo.Instance.codename_raw) as TPSXSection;
+		public TPSXSection tpsx => this.dict.GetValueOrDefault(ChunkType.ID_TEXTPSX) as TPSXSection;
 
-		public SPSXSection spsx => this.dict.GetValueOrDefault(SPSXSectionInfo.Instance.codename_raw) as SPSXSection;
+		public SPSXSection spsx => this.dict.GetValueOrDefault(ChunkType.ID_SAMPLEPSX) as SPSXSection;
 
-		public DPSXSection dpsx => this.dict.GetValueOrDefault(DPSXSectionInfo.Instance.codename_raw) as DPSXSection;
+		public DPSXSection dpsx => this.dict.GetValueOrDefault(ChunkType.ID_DATAPSX) as DPSXSection;
 
-		public PORTSection port => this.dict.GetValueOrDefault(PORTSectionInfo.Instance.codename_raw) as PORTSection;
+		public PORTSection port => this.dict.GetValueOrDefault(ChunkType.ID_PORT) as PORTSection;
 
-		public ENDSection end => this.dict.GetValueOrDefault(ENDSectionInfo.Instance.codename_raw) as ENDSection;
+		public ENDSection end => this.dict.GetValueOrDefault(ChunkType.ID_END) as ENDSection;
 
 		// TPSX
 
@@ -73,45 +73,8 @@ namespace ArgonautReverse.Files
 
 		// SPSX
 
-		public CommonSFXContainer common_sound_effects => this.spsx?.common_sfx;
+		public int n_sounds => this.spsx?.n_sounds ?? 0;
 
-		public AmbientContainer ambient_tracks => this.spsx?.ambient_tracks;
-
-		public IEnumerable<Sound> flattened_level_sfx
-		{
-			get
-			{
-				if(this.end == null) {return null;}
-				return this.spsx.level_sfx_groups.Sounds;
-			}
-		}
-
-		public LevelSFXContainer level_sfx
-		{
-			get
-			{
-				if(this.end == null) {return null;}
-				return this.spsx.level_sfx_groups;
-			}
-		}
-
-		public DialoguesBGMsContainer dialogues_bgms
-		{
-			get
-			{
-				if(this.end == null) {return null;}
-				return this.spsx.dialogues_bgms;
-			}
-		}
-
-		public int n_sounds
-		{
-			get
-			{
-				if(this.spsx == null){return 0;}
-				return this.spsx.n_sounds;
-			}
-		}
 		// DPSX
 		public IReadOnlyList<Object3DData> models_3d => this.dpsx?.models_3d;
 
@@ -346,64 +309,63 @@ namespace ArgonautReverse.Files
 			}
 		}
 
+		private static unsafe IEnumerable<(ChunkType type, int start, int length)> GetChunkLocations(WadReader reader)
+		{
+			var chunkLocations = new List<(ChunkType type, int start,int size)>();
+			
+			//Locate Chunks
+			var wadDataLength = reader.Read<int>();
+
+			
+			ChunkType chunkType;
+			do
+			{
+				var start = reader.Position;
+				chunkType = (ChunkType)reader.Read<uint>();
+				var chunkDataLength = reader.Read<int>();
+
+				// Detects incorrect WADs like FESOUND or FETHUND
+				if (chunkLocations.Count == 0 & chunkType != ChunkType.ID_TEXTPSX)
+				{
+					throw new SectionNameError(reader.Position, ChunkType.ID_TEXTPSX.ToString(), chunkType.ToString());
+				}
+				chunkLocations.Add((chunkType, start, chunkDataLength + 2*sizeof(int)));//Adding for codename and chunkDataLength fields
+				
+				
+				reader.Position += chunkDataLength;
+			}
+			while(chunkType!=ChunkType.ID_END);
+
+			return chunkLocations;
+		}
+
 		public override unsafe void Parse(Configuration conf)
 		{
-			using var data_in = new WadReader(conf, conf.ReadVersion.GetWadVersion(Stem), new MemoryStream(this._data));
-			var sections_offsets = new Dictionary<uint,int>();
-			void parse_sections()
-			{
-				data_in.Seek(4);
-				while(true)
-				{
-					var codename = data_in.Read<uint>();
+			using var data_in = new WadReader(this, conf, conf.ReadVersion.GetWadVersion(Stem), new MemoryStream(this._data));
+			
+			var chunkLocations = GetChunkLocations(data_in);
 
-					// Detects incorrect WADs like FESOUND or FETHUND
-					if (sections_offsets.Count == 0 & codename != TPSXSectionInfo.Instance.codename_raw)
-					{
-						throw new SectionNameError(data_in.Position, TPSXSectionInfo.Instance.codename_str, Encoding.Latin1.GetString((byte*)&codename, 4));
-					}
-					sections_offsets.Add(codename, data_in.Position - 4);
-				
-					if(codename == ENDSectionInfo.Instance.codename_raw)
-					{
-						break;
-					}
-
-					var offset = data_in.Read<int>();
-					data_in.Position += offset;
-				}
-			}
-		
 			this.dict.Clear();
-			parse_sections();
-
-			foreach(var(codename_bytes, offset) in sections_offsets)
+			foreach(var(type, start, length) in chunkLocations)
 			{
-				data_in.Seek(offset);
-				if(WADFile.sections_conf.ContainsKey(codename_bytes))
+				var chunkReader = data_in.ReadChunk(start, length);
+				if(WADFile.sections_conf.ContainsKey(type))
 				{
-					var section = WADFile.sections_conf[codename_bytes];
-					if(section.supported_games.Contains(data_in.ReadVersion))
+					var section = WADFile.sections_conf[type];
+					if(section.supported_games.Contains(chunkReader.ReadVersion))
 					{
-						if(codename_bytes != ENDSectionInfo.Instance.codename_raw)
-						{
-							this.dict.Add(codename_bytes, section.Parse(data_in));
-						}
-						else
-						{
-							this.dict.Add(codename_bytes, ((ENDSectionInfo)section).Parse(data_in, spsx_section:this.dict.GetValueOrDefault(SPSXSectionInfo.Instance.codename_raw) as SPSXSection));
-						}
+						this.dict.Add(type, section.Parse(chunkReader));
 					}
 					else
 					{
-						Console.WriteLine($"Unsupported Chunk: {Encoding.ASCII.GetString((byte*)&codename_bytes, 4)}");
-						this.dict.Add(codename_bytes, new UnknownSectionInfo(codename_bytes).fallback_parse(data_in));//throw new Exception("No idea what to do here, the original code shouldn't work here");
+						Console.WriteLine($"Unsupported Chunk: {type}");
+						this.dict.Add(type, new UnknownSectionInfo(type).fallback_parse(chunkReader));//throw new Exception("No idea what to do here, the original code shouldn't work here");
 					}
 				}
 				else
 				{
-					Console.WriteLine($"Unknown Chunk: {Encoding.ASCII.GetString((byte*)&codename_bytes, 4)}");
-					this.dict.Add(codename_bytes, new UnknownSectionInfo(codename_bytes).fallback_parse(data_in));
+					Console.WriteLine($"Unknown Chunk: {type.GetRawName()}");
+					this.dict.Add(type, new UnknownSectionInfo(type).fallback_parse(chunkReader));
 				}
 			}
 		}
@@ -412,7 +374,7 @@ namespace ArgonautReverse.Files
 			var wad_size_offset = data_out.Position;
 
 			//TODO: Understand data
-			data_out.WriteUInt32(0);//b"\x00\x00\x00\x00"
+			data_out.Write<uint>(0);//Placeholder for total data size
 			foreach(var section in this.dict.Values)
 			{
 				section.serialize(data_out);

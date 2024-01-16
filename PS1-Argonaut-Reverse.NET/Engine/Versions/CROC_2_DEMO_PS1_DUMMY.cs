@@ -1,31 +1,13 @@
 ﻿namespace ArgonautReverse.Engine.Versions
 {
-	//public sealed class CROC_2_DEMO_PS1_DUMMY:WadVersion
-	//{
-	//	//Croc 2 PS1 US Demo's DUMMY.DAT
-	//	//The files in here were almost certainly built prior to the rest of the demo
-	//	public static CROC_2_DEMO_PS1_DUMMY Instance{get;} = new CROC_2_DEMO_PS1_DUMMY();
-
-	//	public override string Title => "Croc 2 Demo PS1 (Dummy)";
-	//	//Actual date is unknown but it was prior to the demo
-	//	public override DateTime BuildDate => new DateTime(1999, 3, 3);
-	//	public override string FilenameDAT => "DUMMY.DAT";
-	//	public override string FilenameDIR => null;
-	//	public override DirFormat DirFormat => null;
-
-	//	public override bool NEW_COLLISION => false;
-
-	//	private CROC_2_DEMO_PS1_DUMMY(){}
-	//}
-
 	//Croc 2 PS1 US Demo's DUMMY.DAT
 	//The files in here were almost certainly built prior to the rest of the demo
 	public static class CROC_2_DEMO_PS1_DUMMY
 	{
 		public static DatVersion DatVersion => CROC_2_DEMO_PS1_DUMMY_Dat.Instance;
-		public static DirFormat DirFormat => CROC_2_PS1.DirFormat;
+		public static DirFormat DirFormat => null;
 
-		public static WadVersion WadVersion_00BD7800 => CROC_2_DEMO_PS1_DUMMY_Wad.Instance_00BD7800;
+		public static WadVersion WadVersion_Early => CROC_2_DEMO_PS1_DUMMY_Wad.Instance_Early;
 		public static WadVersion WadVersion_Latest => CROC_2_DEMO_PS1_DUMMY_Wad.Instance_Latest;
 
 		private sealed class CROC_2_DEMO_PS1_DUMMY_Dat:DatVersion
@@ -66,7 +48,7 @@
 			}
 
 			//Version used in: 00BD7800, 01864000
-			public static readonly WadVersion Instance_00BD7800 = new CROC_2_DEMO_PS1_DUMMY_Wad(100,
+			public static readonly WadVersion Instance_Early = new CROC_2_DEMO_PS1_DUMMY_Wad(100,
 				"00BD7800",//Dino Fight
 				"01864000",//Early snow hub
 				"01BEF000",//Early Sledding/Snowman roll

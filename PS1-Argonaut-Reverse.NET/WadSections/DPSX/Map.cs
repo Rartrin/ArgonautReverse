@@ -1,6 +1,8 @@
-﻿using ArgonautReverse.Engine.Versions;
+﻿using System;
+using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
 using ArgonautReverse.LibGTE;
+using ArgonautReverse.WadSections.SPSX;
 
 namespace ArgonautReverse.WadSections.DPSX
 {
@@ -246,6 +248,12 @@ namespace ArgonautReverse.WadSections.DPSX
 		//TODO: This is part of Aladdin, possibly in other games.
 		public LightTuple[] LightTuples;
 		public IReadOnlyList<OMNI_LIGHT> omniLights;
+		public IReadOnlyList<IReadOnlyList<PRE_LIT>> pre_map;
+
+		//Didn't have fields originally
+		public int SequenceCount;
+		public byte[] RawSequenceData;
+		public IReadOnlyList<ALAmbience> Ambiences;
 		#endregion
 
 		private Map(){}
@@ -260,6 +268,8 @@ namespace ArgonautReverse.WadSections.DPSX
 			map.NumberOfPieces = data_in.Read<int>();
 			map.NumberOfStrats = data_in.Read<ushort>();
 
+			ushort? unknownField = null;
+
 			//TODO: What are these values
 			if(data_in.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
@@ -271,12 +281,17 @@ namespace ArgonautReverse.WadSections.DPSX
 			else
 			{
 				//TODO: Which field is this?
-				var unknown = data_in.Read<ushort>();
+				unknownField = data_in.Read<ushort>();
+				if(unknownField!=0)
+				{
+
+				}
 			}
 
 			map.MapXY = data_in.Read<int>();
 			map.MapX = data_in.Read<uint>();
 			map.MapZ = data_in.Read<uint>();
+			Utils.Assert(map.MapXY == map.MapX*map.MapZ);
 
 			ushort? n_lighting_headers;
 			ushort? n_add_sub_chunks_lighting;
@@ -310,7 +325,8 @@ namespace ArgonautReverse.WadSections.DPSX
 			}
 			else
 			{
-				data_in.Seek(80, SeekOrigin.Current);
+				//data_in.Seek(80, SeekOrigin.Current);
+				var data = data_in.ReadArray<int>(20);
 			}
 
 			var mapGridOffsets = data_in.ReadArray<int>(map.MapXY);
@@ -415,9 +431,9 @@ namespace ArgonautReverse.WadSections.DPSX
 				//This means that DUMMY definitely supports the WF_NOMATPOS flag
 			}
 
-			//TODO: WF_CAMERAPOINTS
 			if((wadFlag&WadFlag.WF_CAMERAPOINTS)!=0)
 			{
+				//TODO: WF_CAMERAPOINTS
 				throw new NotImplementedException();
 			}
 
@@ -431,12 +447,7 @@ namespace ArgonautReverse.WadSections.DPSX
 				map.TrackChangeData = data_in.ReadArray<TRACKCHANGE>(map.NumberOfOtherPieces.Value);
 			}
 
-			if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
-			{
-				//TODO: What is this? (DUMMY related)
-				data_in.Seek(92, SeekOrigin.Current);
-			}
-			else
+			if(data_in.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
 				//TODO: Omni Lights
 				var omniLightCount = data_in.Read<int>();
@@ -451,56 +462,146 @@ namespace ArgonautReverse.WadSections.DPSX
 				map.omniLights = data_in.ReadArray<OMNI_LIGHT>(omniLightCount);
 			}
 
-			//TODO: This is a lot to be skipping on the release version
-			if(data_in.DatVersion == CROC_2_PS1.DatVersion)
+			if((wadFlag&WadFlag.WF_MAP_LIGHTINGTABLE)!=0)
 			{
-				data_in.Seek(30732, SeekOrigin.Current);
-			}
-			else if(data_in.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
-			{
-				if(map.NumberOfPieces != 0)
-				{
-					//TODO: This appears to be in the wrong order compared to any of my versions
+				//TODO: WF_MAP_LIGHTINGTABLE
 
-					var sub_chunks_n_lighting = data_in.ReadUInt32Array(map.NumberOfPieces);
-					var sub_chunks_n_add_lighting = data_in.ReadUInt32Array(map.NumberOfOtherPieces.Value);
-					for(int model_id=0; model_id<map.NumberOfPieces; model_id++)
+				//TODO: This is a lot to be skipping on the release version
+				if(data_in.DatVersion == CROC_2_PS1.DatVersion)
+				{
+					data_in.Seek(30732, SeekOrigin.Current);
+				}
+				else if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
+				{
+					throw new NotImplementedException();
+				}
+				else
+				{
+					if(map.NumberOfPieces != 0)
 					{
-						for(int i=0; i<sub_chunks_n_lighting[model_id]; i++)
+						//TODO: This appears to be in the wrong order compared to any of my versions
+
+						var sub_chunks_n_lighting = data_in.ReadUInt32Array(map.NumberOfPieces);
+						var sub_chunks_n_add_lighting = data_in.ReadUInt32Array(map.NumberOfOtherPieces.Value);
+
+
+						for(int model_id=0; model_id<map.NumberOfPieces; model_id++)
 						{
-							var size = 4 * chunk_models[map.Pieces[model_id]].Data.n_vertices;
-							data_in.Seek(size, SeekOrigin.Current);
+							for(int i=0; i<sub_chunks_n_lighting[model_id]; i++)
+							{
+								var size = 4 * chunk_models[map.Pieces[model_id]].Data.n_vertices;
+								data_in.Seek(size, SeekOrigin.Current);
+							}
 						}
+						for(int model_id=0; model_id<map.NumberOfOtherPieces.Value; model_id++)
+						{
+							for(int i=0; i<sub_chunks_n_add_lighting[model_id]; i++)
+							{
+								var size = 4 * chunk_models[map.TrackChangeData[model_id].OtherPiece].Data.n_vertices;
+								data_in.Seek(size, SeekOrigin.Current);
+							}
+						}
+						if(data_in.DatVersion != CROC_2_DEMO_PS1.DatVersion)// Not present in Croc 2 Demo Dummy
+						{
+							var idk_size = data_in.Read<int>();
+							if(idk_size != 0)
+							{
+								data_in.Seek(4 + idk_size, SeekOrigin.Current);
+							}
+							else
+							{
+								data_in.Seek(-4, SeekOrigin.Current);
+							}
+							var n_idk3 = data_in.Read<int>();
+							if(n_idk3 == 0)
+							{
+								data_in.Seek(-4, SeekOrigin.Current);
+							}
+							var idk4 = data_in.ReadArrayOfByteArrays(40, n_idk3);//var idk3 = [int.from_bytes(data_in.read(40), "little") for _ in range(n_idk3)]
+						}
+						data_in.Seek(12, SeekOrigin.Current);
 					}
-					for(int model_id=0; model_id<map.NumberOfOtherPieces.Value; model_id++)
-					{
-						for(int i=0; i<sub_chunks_n_add_lighting[model_id]; i++)
-						{
-							var size = 4 * chunk_models[map.TrackChangeData[model_id].OtherPiece].Data.n_vertices;
-							data_in.Seek(size, SeekOrigin.Current);
-						}
-					}
-					if(data_in.DatVersion != CROC_2_DEMO_PS1.DatVersion)// Not present in Croc 2 Demo Dummy
-					{
-						var idk_size = data_in.Read<int>();
-						if(idk_size != 0)
-						{
-							data_in.Seek(4 + idk_size, SeekOrigin.Current);
-						}
-						else
-						{
-							data_in.Seek(-4, SeekOrigin.Current);
-						}
-						var n_idk3 = data_in.Read<int>();
-						if(n_idk3 == 0)
-						{
-							data_in.Seek(-4, SeekOrigin.Current);
-						}
-						var idk4 = data_in.ReadArrayOfByteArrays(40, n_idk3);//var idk3 = [int.from_bytes(data_in.read(40), "little") for _ in range(n_idk3)]
-					}
-					data_in.Seek(12, SeekOrigin.Current);
 				}
 			}
+
+			if((wadFlag&WadFlag.WF_MAP_PRELIT)!=0)
+			{
+				var preMap = new PRE_LIT[2][];
+				for(int i=0; i<preMap.Length; i++)
+				{
+					preMap[i] = new PRE_LIT[map.NumberOfPieces];
+					for(int j=0; j<map.NumberOfPieces; j++)
+					{
+						var lfacePlaceholder = data_in.Read<uint>();//lface placeholder
+						if(lfacePlaceholder != 0)
+						{
+							throw new Exception();
+						}
+						preMap[i][j] = new PRE_LIT();
+					}
+					
+					for(int j=0; j<map.NumberOfPieces; j++)
+					{
+						var trackObj = chunk_models[map.Pieces[j]];
+						preMap[i][j].lface = data_in.ReadArray<POLY_ALL>(trackObj.Header.n_faces);
+					}
+				}
+
+				map.pre_map = preMap;
+			}
+
+			var remaining = data_in.Length - data_in.Position;
+
+			var soundDataFlags = data_in.WadFile.spsx?.spsx_flags ?? 0;
+			if((soundDataFlags&SPSXFlags.HAS_AMBIENT_TRACKS)!=0)
+			{
+				var totalSequenceByteLength = data_in.Read<int>();
+				map.SequenceCount = 0;
+				if((soundDataFlags&SPSXFlags.AMBIENTSEP)!=0)
+				{
+					map.SequenceCount = data_in.Read<int>();
+				}
+				map.RawSequenceData = data_in.ReadArray<byte>(totalSequenceByteLength);
+				//TODO: Parse sequence data
+
+				IReadOnlyList<ALAmbience> ambience = null;
+				if((soundDataFlags&SPSXFlags.AMBIENTSEP)!=0)
+				{
+					if((wadFlag&WadFlag.WF_HASMULTIAMBIENT)!=0)
+					{
+						var ambienceCount = data_in.Read<int>();
+						ambience = data_in.ReadArray<ALAmbience>(ambienceCount);
+					}
+				}
+				else
+				{
+					if((wadFlag&WadFlag.WF_HASMULTIAMBIENT)!=0)
+					{
+						var ambienceCount = data_in.Read<int>();
+						ambience = data_in.ReadArray<ALAmbience>(ambienceCount);
+					}
+				}
+				map.Ambiences = ambience;
+			}
+
+			if((wadFlag&WadFlag.WF_HASINVENTORY)!=0)
+			{
+				throw new NotImplementedException();
+			}
+
+			if((wadFlag&WadFlag.WF_HASLANGUAGES)!=0)
+			{
+				throw new NotImplementedException();
+			}
+
+
+			//TODO: What is this and where does it go? (DUMMY related)
+			if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
+			{
+				data_in.Seek(92, SeekOrigin.Current);
+			}
+
+			
 
 			return map;
 		}

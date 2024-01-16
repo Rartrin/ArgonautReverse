@@ -8,7 +8,7 @@ namespace ArgonautReverse.WadSections.DPSX
 	public sealed class DPSXSectionInfo:BaseWADSectionInfo<DPSXSection>
 	{
 		public static readonly DPSXSectionInfo Instance = new DPSXSectionInfo();
-		public override string codename_str => "DPSX";//"XSPD"
+		public override ChunkType ChunkType => ChunkType.ID_DATAPSX;
 													  // FIXME DEBUG
 		public override WadVersion[] supported_games{get;} = new[]
 		{
