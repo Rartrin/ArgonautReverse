@@ -97,7 +97,7 @@ namespace ArgonautReverse.Files
 		};
 	}
 
-	public sealed class IMGFile:DATFile, BaseDataClass
+	public sealed class IMGFile:DATFile
 	{
 		public override string Suffix => "IMG";
 

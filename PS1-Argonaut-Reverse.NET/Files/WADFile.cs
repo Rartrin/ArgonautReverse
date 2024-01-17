@@ -1,24 +1,25 @@
+using System.Reflection.PortableExecutable;
 using System.Text;
 using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
-using ArgonautReverse.WadSections;
-using ArgonautReverse.WadSections.DPSX;
-using ArgonautReverse.WadSections.SPSX;
-using ArgonautReverse.WadSections.TPSX;
+using ArgonautReverse.WadChunks;
+using ArgonautReverse.WadChunks.DPSX;
+using ArgonautReverse.WadChunks.SPSX;
+using ArgonautReverse.WadChunks.TPSX;
 
 namespace ArgonautReverse.Files
 {
 	public class WADFile:DATFile
 	{
-		private readonly Dictionary<ChunkType,BaseWADSection> dict = new Dictionary<ChunkType,BaseWADSection>();
+		private readonly Dictionary<ChunkType,BaseWadChunk> chunks = new Dictionary<ChunkType,BaseWadChunk>();
 
-		private static readonly Dictionary<ChunkType,BaseWADSectionInfo> sections_conf = new Dictionary<ChunkType, BaseWADSectionInfo>()
+		private static readonly Dictionary<ChunkType,BaseWADChunkInfo> chunkInfoLookup = new Dictionary<ChunkType, BaseWADChunkInfo>()
 		{
-			[ChunkType.ID_TEXTPSX] = TPSXSectionInfo.Instance,
-			[ChunkType.ID_SAMPLEPSX] = SPSXSectionInfo.Instance,
-			[ChunkType.ID_DATAPSX] = DPSXSectionInfo.Instance,
-			[ChunkType.ID_PORT] = PORTSectionInfo.Instance,
-			[ChunkType.ID_END] = ENDSectionInfo.Instance,
+			[ChunkType.ID_TEXTPSX] = TPSXChunkInfo.Instance,
+			[ChunkType.ID_SAMPLEPSX] = SPSXChunkInfo.Instance,
+			[ChunkType.ID_DATAPSX] = DPSXChunkInfo.Instance,
+			[ChunkType.ID_PORT] = PORTChunkInfo.Instance,
+			[ChunkType.ID_END] = ENDChunkInfo.Instance,
 		};
 
 		public override string Suffix => "WAD";
@@ -36,61 +37,61 @@ namespace ArgonautReverse.Files
 			//if(this)
 			{
 				res += "\n";
-				if(this.tpsx != null)
+				if(this.TPSX != null)
 				{
 					res += $" {this.n_textures} texture(s)";
 				}
-				if(this.spsx != null)
+				if(this.SPSX != null)
 				{
 					res += $" {this.n_sounds} audio file(s)";
 				}
-				if(this.dpsx != null)
+				if(this.DPSX != null)
 				{
 					res += $" {this.n_models} model(s) {this.n_animations} animation(s) {this.n_filled_chunks} chunk(s)";
 				}
 			}
 			return res;
 		}
-		// WAD sections
+		// WAD Chunks
 
-		public TPSXSection tpsx => this.dict.GetValueOrDefault(ChunkType.ID_TEXTPSX) as TPSXSection;
+		public TPSXChunk TPSX => this.chunks.GetValueOrDefault(ChunkType.ID_TEXTPSX) as TPSXChunk;
 
-		public SPSXSection spsx => this.dict.GetValueOrDefault(ChunkType.ID_SAMPLEPSX) as SPSXSection;
+		public SPSXChunk SPSX => this.chunks.GetValueOrDefault(ChunkType.ID_SAMPLEPSX) as SPSXChunk;
 
-		public DPSXSection dpsx => this.dict.GetValueOrDefault(ChunkType.ID_DATAPSX) as DPSXSection;
+		public DPSXChunk DPSX => this.chunks.GetValueOrDefault(ChunkType.ID_DATAPSX) as DPSXChunk;
 
-		public PORTSection port => this.dict.GetValueOrDefault(ChunkType.ID_PORT) as PORTSection;
+		public PORTChunk PORT => this.chunks.GetValueOrDefault(ChunkType.ID_PORT) as PORTChunk;
 
-		public ENDSection end => this.dict.GetValueOrDefault(ChunkType.ID_END) as ENDSection;
+		public ENDChunk END => this.chunks.GetValueOrDefault(ChunkType.ID_END) as ENDChunk;
 
 		// TPSX
 
-		public IReadOnlyList<string> titles => this.tpsx?.Titles ?? Array.Empty<string>();
+		public IReadOnlyList<string> titles => this.TPSX?.Titles ?? Array.Empty<string>();
 
-		public IReadOnlyList<TextureData> textures => this.tpsx?.TextureFile?.Textures;
+		public IReadOnlyList<TextureData> textures => this.TPSX?.TextureFile?.Textures;
 
-		public int n_textures => this.tpsx?.TextureFile?.Textures?.Count ?? 0;
+		public int n_textures => this.TPSX?.TextureFile?.Textures?.Count ?? 0;
 
 		// SPSX
 
-		public int n_sounds => this.spsx?.n_sounds ?? 0;
+		public int n_sounds => this.SPSX?.n_sounds ?? 0;
 
 		// DPSX
-		public IReadOnlyList<Object3DData> models_3d => this.dpsx?.models_3d;
+		public IReadOnlyList<Object3DData> models_3d => this.DPSX?.models_3d;
 
-		public int n_models => this.dpsx?.models_3d.Count ?? 0;
+		public int n_models => this.DPSX?.models_3d.Count ?? 0;
 
-		public IReadOnlyList<AnimationData> animations => this.dpsx?.animations;
+		public IReadOnlyList<AnimationData> animations => this.DPSX?.animations;
 
-		public int n_animations => this.dpsx?.animations?.Count ?? 0;
+		public int n_animations => this.DPSX?.animations?.Count ?? 0;
 
-		public IReadOnlyList<ActorData> actors => this.dpsx?.actors;
+		public IReadOnlyList<ActorData> actors => this.DPSX?.actors;
 
-		public int n_scripts => this.dpsx?.actors?.Count ?? 0;
+		public int n_scripts => this.DPSX?.actors?.Count ?? 0;
 
-		public ChunksMatrix chunks_matrix => this.dpsx?.level_file?.chunks_matrix;
+		public ChunksMatrix chunks_matrix => this.DPSX?.level_file?.chunks_matrix;
 
-		public int n_filled_chunks => this.dpsx?.level_file?.chunks_matrix?.n_filled_chunks ?? 0;
+		public int n_filled_chunks => this.DPSX?.level_file?.chunks_matrix?.n_filled_chunks ?? 0;
 
 		/// <summary>Exports the material (MTL) and texture (PNG) files that are needed by the OBJ Wavefront file.</summary>
 		public void _prepare_obj_export(string folder_path, string wad_filename)
@@ -99,7 +100,7 @@ namespace ArgonautReverse.Files
 			{
 				mtl_file.WriteLine($"newmtl mtl1\nmap_Kd {wad_filename}.PNG");
 			}
-			this.tpsx.TextureFile.to_colorized_texture().Save(Path.Join(folder_path, (wad_filename + ".PNG")), System.Drawing.Imaging.ImageFormat.Png);
+			this.TPSX.TextureFile.to_colorized_texture().Save(Path.Join(folder_path, (wad_filename + ".PNG")), System.Drawing.Imaging.ImageFormat.Png);
 		}
 		/// <summary>
 		/// Tries to find one compatible animation for each model in the WAD, animates it to make it clean
@@ -147,9 +148,9 @@ namespace ArgonautReverse.Files
 			}
 
 			this._prepare_obj_export(folder_path, wad_filename);
-			for(int i=0; i<this.dpsx.models_3d.Count; i++)
+			for(int i=0; i<this.DPSX.models_3d.Count; i++)
 			{
-				var model_3d = this.dpsx.models_3d[i];
+				var model_3d = this.DPSX.models_3d[i];
 				var obj_filename = $"{wad_filename}_{i}";
 				using(var obj_file = new StreamWriter(Path.Join(folder_path, (obj_filename + ".OBJ")), false, Encoding.ASCII))
 				{
@@ -195,13 +196,13 @@ namespace ArgonautReverse.Files
 				throw new Exception("Only VAG and WAV export is supported at the moment");
 			}
 
-			if(this.spsx != null)
+			if(this.SPSX != null)
 			{
 				var mono_sounds = new Dictionary<string, IEnumerable<VAGSoundData>>()
 				{
-					["effect"] = this.spsx.common_sfx.vags,
-					["ambient"] = this.spsx.ambient_tracks.vags,
-					["level_effect"] = this.spsx.level_sfx_groups.vags,
+					["effect"] = this.SPSX.common_sfx.vags,
+					["ambient"] = this.SPSX.ambient_tracks.vags,
+					["level_effect"] = this.SPSX.level_sfx_groups.vags,
 				};
 				foreach(var(prefix, vags) in mono_sounds)
 				{
@@ -216,7 +217,7 @@ namespace ArgonautReverse.Files
 				}
 				int dialogue_index = 0;
 				int bgm_index = 0;
-				foreach(var sound in this.spsx.dialogues_bgms.Sounds)
+				foreach(var sound in this.SPSX.dialogues_bgms.Sounds)
 				{
 					string filename;
 					if((((DialogueBGMSound)sound).flagsAndLoop&DialoguesBGMsSoundFlags.IS_BACKGROUND_MUSIC)!=0)
@@ -274,13 +275,13 @@ namespace ArgonautReverse.Files
 						obj.WriteLine($"vt {coord.X / 1024.0} {(1024 - coord.Y) / 1024.0}");
 					}
 				}
-				for(int i=0; i<this.dpsx.level_file.chunks_matrix.Count; i++)
+				for(int i=0; i<this.DPSX.level_file.chunks_matrix.ChunkHolders.Count; i++)
 				{
-					var chunk_holder = this.dpsx.level_file.chunks_matrix[i];
+					var chunk_holder = this.DPSX.level_file.chunks_matrix.ChunkHolders[i];
 					if(chunk_holder!=null)
 					{
-						var (x, z) = this.dpsx.level_file.chunks_matrix.x_z_coords(i);
-						foreach(var chunk in chunk_holder)
+						var (x, z) = this.DPSX.level_file.chunks_matrix.x_z_coords(i);
+						foreach(var chunk in chunk_holder.Subchunks)
 						{
 							var cm = chunk.model_3d_data.Data;
 							cm.ToBatchObj(
@@ -309,14 +310,12 @@ namespace ArgonautReverse.Files
 			}
 		}
 
-		private static unsafe IEnumerable<(ChunkType type, int start, int length)> GetChunkLocations(WadReader reader)
+		private static unsafe IEnumerable<(ChunkType type, int start, int length)> LocateChunks(WadReader reader)
 		{
 			var chunkLocations = new List<(ChunkType type, int start,int size)>();
 			
-			//Locate Chunks
 			var wadDataLength = reader.Read<int>();
 
-			
 			ChunkType chunkType;
 			do
 			{
@@ -327,9 +326,9 @@ namespace ArgonautReverse.Files
 				// Detects incorrect WADs like FESOUND or FETHUND
 				if (chunkLocations.Count == 0 & chunkType != ChunkType.ID_TEXTPSX)
 				{
-					throw new SectionNameError(reader.Position, ChunkType.ID_TEXTPSX.ToString(), chunkType.ToString());
+					throw new ChunkNameError(reader.Position, ChunkType.ID_TEXTPSX.ToString(), chunkType.ToString());
 				}
-				chunkLocations.Add((chunkType, start, chunkDataLength + 2*sizeof(int)));//Adding for codename and chunkDataLength fields
+				chunkLocations.Add((chunkType, start, chunkDataLength + sizeof(ChunkType) + sizeof(int)));//Adding for chunk type and chunkDataLength fields
 				
 				
 				reader.Position += chunkDataLength;
@@ -343,29 +342,33 @@ namespace ArgonautReverse.Files
 		{
 			using var data_in = new WadReader(this, conf, conf.ReadVersion.GetWadVersion(Stem), new MemoryStream(this._data));
 			
-			var chunkLocations = GetChunkLocations(data_in);
+			var chunkLocations = LocateChunks(data_in);
 
-			this.dict.Clear();
+			this.chunks.Clear();
 			foreach(var(type, start, length) in chunkLocations)
 			{
 				var chunkReader = data_in.ReadChunk(start, length);
-				if(WADFile.sections_conf.ContainsKey(type))
+				if(WADFile.chunkInfoLookup.TryGetValue(type, out var chunkInfo))
 				{
-					var section = WADFile.sections_conf[type];
-					if(section.supported_games.Contains(chunkReader.ReadVersion))
+					if(chunkInfo.SupportedWadVersions.Contains(chunkReader.ReadVersion))
 					{
-						this.dict.Add(type, section.Parse(chunkReader));
+						var chunk = chunkInfo.Parse(chunkReader);
+						this.chunks.Add(type, chunk);
+						if(chunkReader.Remaining != 0)
+						{
+							Console.WriteLine($"WARNING: There were {chunkReader.Remaining} bytes of unparsed data in {type}!");
+						}
 					}
 					else
 					{
 						Console.WriteLine($"Unsupported Chunk: {type}");
-						this.dict.Add(type, new UnknownSectionInfo(type).fallback_parse(chunkReader));//throw new Exception("No idea what to do here, the original code shouldn't work here");
+						this.chunks.Add(type, new UnsupportedChunkInfo(chunkInfo).Parse(chunkReader));
 					}
 				}
 				else
 				{
 					Console.WriteLine($"Unknown Chunk: {type.GetRawName()}");
-					this.dict.Add(type, new UnknownSectionInfo(type).fallback_parse(chunkReader));
+					this.chunks.Add(type, new UnknownChunkInfo(type).Parse(chunkReader));
 				}
 			}
 		}
@@ -375,9 +378,9 @@ namespace ArgonautReverse.Files
 
 			//TODO: Understand data
 			data_out.Write<uint>(0);//Placeholder for total data size
-			foreach(var section in this.dict.Values)
+			foreach(var chunk in this.chunks.Values)
 			{
-				section.serialize(data_out);
+				chunk.Serialize(data_out);
 			}
 			var end_offset = data_out.Position;
 			var wad_size = end_offset - wad_size_offset;

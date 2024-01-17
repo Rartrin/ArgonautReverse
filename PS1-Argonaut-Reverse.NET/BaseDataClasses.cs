@@ -1,89 +1,68 @@
-using System.Text;
 using ArgonautReverse.Engine;
 using ArgonautReverse.IO;
-using ArgonautReverse.WadSections;
+using ArgonautReverse.WadChunks;
 
 namespace ArgonautReverse
 {
-	public interface BaseDataClass
-	{
-		//Add in Pack/Repack/Write
-	}
-
-	public abstract class BaseWADSectionInfo
+	public abstract class BaseWADChunkInfo
 	{
 		//TODO: Separate into Read and Write
-		public abstract WadVersion[] supported_games{get;}
-
-
-		public abstract string section_content_description{get;}
-		
+		public abstract WadVersion[] SupportedWadVersions{get;}
+		public abstract string ChunkDescription{get;}
 		public abstract ChunkType ChunkType{get;}
 
-		public BaseWADSectionInfo(){}
+		public BaseWADChunkInfo(){}
 
-		public unsafe void check_codename(WadReader data_in)
+		public unsafe void CheckChunkType(WadReader data_in)
 		{
-			var found_codename = (ChunkType)data_in.Read<uint>();
-			if(found_codename != ChunkType)
+			var readChunkType = (ChunkType)data_in.Read<uint>();
+			if(readChunkType != ChunkType)
 			{
-				throw new SectionNameError(data_in.Position, ChunkType.ToString(), Encoding.Latin1.GetString((byte*)&found_codename, 4));
+				throw new ChunkNameError(data_in.Position, ChunkType.ToString(), readChunkType.GetRawName());
 			}
 		}
 
-		public void check_size(int expected_size, int section_start, int current_position)
+		public void CheckSize(int expectedSize, int chunkStart, int currentPosition)
 		{
-			var calculated_size = current_position - section_start;
-			if(expected_size != calculated_size)
+			var calculated_size = currentPosition - chunkStart;
+			if(expectedSize != calculated_size)
 			{
-				throw new SectionSizeMismatch(current_position, ChunkType.ToString(), expected_size, calculated_size);
+				throw new ChunkSizeMismatch(currentPosition, ChunkType.ToString(), expectedSize, calculated_size);
 			}
 		}
 
-		protected void parseInner(WadReader data_in, out int size, out int start)
+		protected void ParseHeader(WadReader data_in, out int size, out int start)
 		{
-			if(!supported_games.Contains(data_in.ReadVersion))
+			if(!SupportedWadVersions.Contains(data_in.ReadVersion))
 			{
-				throw new UnsupportedParsing(section_content_description);
+				throw new UnsupportedParsing(ChunkDescription);
 			}
-			check_codename(data_in);
-			size = data_in.ReadInt32();
+			CheckChunkType(data_in);
+			size = data_in.Read<int>();
 			start = data_in.Position;
 		}
-		public abstract BaseWADSection Parse(WadReader data_in);
+		public abstract BaseWadChunk Parse(WadReader data_in);
 
-		protected static byte[] fallback_parse_data(WadReader data_in)
+		protected static byte[] GetChunkData(WadReader data_in)
 		{
 			var start = data_in.Position;
-			var chunkType = data_in.Read<uint>();
+			var chunkType = (ChunkType)data_in.Read<uint>();
 			var size = data_in.Read<int>();
 
-			//var data = codename + size + data_in.read(int.from_bytes(size, "little"));
 			data_in.Position = start;
-			var data = data_in.ReadBytes(8 + size);
+			var data = data_in.ReadArray<byte>(sizeof(ChunkType) + sizeof(int) + size);
 			data_in.Position = start;
 			return data;
 		}
-
-		public abstract BaseWADSection fallback_parse(WadReader data_in);
-	}
-	public abstract class BaseWADSectionInfo<T>:BaseWADSectionInfo where T:BaseWADSection
-	{
-		public sealed override BaseWADSection fallback_parse(WadReader data_in)
-		{
-			return (T)Activator.CreateInstance(typeof(T), this, fallback_parse_data(data_in));
-		}
 	}
 
-	public abstract class BaseWADSection:BaseDataClass
+	public abstract class BaseWadChunk
 	{
-		public readonly BaseWADSectionInfo Info;
-		public WadVersion[] supported_games => Info.supported_games;
-		public string section_content_description => Info.section_content_description;
+		public readonly BaseWADChunkInfo Info;
 
 		public byte[] _data;
 
-		public BaseWADSection(BaseWADSectionInfo info, byte[] data = null)
+		public BaseWadChunk(BaseWADChunkInfo info, byte[] data = null)
 		{
 			Info = info;
 			if(data is not null)
@@ -93,22 +72,22 @@ namespace ArgonautReverse
 		}
 
 	
-		public virtual void serialize(Serializer data_out)
+		public virtual void Serialize(Serializer data_out)
 		{
-			fallback_serialize(data_out);
+			data_out.WriteBytes(this._data);
 		}
-		protected int serializeInner(Serializer data_out)
+		protected int SerializeHeader(Serializer data_out)
 		{
-			if(!this.supported_games.Contains(data_out.WriteVersion))
+			if(!Info.SupportedWadVersions.Contains(data_out.WriteVersion))
 			{
-				throw new UnsupportedSerialization(this.section_content_description);
+				throw new UnsupportedSerialization(Info.ChunkDescription);
 			}
 			data_out.Write((uint)Info.ChunkType);
-			data_out.Write<uint>(0);// Section's size
+			data_out.Write<uint>(0);// Placeholder for the chunk's size
 			return data_out.Position;
 		}
 
-		protected static void SerializeSectionSize(Serializer data_out, int start)
+		protected static void SerializeChunkSize(Serializer data_out, int start)
 		{
 			var end = data_out.Position;
 			var size = end - start;
@@ -116,34 +95,54 @@ namespace ArgonautReverse
 			data_out.WriteInt32(size);
 			data_out.Position = end;
 		}
+	}
 
-		public void fallback_serialize(Serializer data_out)
+	public sealed class UnsupportedChunkInfo:BaseWADChunkInfo
+	{
+		public override WadVersion[] SupportedWadVersions => Configuration.ALL_WADS;
+
+		public override string ChunkDescription => "(Unsupported for the game) " + UnsuppportedType.ChunkDescription;
+
+		public BaseWADChunkInfo UnsuppportedType{get;}
+		public override ChunkType ChunkType => UnsuppportedType.ChunkType;
+
+		public unsafe UnsupportedChunkInfo(BaseWADChunkInfo unsuppportedType)
 		{
-			data_out.WriteBytes(this._data);
+			UnsuppportedType = unsuppportedType;
+		}
+
+		public override UnsupportedChunk Parse(WadReader data_in)
+		{
+			return new UnsupportedChunk(this, GetChunkData(data_in));
 		}
 	}
 
-	public sealed class UnknownSectionInfo:BaseWADSectionInfo<UnknownSection>
+	public sealed class UnsupportedChunk:BaseWadChunk
 	{
-		public override WadVersion[] supported_games => Configuration.ALL_WADS;
+		public UnsupportedChunk(BaseWADChunkInfo info, byte[] data = null) : base(info, data){}
+	}
 
-		public override string section_content_description => $"{ChunkType.GetRawName()} chunk";
+	public sealed class UnknownChunkInfo:BaseWADChunkInfo
+	{
+		public override WadVersion[] SupportedWadVersions => Configuration.ALL_WADS;
+
+		public override string ChunkDescription => $"{ChunkType.GetRawName()} chunk";
 
 		public override ChunkType ChunkType{get;}
 
-		public unsafe UnknownSectionInfo(ChunkType chunkType)
+		public unsafe UnknownChunkInfo(ChunkType chunkType)
 		{
 			ChunkType = chunkType;
 		}
 
-		public override UnknownSection Parse(WadReader data_in)
+		public override UnknownChunk Parse(WadReader data_in)
 		{
-			return (UnknownSection)fallback_parse(data_in);
+			return new UnknownChunk(this, GetChunkData(data_in));
 		}
 	}
 
-	public sealed class UnknownSection:BaseWADSection
+	public sealed class UnknownChunk:BaseWadChunk
 	{
-		public UnknownSection(BaseWADSectionInfo info, byte[] data = null) : base(info, data){}
+		public UnknownChunk(BaseWADChunkInfo info, byte[] data = null) : base(info, data){}
 	}
 }

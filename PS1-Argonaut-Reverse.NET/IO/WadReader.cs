@@ -25,7 +25,7 @@ namespace ArgonautReverse.IO
 
 		public ChunkReader ReadChunk(int start, int length)
 		{
-			this.Seek(start);
+			this.Position = start;
 			return new ChunkReader(this, start, length);
 		}
 	}
@@ -34,6 +34,8 @@ namespace ArgonautReverse.IO
 	{
 		public readonly int Start;
 		public readonly int ChunkLength;
+
+		public int Remaining => ChunkLength - (Position-Start);
 
 		public ChunkReader(WadReader wadReader, int start, int length) : base(wadReader.WadFile, wadReader.Configuration, wadReader.ReadVersion, wadReader.Stream, false)
 		{

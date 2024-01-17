@@ -1,8 +1,8 @@
 using System.Drawing.Imaging;
 using ArgonautReverse.Files;
-using ArgonautReverse.WadSections.DPSX;
-using ArgonautReverse.WadSections.SPSX;
-using ArgonautReverse.WadSections.TPSX;
+using ArgonautReverse.WadChunks.DPSX;
+using ArgonautReverse.WadChunks.SPSX;
+using ArgonautReverse.WadChunks.TPSX;
 
 namespace ArgonautReverse
 {
@@ -82,15 +82,15 @@ namespace ArgonautReverse
 
 		public static void ExportAssetsFromWad(WADFile wadFile, ProgramArgs args, Configuration conf)
 		{
-			if(TPSXSectionInfo.Instance.supported_games.Intersect(conf.ReadVersion.WadVersions).Any())
+			if(TPSXChunkInfo.Instance.SupportedWadVersions.Intersect(conf.ReadVersion.WadVersions).Any())
 			{
 				if(args.ExportTextures is string exportTextures)
 				{
-					wadFile.tpsx.TextureFile.to_colorized_texture().Save(Path.Join(exportTextures, $"{wadFile.Stem}.PNG"), ImageFormat.Png);
+					wadFile.TPSX.TextureFile.to_colorized_texture().Save(Path.Join(exportTextures, $"{wadFile.Stem}.PNG"), ImageFormat.Png);
 				}
 			}
 
-			if(SPSXSectionInfo.Instance.supported_games.Intersect(conf.ReadVersion.WadVersions).Any())
+			if(SPSXChunkInfo.Instance.SupportedWadVersions.Intersect(conf.ReadVersion.WadVersions).Any())
 			{
 				if(args.ExportAudio is string exportAudio)
 				{
@@ -105,7 +105,7 @@ namespace ArgonautReverse
 					wadFile.export_audio_to_vag(wad_audio_unpack_folder_path, wadFile.Stem);
 				}
 			}
-			if(DPSXSectionInfo.Instance.supported_games.Intersect(conf.ReadVersion.WadVersions).Any())
+			if(DPSXChunkInfo.Instance.SupportedWadVersions.Intersect(conf.ReadVersion.WadVersions).Any())
 			{
 				if(args.ExportActors is string exportActors)
 				{
@@ -193,7 +193,7 @@ namespace ArgonautReverse
 			for(int i=0; i<dir_dat.Files.Count; i++)
 			{
 				var datFile = dir_dat.Files[i];
-				Console.Write($"[{(i + 1).ToString().PadLeft(n_digits)}/{n_files}] {datFile.Name:12}: ");
+				Console.WriteLine($"[{(i + 1).ToString().PadLeft(n_digits)}/{n_files}] {datFile.Name:12}: ");
 				try
 				{
 					if(datFile is IMGFile imgFile && parsedArgs.ExportImages is string export_images)
@@ -215,8 +215,6 @@ namespace ArgonautReverse
 				}
 				Console.WriteLine();
 			}
-
-			Console.WriteLine("No error encountered.");
 		}
 	}
 }

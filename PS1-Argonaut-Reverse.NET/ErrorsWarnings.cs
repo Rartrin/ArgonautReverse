@@ -28,14 +28,14 @@ namespace ArgonautReverse
 		public override string ToString() => Message;
 	}
 
-	public class SectionNameError:ReverseError
+	public class ChunkNameError:ReverseError
 	{
-		public SectionNameError(int absolute_file_offset, string expected, string found):base($"Section codename is either missing or incorrect, expected '{expected}', got '{found}'.", absolute_file_offset){}
+		public ChunkNameError(int absolute_file_offset, string expected, string found):base($"Chunk type is either missing or incorrect, expected '{expected}', got '{found}'.", absolute_file_offset){}
 	}
 
-	public class SectionSizeMismatch:ReverseError
+	public class ChunkSizeMismatch:ReverseError
 	{
-		public SectionSizeMismatch(int absolute_file_offset, string name, int expected, int found):base($"The {name} section size is different than expected: got {found} instead of {expected}.", absolute_file_offset){}
+		public ChunkSizeMismatch(int absolute_file_offset, string name, int expected, int found):base($"The {name} chunk size is different than expected: got {found} instead of {expected}.", absolute_file_offset){}
 	}
 
 	public class NegativeIndexError:ReverseError
@@ -66,10 +66,8 @@ namespace ArgonautReverse
 	{
 		protected static void WarnInner(string message)
 		{
-			Console.Write("WARNING: ");
-			Console.WriteLine(message);
+			Console.Write("WARNING: " + message);
 		}
-
 
 		protected static string IgnoreWarningsMessage => "\nIf you think that the amounts are coherent, you can silence this warning with the --ignore-warnings commandline option.";
 

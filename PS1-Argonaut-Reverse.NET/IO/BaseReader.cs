@@ -14,7 +14,7 @@ namespace ArgonautReverse.IO
 		}
 		public int Length => (int)Stream.Length;
 
-		private bool handleStreamDisposal;
+		private readonly bool handleStreamDisposal;
 
 		public BaseReader(Stream stream, bool handleStreamDisposal = true)
 		{
@@ -26,16 +26,7 @@ namespace ArgonautReverse.IO
 			this.Stream = stream;
 		}
 
-		public void Seek(int offset, SeekOrigin origin = SeekOrigin.Begin) => Stream.Seek(offset, origin);
-
-		[Obsolete]public short ReadInt16() => Read<short>();
-		[Obsolete]public int ReadInt32() => Read<int>();
-
-		[Obsolete]public byte ReadByte() => Read<byte>();
-		[Obsolete]public ushort ReadUInt16() => Read<ushort>();
-		[Obsolete]public uint ReadUInt32() => Read<uint>();
-
-		[Obsolete]public byte[] ReadBytes(int amount) => ReadArray<byte>(amount);
+		public void Seek(int offset, SeekOrigin origin) => Stream.Seek(offset, origin);
 
 		public unsafe void Read<T>(out T value) where T : unmanaged, IBinaryInteger<T>
 		{
@@ -94,7 +85,7 @@ namespace ArgonautReverse.IO
 		{
 			Span<byte> str = stackalloc byte[length];
 			ReadArray(str);
-			return Encoding.ASCII.GetString(str);
+			return Encoding.Latin1.GetString(str);
 		}
 
 		public T ReadEmptyReference<T>() where T:class

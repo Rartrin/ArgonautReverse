@@ -1,7 +1,7 @@
 using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
-using ArgonautReverse.WadSections;
-using ArgonautReverse.WadSections.TPSX;
+using ArgonautReverse.WadChunks;
+using ArgonautReverse.WadChunks.TPSX;
 
 namespace ArgonautReverse.Files
 {
@@ -77,7 +77,7 @@ namespace ArgonautReverse.Files
                     for (int i = 0; i < fileCount; i++)
                     {
                         conf.ReadVersion.DirFormat.Unpack(dirData, out var name, out var size, out var start);
-                        datData.Seek(start, SeekOrigin.Begin);
+                        datData.Position = start;
                         files.Add(ParseDatFile(name.Trim('\0'), datData.ReadArray<byte>(size)));
                     }
                 }
@@ -97,14 +97,14 @@ namespace ArgonautReverse.Files
                         //TODO: WADs can also start with CWAD which indicates chunk compression
 
                         // WADs start with TPSX
-                        var codename = (ChunkType)datData.Read<uint>();
+                        var chunkType = (ChunkType)datData.Read<uint>();
                         string suffix;
-                        if(codename == ChunkType.ID_TEXTPSX)
+                        if(chunkType == ChunkType.ID_TEXTPSX)
                         {
                             suffix = ".WAD";
                         }
                         //Demos seem to start with 0
-                        else if(codename == 0)
+                        else if(chunkType == 0)
                         {
                             suffix = ".DEM";
                         }
