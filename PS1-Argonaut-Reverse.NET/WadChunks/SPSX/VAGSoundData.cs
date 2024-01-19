@@ -73,12 +73,12 @@ namespace ArgonautReverse.WadChunks.SPSX
 				header = new byte[48];
 				using var headerStream = new BaseWriter(new MemoryStream(header));
 				headerStream.WriteBytes(vagpBytes);
-				headerStream.Seek(8, SeekOrigin.Current);//TODO: What is this?
+				headerStream.SkipBytes(8);//TODO: What is this?
 				WriteInt32BE(headerStream, (int)(this.size / this.n_channels));
 				WriteInt32BE(headerStream, (int)this.sampling_rate);
 
 				//TODO: What is this data here for? This is 28 bytes in total.
-				headerStream.Seek(10, SeekOrigin.Current);
+				headerStream.SkipBytes(10);
 				headerStream.WriteByte(1);
 				headerStream.WriteByte(0);
 				headerStream.WriteBytes(Encoding.ASCII.GetBytes("OverSurgeReverse"));

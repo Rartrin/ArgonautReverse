@@ -1,5 +1,6 @@
 using System.Reflection.PortableExecutable;
 using System.Text;
+using ArgonautReverse.Engine;
 using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
 using ArgonautReverse.WadChunks;
@@ -24,7 +25,12 @@ namespace ArgonautReverse.Files
 
 		public override string Suffix => "WAD";
 
-		public WADFile(string stem, byte[] data):base(stem, data){}
+		public WadVersion Version{get;}
+
+		public WADFile(WadVersion version, string stem, byte[] data):base(stem, data)
+		{
+			Version = version;
+		}
 
 		public override string ToString()
 		{
@@ -265,7 +271,7 @@ namespace ArgonautReverse.Files
 			using(var obj_file = new StreamWriter(Path.Join(folder_path, (wad_filename + ".OBJ")), false, Encoding.ASCII))
 			{
 				var obj = new StringWriter();
-				obj.Write(string.Format(Model3DData.mtl_header, wad_filename));
+				obj.WriteLine(string.Format(Model3DData.mtl_header, wad_filename));
 				int vio = 0;
 				int sub_chunk_id = 0;
 				foreach(var texture in this.textures)
@@ -340,14 +346,15 @@ namespace ArgonautReverse.Files
 
 		public override unsafe void Parse(Configuration conf)
 		{
-			using var data_in = new WadReader(this, conf, conf.ReadVersion.GetWadVersion(Stem), new MemoryStream(this._data));
+			var data_in = new WadReader(this, conf, conf.ReadVersion.GetWadVersion(Stem), this._data);
 			
 			var chunkLocations = LocateChunks(data_in);
 
 			this.chunks.Clear();
 			foreach(var(type, start, length) in chunkLocations)
 			{
-				var chunkReader = data_in.ReadChunk(start, length);
+				data_in.Position = start;
+				var chunkReader = data_in.ReadChunk(length);
 				if(WADFile.chunkInfoLookup.TryGetValue(type, out var chunkInfo))
 				{
 					if(chunkInfo.SupportedWadVersions.Contains(chunkReader.ReadVersion))

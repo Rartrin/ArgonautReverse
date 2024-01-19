@@ -43,7 +43,7 @@ namespace ArgonautReverse.WadChunks.TPSX
 				}
 				else
 				{
-					throw new TexturesWarning(data_in.Position, n_textures, n_rows);
+					throw new TexturesWarning(data_in.AbsolutePosition, n_textures, n_rows);
 				}
 			}
 
@@ -59,16 +59,16 @@ namespace ArgonautReverse.WadChunks.TPSX
 			}
 			if(data_in.ReadVersion == HARRY_POTTER_1_PS1.WadVersion || data_in.ReadVersion==HARRY_POTTER_2_PS1.WadVersion)
 			{
-				data_in.Position += 192; // 16 textures x 12 bytes
+				data_in.SkipBytes(192); // 16 textures x 12 bytes
 			}
 			var n_idk_yet_1 = data_in.Read<int>();
 			var number_effects = data_in.Read<int>(); // Name found in the debug symbols
-			data_in.Position += n_idk_yet_1 * image_header_size;//image_header_size is just sizeof(int)
+			data_in.SkipBytes(n_idk_yet_1 * image_header_size);//image_header_size is just sizeof(int)
 
 			//TODO: Memory Card Icons
 			if(hasMemoryCardIcons)
 			{
-				data_in.Position += 15360;
+				data_in.SkipBytes(15360);
 				for(int i=0; i<5; i++)
 				{
 					var mcPalette = data_in.ReadUInt32Array(128);
@@ -80,7 +80,7 @@ namespace ArgonautReverse.WadChunks.TPSX
 			{
 				var raw_textures = new byte[image_bytes_size];
 				var raw_texturesStream = new MemoryStream(raw_textures);
-				while(data_in.Position < end)
+				while(data_in.AbsolutePosition < end)
 				{
 					var run = data_in.Read<int>();
 					if(run < 0)
@@ -98,11 +98,11 @@ namespace ArgonautReverse.WadChunks.TPSX
 					}
 					else
 					{
-						throw new ZeroRunLengthError(data_in.Position);
+						throw new ZeroRunLengthError(data_in.AbsolutePosition);
 					}
 				}
 				raw_texturesStream.Position = 0;
-				textures_data = raw_texturesStream.ToArray();//.read();
+				textures_data = raw_texturesStream.ToArray();
 				raw_texturesStream.Close();
 				if (data_in.ReadVersion == CROC_2_DEMO_PS1.WadVersion)  // Patch for Croc 2 Demo (non-dummy) last end offset error
 				{

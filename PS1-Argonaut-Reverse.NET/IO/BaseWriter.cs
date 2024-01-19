@@ -18,7 +18,7 @@ namespace ArgonautReverse.IO
 			writer = stream;
 		}
 
-		public void Seek(int offset, SeekOrigin origin = SeekOrigin.Begin) => writer.Seek(offset, origin);
+		public void SkipBytes(int offset) => writer.Position += offset;
 
 		public void WriteSByte(sbyte value) => Write(value);
 		public void WriteInt16(short value) => Write(value);

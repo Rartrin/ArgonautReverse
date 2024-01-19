@@ -1,16 +1,14 @@
 using System.Numerics;
 using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
+using ArgonautReverse.LibGTE;
 using ArgonautReverse.WadChunks.TPSX;
 
 namespace ArgonautReverse.WadChunks.DPSX
 {
 	public sealed class Model3DData
 	{
-		public const int vertex_size = 8;
-		public const int face_size = 20;
-		public const int chunk_face_size = 12;
-		public const string mtl_header = "mtllib {0}.MTL\nusemtl mtl1\ns off\n";
+		public const string mtl_header = "mtllib {0}.MTL\nusemtl mtl1\ns off";
 
 		public readonly Model3DHeader header;
 		public readonly bool is_world_model_3d;
@@ -51,27 +49,24 @@ namespace ArgonautReverse.WadChunks.DPSX
 
 		public int n_bounding_box_info => this.header.n_bounding_box_info;
 
-		public static Model3DData Parse(WadReader data_in, Model3DHeader header, bool is_world_model_3d)
+		public static unsafe Model3DData Parse<FaceType>(WadReader data_in, Model3DHeader header, BaseOBJECT<FaceType> obj, bool is_world_model_3d) where FaceType : IReadable<FaceType>
 		{
-			static IReadOnlyList<IReadOnlyList<Vector3>> parse_vertices_normals(WadReader data_in, Model3DHeader header, int mode)
+			obj.ParseSetupData(data_in, is_world_model_3d);
+
+			static IReadOnlyList<IReadOnlyList<Vector3>> ParseVerticesNormals(BaseOBJECT<FaceType> obj, IReadOnlyList<SVECTOR> verts_norms)
 			{
 				var res = new List<Vector3[]>();
 				var group = new List<Vector3>();
-				for(int v=0; v<header.n_vertices; v++)
+				for(int v=0; v<obj.nvert; v++)
 				{
 					// Vertices
-					var xyz = new Vector3
-					(
-						data_in.Read<short>(),
-						data_in.Read<short>(),
-						data_in.Read<short>()
-					);
+					var xyz_pad = verts_norms[v];
+					var xyz = new Vector3(xyz_pad.vx, xyz_pad.vy, xyz_pad.vz);
 					group.Add(xyz);
-					ushort index = data_in.Read<ushort>();
+					ushort index = (ushort)xyz_pad.pad;
 					if(index < 1)
 					{
-						var error_cause = (mode == 0) ? NegativeIndexError.CAUSE_VERTEX : NegativeIndexError.CAUSE_VERTEX_NORMAL;
-						throw new NegativeIndexError(data_in.Position, error_cause, index, xyz);
+						throw new NegativeIndexError(-1, "vertex/normals", index, xyz_pad);
 					}
 					else if(index == 1)
 					{
@@ -85,18 +80,19 @@ namespace ArgonautReverse.WadChunks.DPSX
 				}
 				return res.ToArray();
 			}
-			var vertices = parse_vertices_normals(data_in, header, 0);
+
+			var vertices = ParseVerticesNormals(obj, obj.lvert);
 			var n_vertices_groups = vertices.Count;
 			IReadOnlyList<IReadOnlyList<Vector3>> normals;
 
-			if(!(is_world_model_3d && (data_in.ReadVersion==HARRY_POTTER_1_PS1.WadVersion || data_in.ReadVersion==HARRY_POTTER_2_PS1.WadVersion)))
+			if(!is_world_model_3d || (data_in.ReadVersion!=HARRY_POTTER_1_PS1.WadVersion && data_in.ReadVersion!=HARRY_POTTER_2_PS1.WadVersion))
 			{
-				normals = parse_vertices_normals(data_in, header, 1);
+				normals = ParseVerticesNormals(obj, obj.lnorm);
 				var n_normals_groups = normals.Count;
 
 				if(n_vertices_groups != n_normals_groups)
 				{
-					throw new VerticesNormalsGroupsMismatch(n_vertices_groups, n_normals_groups, data_in.Position);
+					throw new VerticesNormalsGroupsMismatch(n_vertices_groups, n_normals_groups, -1);
 				}
 			}
 			else
@@ -108,66 +104,57 @@ namespace ArgonautReverse.WadChunks.DPSX
 			var tris = new List<Vector3>();
 			var faces_normals = new List<Vector3>();
 			var faces_texture_ids = new List<int>();
-			if ((data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion) || !is_world_model_3d)
+			
+			var faces = obj.lface;
+			
+			if(!is_world_model_3d/*|| (data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)*/)
 			{
 				// Large face headers (Actors' models)
 				for(int face_id=0; face_id<header.n_faces; face_id++)
 				{
-					var raw_face_data0 = data_in.Read<short>();
-					var raw_face_data1 = data_in.Read<short>();
-					var raw_face_data2 = data_in.Read<short>();
+					var face = (FACE)(object)faces[face_id];
+					var normal = face.normal;
 
-					var raw_face_data3 = data_in.Read<ushort>();
-					var raw_face_data4 = data_in.Read<ushort>();
-					var raw_face_data5 = data_in.Read<ushort>();
-					var raw_face_data6 = data_in.Read<ushort>();
-					var raw_face_data7 = data_in.Read<ushort>();
-					var raw_face_data8 = data_in.Read<ushort>();
-					var raw_face_data9 = data_in.Read<ushort>();
+					var unknownIndex = normal.PAD;
 				
-					if((raw_face_data9 & 0x0800) != 0)
+					if((face.texture.flags & 0x0800) != 0)
 					{
 						//TODO: Validate this
 						// 1st vertex, then 2nd, 4th and 3rd, except in Croc 2 Demo Dummy WADs
 						if(data_in.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
 						{
 							// FIXME
-							//quads.Add(new int[]{raw_face_data4, raw_face_data5, raw_face_data7, raw_face_data6})
+							//quads.Add(new int[]{face.vertex[0], face.vertex[1], face.vertex[3], face.vertex[2]});
 							quads.Add(new int[]
 							{
-								raw_face_data4,
-								raw_face_data5,
-								raw_face_data6,
-								raw_face_data7
+								face.vertex[0],
+								face.vertex[1],
+								face.vertex[2],
+								face.vertex[3]
 							});
 						}
 						else
 						{
 							quads.Add(new int[]
 							{
-								raw_face_data4,
-								raw_face_data5,
-								raw_face_data6,
-								raw_face_data7
+								face.vertex[0],
+								face.vertex[1],
+								face.vertex[2],
+								face.vertex[3]
 							});
 						}
 					}
 					else
 					{
+						Utils.Assert(face.vertex[3] == 0);
 						// 1st vertex, then 2nd and 3rd
-						tris.Add(new Vector3(raw_face_data4, raw_face_data5, raw_face_data6));
+						tris.Add(new Vector3(face.vertex[0], face.vertex[1], face.vertex[2]));
 					}
-					faces_normals.Add(new Vector3(raw_face_data0, raw_face_data1, raw_face_data2));
-					faces_texture_ids.Add(raw_face_data8);
-					if(raw_face_data3 < 1)
+					faces_normals.Add(new Vector3(normal.X, normal.Y, normal.Z));
+					faces_texture_ids.Add(face.texture.tex_no);
+					if(unknownIndex < 1)
 					{
-						throw new NegativeIndexError
-						(
-							data_in.Position,
-							NegativeIndexError.CAUSE_FACE,
-							raw_face_data3,
-							null//raw_face_data
-						);
+						throw new NegativeIndexError(-1, NegativeIndexError.CAUSE_FACE, unknownIndex, null);
 					}
 				}
 			}
@@ -176,36 +163,27 @@ namespace ArgonautReverse.WadChunks.DPSX
 				// Small face headers (Subchunks' models)
 				for(int face_id=0; face_id<header.n_faces; face_id++)
 				{
-					var raw_face_data = data_in.ReadArray<ushort>(6);
-					if((raw_face_data[5] & 0x0800)!=0)
+					var face = (TFACE)(object)faces[face_id];
+
+					if((face.texture.flags & 0x0800)!=0)
 					{
 						quads.Add(new int[]
 						{
-							raw_face_data[0],
-							raw_face_data[1],
-							raw_face_data[2],
-							raw_face_data[3]
+							face.vertex[0],
+							face.vertex[1],
+							face.vertex[2],
+							face.vertex[3]
 						});
 					}
 					else
 					{
-						tris.Add(new Vector3(raw_face_data[0], raw_face_data[1], raw_face_data[2]));
+						Utils.Assert(face.vertex[3] == 0);
+						tris.Add(new Vector3(face.vertex[0], face.vertex[1], face.vertex[2]));
 					}
-					faces_texture_ids.Add(raw_face_data[4]);
+					faces_texture_ids.Add(face.texture.tex_no);
 				}
 			}
-			//TODO: Determine dynamically
-			int bounding_box_info_size;
-			if(data_in.ReadVersion==CROC_2_PS1.WadVersion || data_in.ReadVersion==CROC_2_DEMO_PS1.WadVersion || data_in.DatVersion==CROC_2_DEMO_PS1_DUMMY.DatVersion)
-			{
-				bounding_box_info_size = 44;
-			}
-			else
-			{
-				// Harry Potter 1 & 2
-				bounding_box_info_size = 32;
-			}
-			data_in.Seek(header.n_bounding_box_info * bounding_box_info_size, SeekOrigin.Current);
+
 			return new Model3DData
 			(
 				header,
@@ -220,129 +198,106 @@ namespace ArgonautReverse.WadChunks.DPSX
 			);
 		}
 
-		
-
-		/// <summary>
-		/// Creates a Wavefront OBJ 3D model from 3D model information and a texture file.
-		/// </summary>
-		public void ToObj(
-			TextWriter obj,
-			string filename,
-			IEnumerable<TextureData> textures = null,
-			int? x = null,
-			int? y = null,
-			int? z = null,
-			ChunkRotation? rotation = null,
-			int? vertex_index_offset = null
-		)
+		private static void WriteVertices(TextWriter obj, IReadOnlyList<IReadOnlyList<Vector3>> vertices, ChunkRotation rotation, int x, int y, int z)
 		{
-			bool standalone_export;
-			if (
-				textures is null && x.HasValue && y.HasValue && z.HasValue && rotation is not null && vertex_index_offset.HasValue)
-			{
-				standalone_export = false;
-			}
-			else
-			{
-				standalone_export = true;
-				vertex_index_offset = 0;
-			}
-			if(!standalone_export)
-			{
-				obj.WriteLine($"o {filename}");
-			}
-
 			// / 1024: Best value I found to correctly rescale the mesh
-			var vs = this.vertices;
 
-			if(rotation == null)
+			switch(rotation)
 			{
-				foreach(var vg in vs)
+				case ChunkRotation.TOP:
 				{
-					foreach(var v in vg)
+					foreach(var vg in vertices)
 					{
-						obj.WriteLine($"v {v[0] / 1024.0} {v[1] / 1024.0} {v[2] / 1024.0}");
+						foreach(var v in vg)
+						{
+							obj.WriteLine($"v {(v.X + x) / 1024.0} {(v.Y + y) / 1024.0} {(v.Z + z) / 1024.0}");
+						}
 					}
+					break;
 				}
-			}
-			else if(rotation == ChunkRotation.TOP)
-			{
-				foreach(var vg in vs)
+				case ChunkRotation.RIGHT:
 				{
-					foreach(var v in vg)
+					foreach(var vg in vertices)
 					{
-						obj.WriteLine($"v {(v[0] + x) / 1024.0} {(v[1] + y) / 1024.0} {(v[2] + z) / 1024.0}");
+						foreach(var v in vg)
+						{
+							obj.WriteLine($"v {(v.Z + x) / 1024.0} {(v.Y + y) / 1024.0} {(-v.X + z) / 1024.0}");
+						}
 					}
+					break;
 				}
-			}
-			else if(rotation == ChunkRotation.RIGHT)
-			{
-				foreach(var vg in vs)
+				case ChunkRotation.BOTTOM:
 				{
-					foreach(var v in vg)
+					foreach(var vg in vertices)
 					{
-						obj.WriteLine($"v {(v[2] + x) / 1024.0} {(v[1] + y) / 1024.0} {(-v[0] + z) / 1024.0}");
+						foreach(var v in vg)
+						{
+							obj.WriteLine($"v {(-v.X + x) / 1024.0} {(v.Y + y) / 1024.0} {(-v.Z + z) / 1024.0}");
+						}
 					}
+					break;
 				}
-			}
-			else if(rotation == ChunkRotation.BOTTOM)
-			{
-				foreach(var vg in vs)
+				case ChunkRotation.LEFT:
 				{
-					foreach(var v in vg)
+					foreach(var vg in vertices)
 					{
-						obj.WriteLine($"v {(-v[0] + x) / 1024.0} {(v[1] + y) / 1024.0} {(-v[2] + z) / 1024.0}");
+						foreach(var v in vg)
+						{
+							obj.WriteLine($"v {(-v.Z + x) / 1024.0} {(v.Y + y) / 1024.0} {(v.X + z) / 1024.0}");
+						}
 					}
+					break;
 				}
+				default:throw new Exception("Unknown rotation");
 			}
-			else
-			{
-				foreach(var vg in vs)
-				{
-					foreach(var v in vg)
-					{
-						obj.WriteLine($"v {(-v[2] + x) / 1024.0} {(v[1] + y) / 1024.0} {(v[0] + z) / 1024.0}");
-					}
-				}
-			}
-			foreach(var ng in this.normals)
+		}
+		
+		private static void WriteNormals(TextWriter obj, IReadOnlyList<IReadOnlyList<Vector3>> normals)
+		{
+			foreach(var ng in normals)
 			{
 				foreach(var n in ng)
 				{
-					obj.WriteLine($"vn {n[0]} {n[1]} {n[2]}");
+					obj.WriteLine($"vn {n.X} {n.Y} {n.Z}");
 				}
 			}
+		}
 
-			if(standalone_export)
+		private static void WriteTextures(TextWriter obj, IEnumerable<TextureData> textures)
+		{
+			foreach(var texture in textures)
 			{
-				foreach(var texture in textures)
+				foreach(var coord in texture.output_coords)
 				{
-					foreach(var coord in texture.output_coords)
-					{
-						obj.WriteLine($"vt {coord.X / 1024.0} {(1024 - coord.Y) / 1024.0}");
-					}
+					obj.WriteLine($"vt {coord.X / 1024.0} {(1024 - coord.Y) / 1024.0}");
 				}
 			}
+		}
 
-			var vio = vertex_index_offset;
+		private void WriteQuadFaces(TextWriter obj, int vertexIndexOffset)
+		{
 			for(int i=0; i<this.quads.Count; i++)
 			{
-				var v1=vio + this.quads[i][1] + 1;
-				var v2=vio + this.quads[i][0] + 1;
-				var v3=vio + this.quads[i][2] + 1;
-				var v4=vio + this.quads[i][3] + 1;
+				var v1=vertexIndexOffset + this.quads[i][1] + 1;
+				var v2=vertexIndexOffset + this.quads[i][0] + 1;
+				var v3=vertexIndexOffset + this.quads[i][2] + 1;
+				var v4=vertexIndexOffset + this.quads[i][3] + 1;
 				var t1=4 * this.faces_texture_ids[i] + 2;
 				var t2=4 * this.faces_texture_ids[i] + 1;
 				var t3=4 * this.faces_texture_ids[i] + 3;
 				var t4=4 * this.faces_texture_ids[i] + 4;
 				obj.WriteLine($"f {v1}/{t1}/{v1} {v2}/{t2}/{v2} {v3}/{t3}/{v3} {v4}/{t4}/{v4}");
 			}
+		}
+
+		private void WriteTriFaces(TextWriter obj, int vertexIndexOffset)
+		{
 			var n_q = this.quads.Count;
-			for(int i=0; i<this.tris.Count; i++)
+			for(int i=0; i<tris.Count; i++)
 			{
-				var v1=vio + this.tris[i].Y + 1;
-				var v2=vio + this.tris[i].X + 1;
-				var v3=vio + this.tris[i].Z + 1;
+				var v1=vertexIndexOffset + tris[i].Y + 1;
+				var v2=vertexIndexOffset + tris[i].X + 1;
+				var v3=vertexIndexOffset + tris[i].Z + 1;
 				var t1=4 * this.faces_texture_ids[n_q + i] + 2;
 				var t2=4 * this.faces_texture_ids[n_q + i] + 1;
 				var t3=4 * this.faces_texture_ids[n_q + i] + 3;
@@ -354,22 +309,35 @@ namespace ArgonautReverse.WadChunks.DPSX
 		/// <summary>Creates a standalone Wavefront OBJ 3D model.</summary>
 		public void ToSingleObj(TextWriter obj, string obj_filename, IEnumerable<TextureData> textures, string mtl_filename = null)
 		{
-			obj.Write(string.Format(mtl_header, mtl_filename ?? obj_filename));//The format coming in looks for the variable mtl_filename
-			this.ToObj(obj, obj_filename, textures);
+			obj.WriteLine(string.Format(mtl_header, mtl_filename ?? obj_filename));//The format coming in looks for the variable mtl_filename
+
+			WriteVertices(obj, this.vertices, ChunkRotation.TOP, 0, 0, 0);
+			WriteNormals(obj, this.normals);
+			
+			WriteTextures(obj, textures);
+
+			WriteQuadFaces(obj, 0);
+			WriteTriFaces(obj, 0);
 		}
-		//Creates a Wavefront OBJ 3D model and appends it to an existing StringIO (used to export entire levels).
+		/// <summary>Creates a Wavefront OBJ 3D model and appends it to an existing TextWriter (used to export entire levels).</summary>
 		public void ToBatchObj(TextWriter obj, string filename, int x, int y, int z, ChunkRotation rotation, int vertex_index_offset)
 		{
-			this.ToObj(obj, filename, null, x, y, z, rotation, vertex_index_offset);
+			obj.WriteLine($"o {filename}");
+
+			WriteVertices(obj, this.vertices, rotation, x, y, z);
+			WriteNormals(obj, this.normals);
+			
+			WriteQuadFaces(obj, vertex_index_offset);
+			WriteTriFaces(obj, vertex_index_offset);
 		}
 	}
 
 	public sealed class Object3DData
 	{
-		public Model3DHeader Header{get;}
+		public Model3DHeader_Object Header{get;}
 		public Model3DData Data{get;}
 
-		private Object3DData(Model3DHeader header, Model3DData data)
+		private Object3DData(Model3DHeader_Object header, Model3DData data)
 		{
 			Header = header;
 			Data = data;
@@ -377,8 +345,8 @@ namespace ArgonautReverse.WadChunks.DPSX
 
 		public static Object3DData Parse(WadReader data_in)
 		{
-			var header = Model3DHeader.Parse(data_in, false);
-			var data = Model3DData.Parse(data_in, header, is_world_model_3d:false);
+			var header = Model3DHeader_Object.Parse(data_in);
+			var data = Model3DData.Parse(data_in, header, header.Object, is_world_model_3d:false);
 			return new Object3DData(header, data);
 		}
 
@@ -420,18 +388,18 @@ namespace ArgonautReverse.WadChunks.DPSX
 
 	public sealed class LevelGeom3DData
 	{
-		public Model3DHeader Header{get;}
+		public Model3DHeader_Track Header{get;}
 		public Model3DData Data{get;}
 
-		private LevelGeom3DData(Model3DHeader header, Model3DData data)
+		private LevelGeom3DData(Model3DHeader_Track header, Model3DData data)
 		{
 			Header = header;
 			Data = data;
 		}
 
-		public static LevelGeom3DData Parse(WadReader data_in, Model3DHeader header)
+		public static LevelGeom3DData Parse(WadReader data_in, Model3DHeader_Track header)
 		{
-			var data = Model3DData.Parse(data_in, header, is_world_model_3d:true);
+			var data = Model3DData.Parse(data_in, header, header.TrackObject, is_world_model_3d:true);
 			return new LevelGeom3DData(header, data);
 		}
 	}

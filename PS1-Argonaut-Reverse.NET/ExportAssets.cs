@@ -150,11 +150,11 @@ namespace ArgonautReverse
 			DIR_DAT dir_dat;
 			if(parsedArgs.DirDat is string dirdat)
 			{
-				dir_dat = DIR_DAT.FromDirDat(dirdat, conf);
+				dir_dat = DIR_DAT.FromDirDat(conf, dirdat);
 			}
 			else if(parsedArgs.Files is string files)
 			{
-				dir_dat = DIR_DAT.FromFiles(files.Split(','));
+				dir_dat = DIR_DAT.FromFiles(conf, files.Split(','));
 			}
 			else
 			{

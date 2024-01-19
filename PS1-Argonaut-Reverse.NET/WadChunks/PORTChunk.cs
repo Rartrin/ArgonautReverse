@@ -26,9 +26,9 @@ namespace ArgonautReverse.WadChunks
 			var n_chunks_per_zone = new byte[n_zones];
 			for(int i=0; i<n_zones; i++)
 			{
-				data_in.Seek(2, SeekOrigin.Current);
+				data_in.SkipBytes(2);
 				n_chunks_per_zone[i] = data_in.Read<byte>();
-				data_in.Seek(9, SeekOrigin.Current);
+				data_in.SkipBytes(9);
 			}
 			var chunks_zones = new int[n_zones][];
 			for(int i=0; i<n_zones; i++)
@@ -40,7 +40,7 @@ namespace ArgonautReverse.WadChunks
 					chunks_zones[i][v] = data_in.Read<short>();
 				}
 			}
-			CheckSize(size, start, data_in.Position);
+			CheckSize(size, start, data_in.AbsolutePosition);
 			return new PORTChunk(idk1, chunks_zones, fallback_data);
 		}
 	}

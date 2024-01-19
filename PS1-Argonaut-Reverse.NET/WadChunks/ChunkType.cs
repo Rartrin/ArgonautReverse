@@ -4,6 +4,9 @@ namespace ArgonautReverse.WadChunks
 {
 	public enum ChunkType:uint
 	{
+		//CWAD indicated the wad is compressed
+		ID_CWAD			=(('C' << 24) + ('W' << 16) + ('A' << 8) + 'D'),
+
 		ID_TEXTPSX		=(('T' << 24) + ('P' << 16) + ('S' << 8) + 'X'),
 		ID_SAMPLEPSX	=(('S' << 24) + ('P' << 16) + ('S' << 8) + 'X'),
 		ID_DATAPSX		=(('D' << 24) + ('P' << 16) + ('S' << 8) + 'X'),

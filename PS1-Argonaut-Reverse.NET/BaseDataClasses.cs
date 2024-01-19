@@ -18,7 +18,7 @@ namespace ArgonautReverse
 			var readChunkType = (ChunkType)data_in.Read<uint>();
 			if(readChunkType != ChunkType)
 			{
-				throw new ChunkNameError(data_in.Position, ChunkType.ToString(), readChunkType.GetRawName());
+				throw new ChunkNameError(data_in.AbsolutePosition, ChunkType.ToString(), readChunkType.GetRawName());
 			}
 		}
 
@@ -39,7 +39,7 @@ namespace ArgonautReverse
 			}
 			CheckChunkType(data_in);
 			size = data_in.Read<int>();
-			start = data_in.Position;
+			start = data_in.AbsolutePosition;
 		}
 		public abstract BaseWadChunk Parse(WadReader data_in);
 
@@ -60,7 +60,7 @@ namespace ArgonautReverse
 	{
 		public readonly BaseWADChunkInfo Info;
 
-		public byte[] _data;
+		public readonly byte[] _data;
 
 		public BaseWadChunk(BaseWADChunkInfo info, byte[] data = null)
 		{

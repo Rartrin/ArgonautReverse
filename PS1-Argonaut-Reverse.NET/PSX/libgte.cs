@@ -24,7 +24,7 @@ namespace ArgonautReverse.LibGTE
 				m[i] = parser.ReadArray<short>(3);
 			}
 			var padding = parser.Read<short>();
-			if(padding != 0 )
+			if(padding != 0)
 			{
 				throw new Exception("Matrix padding is not 0");
 			}
@@ -57,7 +57,7 @@ namespace ArgonautReverse.LibGTE
 			var vz = parser.Read<int>();
 			var pad = parser.Read<int>();
 
-			if(pad != 0 )
+			if(pad != 0)
 			{
 				throw new Exception("VECTOR padding is not 0");
 			}
@@ -74,6 +74,11 @@ namespace ArgonautReverse.LibGTE
 		public readonly short vx, vy;
 		public readonly short vz, pad;
 
+		public short X => vx;
+		public short Y => vy;
+		public short Z => vz;
+		public short PAD => pad;
+
 		private SVECTOR(short vx, short vy, short vz, short pad)
 		{
 			this.vx=vx;
@@ -82,18 +87,25 @@ namespace ArgonautReverse.LibGTE
 			this.pad=pad;
 		}
 
+		/// <summary>Parse the data. The Padding is required to be zero.</summary>
 		public static SVECTOR Parse(WadReader parser)
+		{
+			var ret = ParseWithImportantPadding(parser);
+			if(ret.pad!=0)
+			{
+				throw new Exception("SVECTOR padding is not 0");
+			}
+			return ret;
+		}
+		
+		/// <summary>Parse the data but allow the padding to have non-zero values</summary>
+		public static SVECTOR ParseWithImportantPadding(WadReader parser)
 		{
 			var vx = parser.Read<short>();
 			var vy = parser.Read<short>();
 			var vz = parser.Read<short>();
 			var pad = parser.Read<short>();
-
-			if(pad != 0 )
-			{
-				throw new Exception("SVECTOR padding is not 0");
-			}
-
+			
 			return new SVECTOR(vx, vy, vz, pad);
 		}
 	}

@@ -62,7 +62,7 @@ namespace ArgonautReverse.WadChunks.DPSX
 				//TODO: Cutscene data
 				//This probably shouldn't be a fixed amount
 				var n_dpsx_legacy_textures = data_in.Read<int>();
-				data_in.Seek(n_dpsx_legacy_textures * 3072, SeekOrigin.Current);
+				data_in.SkipBytes(n_dpsx_legacy_textures * 3072);
 			}
 
 			if((wadFlag&WadFlag.WF_HASHEADS) != 0)
@@ -82,7 +82,7 @@ namespace ArgonautReverse.WadChunks.DPSX
 			// FIXME End of Croc 2 & Croc 2 Demo Dummy's level files aren't reversed yet
 			if(data_in.ReadVersion!=CROC_2_PS1.WadVersion && data_in.DatVersion!=CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
-				CheckSize(size, start, data_in.Position);
+				CheckSize(size, start, data_in.AbsolutePosition);
 			}
 			return new DPSXChunk(models_3d, animations, actors, level_file, fallback_data);
 		}

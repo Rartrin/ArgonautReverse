@@ -1,11 +1,10 @@
-﻿using System;
-using ArgonautReverse.LibGPU;
-
-namespace ArgonautReverse.LibGPU
+﻿namespace ArgonautReverse.LibGPU
 {
 	/* Flat Triangle */
 	public struct POLY_F3
 	{
+		public const int ByteSize = sizeof(int) * 5;
+
 		public uint  tag;
 		public byte   r0, g0, b0, code;
 		public short  x0,     y0;
@@ -16,6 +15,8 @@ namespace ArgonautReverse.LibGPU
 	/* Flat Quadrangle */
 	public struct POLY_F4
 	{
+		public const int ByteSize = sizeof(int) * 6;
+
 		public uint  tag;
 		public byte   r0, g0, b0, code;
 		public short  x0,     y0;
@@ -27,6 +28,8 @@ namespace ArgonautReverse.LibGPU
 	/* Flat Textured Triangle */
 	public struct POLY_FT3
 	{
+		public const int ByteSize = sizeof(int) * 8;
+
 		public uint  tag;
 		public byte   r0, g0, b0, code;
 		public short  x0,     y0;
@@ -40,6 +43,8 @@ namespace ArgonautReverse.LibGPU
 	/* Flat Textured Quadrangle */
 	public struct POLY_FT4
 	{
+		public const int ByteSize = sizeof(int) * 10;
+
 		public uint  tag;
 		public byte   r0, g0, b0, code;
 		public short  x0,     y0;
@@ -55,6 +60,8 @@ namespace ArgonautReverse.LibGPU
 	/* Gouraud Triangle */
 	public struct POLY_G3
 	{
+		public const int ByteSize = sizeof(int) * 7;
+
 		public uint  tag;
 		public byte   r0, g0, b0, code;
 		public short  x0,     y0;
@@ -67,6 +74,8 @@ namespace ArgonautReverse.LibGPU
 	/* Gouraud Quadrangle */
 	public struct POLY_G4
 	{
+		public const int ByteSize = sizeof(int) * 9;
+
 		public uint  tag;
 		public byte   r0, g0, b0, code;
 		public short  x0,     y0;
@@ -81,6 +90,8 @@ namespace ArgonautReverse.LibGPU
 	/* Gouraud Textured Triangle */
 	public struct POLY_GT3
 	{
+		public const int ByteSize = sizeof(int) * 10;
+
 		public uint  tag;
 		public byte   r0, g0, b0, code;
 		public short  x0,     y0;
@@ -96,6 +107,8 @@ namespace ArgonautReverse.LibGPU
 	/* Gouraud Textured Quadrangle */
 	public struct POLY_GT4
 	{
+		public const int ByteSize = sizeof(int) * 13;
+
 		public uint  tag;
 		public byte   r0, g0, b0, code;
 		public short  x0,     y0;
@@ -114,6 +127,8 @@ namespace ArgonautReverse.LibGPU
 	/* free size Sprite */
 	public struct SPRT
 	{
+		public const int ByteSize = sizeof(int) * 5;
+
 		public uint	tag;
 		public byte	r0, g0, b0, code;
 		public short	x0, 	y0;
@@ -124,6 +139,8 @@ namespace ArgonautReverse.LibGPU
 	/* free size Tile */
 	public struct TILE
 	{
+		public const int ByteSize = sizeof(int) * 4;
+
 		public uint tag;
 		public byte r0, g0, b0, code;
 		public short	x0, 	y0;
@@ -133,6 +150,8 @@ namespace ArgonautReverse.LibGPU
 	/* 1x1 Tile */
 	public struct TILE_1
 	{
+		public const int ByteSize = sizeof(int) * 3;
+
 		public uint	tag;
 		public byte	r0, g0, b0, code;
 		public short   x0, 	y0;
@@ -141,6 +160,8 @@ namespace ArgonautReverse.LibGPU
 	/* Drawing Mode */
 	public unsafe struct DR_MODE
 	{
+		public const int ByteSize = sizeof(int) * 3;
+
 		public uint tag;
 		public fixed uint code[2];
 	}				
@@ -148,6 +169,8 @@ namespace ArgonautReverse.LibGPU
 	/* MoveImage */
 	public unsafe struct DR_MOVE
 	{
+		public const int ByteSize = sizeof(int) * 6;
+
 		public uint tag;
 		public fixed uint code[5];
 	}
@@ -155,6 +178,8 @@ namespace ArgonautReverse.LibGPU
 	/* Drawing TPage */
 	public unsafe struct DR_TPAGE
 	{
+		public const int ByteSize = sizeof(int) * 2;
+
 		public uint tag;
 		public fixed uint code[1];
 	}

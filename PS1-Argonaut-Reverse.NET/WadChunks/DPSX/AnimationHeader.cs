@@ -65,12 +65,12 @@ namespace ArgonautReverse.WadChunks.DPSX
 				n_inter_frames = 0;
 			}
 			int n_vertex_groups = data_in.Read<int>();
-			data_in.Seek(4, SeekOrigin.Current);
+			data_in.SkipBytes(4);
 
 			if(data_in.ReadVersion==HARRY_POTTER_1_PS1.WadVersion || data_in.ReadVersion==HARRY_POTTER_2_PS1.WadVersion)
 			{
 				n_stored_frames = data_in.Read<int>();
-				data_in.Seek(12, SeekOrigin.Current);
+				data_in.SkipBytes(12);
 			}
 			var flags = new byte[n_flags][];
 			for(int i=0; i<n_flags; i++)
@@ -79,13 +79,13 @@ namespace ArgonautReverse.WadChunks.DPSX
 			}
 			if(has_additional_data)
 			{
-				data_in.Seek(8 * n_total_frames, SeekOrigin.Current);
+				data_in.SkipBytes(8 * n_total_frames);
 			}
-			data_in.Seek(4 * n_total_frames, SeekOrigin.Current);  // Total frames info
-			data_in.Seek(n_inter_frames * inter_frames_header_size, SeekOrigin.Current);  // Inter-frames header
+			data_in.SkipBytes(4 * n_total_frames);  // Total frames info
+			data_in.SkipBytes(n_inter_frames * inter_frames_header_size);  // Inter-frames header
 			if ((data_in.ReadVersion==HARRY_POTTER_1_PS1.WadVersion || data_in.ReadVersion==HARRY_POTTER_2_PS1.WadVersion) || n_inter_frames != 0)
 			{
-				data_in.Seek(4 * n_stored_frames, SeekOrigin.Current);  // Stored frames info
+				data_in.SkipBytes(4 * n_stored_frames);  // Stored frames info
 			}
 			bool old_animation_format;
 			if(n_stored_frames == 0 || n_inter_frames != 0)  // Rotation matrices
@@ -105,7 +105,7 @@ namespace ArgonautReverse.WadChunks.DPSX
 				}
 				else
 				{
-					throw new AnimationsWarning(data_in.Position, n_total_frames);
+					throw new AnimationsWarning(data_in.AbsolutePosition, n_total_frames);
 				}
 			}
 			return new AnimationHeader(n_total_frames, n_stored_frames, n_vertex_groups, n_flags, has_additional_data, flags, old_animation_format, n_inter_frames);

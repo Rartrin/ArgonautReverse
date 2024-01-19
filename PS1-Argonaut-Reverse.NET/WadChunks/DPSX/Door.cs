@@ -14,8 +14,8 @@ namespace ArgonautReverse.WadChunks.DPSX
 		public int BackgroundObjectOffset;
 		public OBJECT Background;
 
-		public uint BackgroundAddYRotation;  //NEW
-		public int BackgroundHeightAdjust;  //NEW
+		public uint BackgroundAddYRotation;
+		public int BackgroundHeightAdjust;
 
 		public ushort DrawMode;
 		public short MoveForward;

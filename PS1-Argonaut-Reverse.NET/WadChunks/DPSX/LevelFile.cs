@@ -16,15 +16,15 @@ namespace ArgonautReverse.WadChunks.DPSX
 		{
 			//Track Objects
 			var n_chunk_models = data_in.Read<int>();
-			var _chunk_model_headers = new Model3DHeader[n_chunk_models];
+			var _chunk_model_headers = new Model3DHeader_Track[n_chunk_models];
 			for(int i=0; i<n_chunk_models; i++)
 			{
-				_chunk_model_headers[i] = Model3DHeader.Parse(data_in, true);
+				_chunk_model_headers[i] = Model3DHeader_Track.Parse(data_in);
 			}
 			var chunk_models = new LevelGeom3DData[n_chunk_models];
 			for(int i=0; i<n_chunk_models; i++)
 			{
-				chunk_models[i] = LevelGeom3DData.Parse(data_in, header:_chunk_model_headers[i]);
+				chunk_models[i] = LevelGeom3DData.Parse(data_in, _chunk_model_headers[i]);
 			}
 
 			uint localPoolSize = 8;

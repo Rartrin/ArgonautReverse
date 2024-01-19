@@ -7,18 +7,6 @@ namespace ArgonautReverse.WadChunks.DPSX
 		public int n_vertices{get;protected set;}
 		public int n_faces{get;protected set;}
 		public int n_bounding_box_info{get;protected set;}
-
-		public static Model3DHeader Parse(WadReader data_in, bool track)
-		{
-			if(track)
-			{
-				return new Model3DHeader_Track(TOBJECT.Parse(data_in));
-			}
-			else
-			{
-				return new Model3DHeader_Object(OBJECT.Parse(data_in));
-			}
-		}
 	}
 
 	public sealed class Model3DHeader_Object:Model3DHeader
@@ -36,6 +24,11 @@ namespace ArgonautReverse.WadChunks.DPSX
 				n_bounding_box_info += obj.nwall.Value;
 			}
 		}
+
+		public static Model3DHeader_Object Parse(WadReader data_in)
+		{
+			return new Model3DHeader_Object(OBJECT.Parse(data_in));
+		}
 	}
 
 	public sealed class Model3DHeader_Track:Model3DHeader
@@ -52,6 +45,11 @@ namespace ArgonautReverse.WadChunks.DPSX
 			{
 				n_bounding_box_info += trackObj.nwall.Value;
 			}
+		}
+
+		public static Model3DHeader_Track Parse(WadReader data_in)
+		{
+			return new Model3DHeader_Track(TOBJECT.Parse(data_in));
 		}
 	}
 }

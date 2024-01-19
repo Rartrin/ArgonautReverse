@@ -2,34 +2,29 @@ namespace ArgonautReverse.Files
 {
 	public sealed class DATFileType
 	{
-		public delegate DATFile DelCreateDatFile(string stem, byte[] data);
+		public delegate DATFile DelCreateDatFile(Configuration conf, string stem, byte[] data);
 
 		public static readonly DATFileType BIN = new DATFileType
 		(
 			"BIN",
-			(stem, data) => new BINFile(stem, data)
+			(conf, stem, data) => new BINFile(stem, data)
 		);
 		public static readonly DATFileType DEM = new DATFileType
 		(
 			"DEM",
-			(stem, data) => new DEMFile(stem, data)
+			(conf, stem, data) => new DEMFile(stem, data)
 		);
 		public static readonly DATFileType IMG = new DATFileType
 		(
 			"IMG",
-			(stem, data) => new IMGFile(stem, data),
+			(conf, stem, data) => new IMGFile(stem, data),
 			"SECURITY", "KEEP"
 		);
 		public static readonly DATFileType WAD = new DATFileType
 		(
 			"WAD",
-			(stem, data) => new WADFile(stem, data),
+			(conf, stem, data) => new WADFile(conf.ReadVersion.GetWadVersion(stem), stem, data),
 			"FESOUND", "FETHUND"
-		);
-		public static readonly DATFileType NON_PARSABLE = new DATFileType
-		(
-			"NON_PARSABLE",
-			null
 		);
 
 		private static readonly DATFileType[] fileTypes = new DATFileType[]
@@ -51,13 +46,13 @@ namespace ArgonautReverse.Files
 			ExcludedStems = excludedStems;
 		}
 
-		public static DATFile ParseDatFile(string stem, string suffix, byte[] data)
+		public static DATFile ParseDatFile(Configuration conf, string stem, string suffix, byte[] data)
 		{
 			foreach(var fileType in fileTypes)
 			{
 				if(suffix == fileType.Suffix && !fileType.ExcludedStems.Contains(stem))
 				{
-					return fileType.CreateDatFile(stem, data);
+					return fileType.CreateDatFile(conf, stem, data);
 				}
 			}
 			return new UnknownFile(stem, suffix, data);

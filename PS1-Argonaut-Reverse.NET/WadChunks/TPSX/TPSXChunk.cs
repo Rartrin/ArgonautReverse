@@ -45,13 +45,6 @@ namespace ArgonautReverse.WadChunks.TPSX
 				var hasLevelName = (tpsx_flags & TextureFlag.HasLevelName) != 0;
 				compressed16bit = (tpsx_flags & TextureFlag.Compressed16Bit) != 0;
 
-				//TODO: Ensure these always match
-				bool rle = data_in.ReadVersion == CROC_2_PS1.WadVersion || data_in.ReadVersion == CROC_2_DEMO_PS1.WadVersion || data_in.ReadVersion == HARRY_POTTER_1_PS1.WadVersion || data_in.ReadVersion == HARRY_POTTER_2_PS1.WadVersion;
-				if(compressed16bit != rle)
-				{
-					throw new Exception();
-				}
-
 				if(hasLevelName)
 				{
 					if(hasLongLevelName)
@@ -83,9 +76,9 @@ namespace ArgonautReverse.WadChunks.TPSX
 					fontLookup = Array.Empty<Font>();
 				}
 			}
-			var texture_file = TextureFile.parse(data_in, compressed16bit:compressed16bit, hasMemoryCardIcons:hasMemoryCardIcons, end:start + size);
+			var texture_file = TextureFile.parse(data_in, compressed16bit, hasMemoryCardIcons, start + size);
 
-			CheckSize(size, start, data_in.Position);
+			CheckSize(size, start, data_in.AbsolutePosition);
 			return new TPSXChunk(texture_file, titles, fontLookup, fallback_data);
 		}
 	}

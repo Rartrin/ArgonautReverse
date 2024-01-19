@@ -27,14 +27,14 @@ namespace ArgonautReverse.WadChunks
 						spsxChunk.level_sfx_groups.parse_vags(data_in);
 						spsxChunk.level_sfx_mapping.parse_mapping(spsxChunk.level_sfx_groups);
 					}
-					data_in.Position = 2048 * (int)Math.Ceiling(data_in.Position / 2048.0);
+					data_in.AbsolutePosition = 2048 * (int)Math.Ceiling(data_in.AbsolutePosition / 2048.0);
 					spsxChunk.dialogues_bgms.parse_vags(data_in);
 
 					if(data_in.ReadVersion == HARRY_POTTER_2_PS1.WadVersion)
 					{
-						data_in.Position = 2048 * (int)Math.Ceiling(data_in.Position / 2048.0);
+						data_in.AbsolutePosition = 2048 * (int)Math.Ceiling(data_in.AbsolutePosition / 2048.0);
 					}
-					CheckSize(size, start, data_in.Position);
+					CheckSize(size, start, data_in.AbsolutePosition);
 				}
 			}
 			return new ENDChunk(spsxChunk);

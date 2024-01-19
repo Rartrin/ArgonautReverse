@@ -63,9 +63,9 @@ namespace ArgonautReverse.WadChunks.SPSX
 
 		public static LevelSFXGroupContainer parse(WadReader data_in)
 		{
-			data_in.Seek(4, SeekOrigin.Current);//Group header offset
+			data_in.SkipBytes(4);//Group header offset
 			int n_sound_effects = data_in.Read<int>();
-			data_in.Seek(8, SeekOrigin.Current);// End offset (4 bytes) | Sum of group VAGs' sizes (4 bytes)
+			data_in.SkipBytes(8);// End offset (4 bytes) | Sum of group VAGs' sizes (4 bytes)
 			return new LevelSFXGroupContainer(Array.Empty<Sound>(), n_sound_effects);
 		}
 
@@ -139,7 +139,7 @@ namespace ArgonautReverse.WadChunks.SPSX
 		{
 			foreach(var group in Groups)
 			{
-				data_in.Position = 2048 * (int)Math.Ceiling(data_in.Position / 2048.0);
+				data_in.AbsolutePosition = 2048 * (int)Math.Ceiling(data_in.AbsolutePosition / 2048.0);
 				group.parse_vags(data_in);
 			}
 		}
@@ -161,7 +161,7 @@ namespace ArgonautReverse.WadChunks.SPSX
 		{
 			foreach(var sound in this.Sounds)
 			{
-				data_in.Position = 2048 * (int)Math.Ceiling(data_in.Position / 2048.0);
+				data_in.AbsolutePosition = 2048 * (int)Math.Ceiling(data_in.AbsolutePosition / 2048.0);
 				sound.parse_vag(data_in);
 			}
 		}

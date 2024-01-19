@@ -119,7 +119,7 @@ namespace ArgonautReverse.WadChunks.SPSX
 				Utils.Assert(ambient_tracks_total_size == ambient_tracks.size);
 				ambient_tracks.parse_vags(data_in);
 			}
-			this.CheckSize(size, start, data_in.Position);
+			this.CheckSize(size, start, data_in.AbsolutePosition);
 			return new SPSXChunk(spsx_flags, common_sfx, ambient_tracks, level_sfx_groups, level_sfx_mapping, idk1, idk2, dialogues_bgms);
 		}
 	}

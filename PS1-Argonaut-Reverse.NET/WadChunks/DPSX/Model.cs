@@ -60,6 +60,8 @@ namespace ArgonautReverse.WadChunks.DPSX
 
 	public sealed class BOUND_NEW_COLLISION:BOUND
 	{
+		public const int ByteSize = 6;
+
 		public sbyte nx;	// Normal X (1.0.7 FP)
 		public sbyte ny;	// Normal Y (1.0.7 FP)
 		public sbyte nz;	// Normal Z (1.0.7 FP)
@@ -87,6 +89,8 @@ namespace ArgonautReverse.WadChunks.DPSX
 	}
 	public sealed class BOUND_OLD_COLLISION:BOUND
 	{
+		public const int ByteSize = 8;
+
 		public short xm;	/* 4.12 x multiplier */
 		public short zm;	/* 4.12 y multiplier */
 		public int c;		/* 20.12 constant */
@@ -107,7 +111,7 @@ namespace ArgonautReverse.WadChunks.DPSX
 		}
 	}
 
-	public sealed class FACE_COLL
+	public sealed class FACE_COLL:IReadable<FACE_COLL>
 	{
 		public const byte COLL_QUAD			= (1 << 0);
 		public const byte COLL_EQN			= (1 << 1);
@@ -121,13 +125,44 @@ namespace ArgonautReverse.WadChunks.DPSX
 		public byte surface;
 
 
-		#region OND_COLLISION
-		public ushort eflags;/* edge flags for vertical surfaces */
+		#region OLD_COLLISION
+		public ushort? eflags;/* edge flags for vertical surfaces */
 		#endregion
 		
 		//These field were in opposite order on OLD_COLLISION
 		public BOUND plane;/* plane equation */
 		public IReadOnlyList<BOUND> boundary;//[4];/* for face boundary check */
+
+		private FACE_COLL(byte flags, byte surface, ushort? eflags, BOUND plane, IReadOnlyList<BOUND> boundary)
+		{
+			this.flags = flags;
+			this.surface = surface;
+			this.eflags = eflags;
+			this.plane = plane;
+			this.boundary = boundary;
+		}
+
+		public static FACE_COLL Parse(WadReader reader)
+		{
+			var flags = reader.Read<byte>();
+			var surface = reader.Read<byte>();
+			ushort? eflags;
+			BOUND plane;
+			IReadOnlyList<BOUND> boundary;
+			if(reader.ReadVersion.NEW_COLLISION)
+			{
+				eflags = null;
+				plane = reader.Read<BOUND>();
+				boundary = reader.ReadArray<BOUND>(4);
+			}
+			else
+			{
+				eflags = reader.Read<ushort>();
+				boundary = reader.ReadArray<BOUND>(4);
+				plane = reader.Read<BOUND>();
+			}
+			return new FACE_COLL(flags, surface, eflags, plane, boundary);
+		}
 	}
 
 	public readonly struct TVECTOR:IReadable<TVECTOR>
@@ -152,13 +187,16 @@ namespace ArgonautReverse.WadChunks.DPSX
 	public unsafe struct FACE:IReadable<FACE>
 	{
 		public SVECTOR normal;/* face normal for flat polys + face count */
+
+		//TODO: These may be in a different order
 		public fixed ushort vertex[4];/* vertex indices */
+
 		public TVECTOR texture;
 
 		public static FACE Parse(WadReader reader)
 		{
 			var face = new FACE();
-			reader.Read(out face.normal);
+			face.normal = reader.Read(SVECTOR.ParseWithImportantPadding);
 			reader.ReadData(face.vertex, 4);
 			reader.Read(out face.texture);
 			return face;
@@ -167,12 +205,21 @@ namespace ArgonautReverse.WadChunks.DPSX
 
 	public unsafe struct TFACE:IReadable<TFACE>
 	{
+		//Normal field existed in the dummy but was removed in all later version
+		public SVECTOR? normal;/* face normal for flat polys + face count */
+
+		//TODO: These may be in a different order
 		public fixed ushort vertex[4];/* vertex indices */
+
 		public TVECTOR texture;
 
 		public static TFACE Parse(WadReader reader)
 		{
 			var face = new TFACE();
+			if(reader.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
+			{
+				face.normal = reader.Read(SVECTOR.ParseWithImportantPadding);
+			}
 			reader.ReadData(face.vertex, 4);
 			reader.Read(out face.texture);
 			return face;
@@ -188,7 +235,7 @@ namespace ArgonautReverse.WadChunks.DPSX
 		public IReadOnlyList<FaceType> lface;		/* list of faces */
 		public ushort nfloor;						/* number of floor collision faces */
 		public ushort nceil;						/* number of ceiling collision faces */
-		#region NEW_COLLISION fields
+		#region NEW_COLLISION
 		public ushort? nwall;						/* number of wall collision faces */
 		public ushort? pad;
 		#endregion
@@ -216,7 +263,7 @@ namespace ArgonautReverse.WadChunks.DPSX
 				}
 				else
 				{
-					throw new Models3DWarning(reader.Position, (int)nvert, (int)nface);
+					throw new Models3DWarning(reader.AbsolutePosition, (int)nvert, (int)nface);
 				}
 			}
 
@@ -232,6 +279,39 @@ namespace ArgonautReverse.WadChunks.DPSX
 			}
 			var lcollPlaceholder = reader.Read<int>();
 			if(lcollPlaceholder != 0){throw new Exception();}
+		}
+
+		public void ParseSetupData(WadReader reader, bool track)
+		{
+			var vertices = new SVECTOR[this.nvert];
+			for(int v=0; v<this.nvert; v++)
+			{
+				vertices[v] = reader.Read(SVECTOR.ParseWithImportantPadding);
+			}
+			this.lvert = vertices;
+
+			if(!track || (reader.ReadVersion!=HARRY_POTTER_1_PS1.WadVersion && reader.ReadVersion!=HARRY_POTTER_2_PS1.WadVersion))
+			{
+				var normals = new SVECTOR[this.nvert];
+				for(int v=0; v<this.nvert; v++)
+				{
+					normals[v] = reader.Read(SVECTOR.ParseWithImportantPadding);
+				}
+				this.lnorm = normals;
+			}
+			else
+			{
+				this.lnorm = null;
+			}
+
+			this.lface = reader.ReadArray<FaceType>((int)this.nface);
+
+			int ncoll = this.nfloor + this.nceil;
+			if(reader.ReadVersion.NEW_COLLISION)
+			{
+				ncoll += this.nwall.Value;
+			}
+			this.lcoll = reader.ReadArray<FACE_COLL>(ncoll);
 		}
 	}
 
@@ -258,6 +338,8 @@ namespace ArgonautReverse.WadChunks.DPSX
 	[StructLayout(LayoutKind.Explicit, Pack = 1)]
 	public struct POLY_ALL:IReadable<POLY_ALL>//union
 	{
+		[FieldOffset(0)]public uint Tag;
+
 		[FieldOffset(0)]public TILE_1   tile1;
 		[FieldOffset(0)]public TILE     tile;
 		[FieldOffset(0)]public SPRT     sprt;
@@ -284,7 +366,7 @@ namespace ArgonautReverse.WadChunks.DPSX
 		}
 	}
 
-	public class PRE_LIT
+	public struct PRE_LIT
 	{
 		public IReadOnlyList<POLY_ALL> lface;
 	}

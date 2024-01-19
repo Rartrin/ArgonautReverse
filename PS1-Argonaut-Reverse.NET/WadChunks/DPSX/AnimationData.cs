@@ -81,7 +81,7 @@ namespace ArgonautReverse.WadChunks.DPSX
 				}
 				if((header.n_inter_frames != 0) && (frame_id != header.n_stored_frames - 1))
 				{
-					data_in.Seek(inter_frames_size, SeekOrigin.Current);
+					data_in.SkipBytes(inter_frames_size);
 				}
 				frames[frame_id] = frame;
 			}

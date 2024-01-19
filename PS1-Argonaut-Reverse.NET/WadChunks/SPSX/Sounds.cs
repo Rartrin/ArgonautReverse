@@ -164,7 +164,7 @@ namespace ArgonautReverse.WadChunks.SPSX
 
 		public static DialogueBGMSound parse(WadReader data_in)
 		{
-			data_in.Seek(4, SeekOrigin.Current);// END section offset
+			data_in.SkipBytes(4);// END section offset
 			var sampling_rate = (uint)Math.Round((data_in.Read<ushort>() * 44100) / 4096.0);
 			var flags = (DialoguesBGMsSoundFlags)data_in.Read<ushort>();
 			var uk1 = data_in.Read<uint>();

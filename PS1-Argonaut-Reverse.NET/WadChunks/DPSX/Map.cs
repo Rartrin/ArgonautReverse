@@ -220,7 +220,9 @@ namespace ArgonautReverse.WadChunks.DPSX
 		public IReadOnlyList<Waypoint> WPList;
 		public IReadOnlyList<int> Params;
 
-		//uint DrawMode;
+		#region Pre Croc 2 Demo
+		public uint DrawMode;
+		#endregion
 
 		public IReadOnlyList<CRYSTAL> CrystalList;
 		public IReadOnlyList<MapStrategy> Strats;
@@ -234,9 +236,12 @@ namespace ArgonautReverse.WadChunks.DPSX
 		public IReadOnlyList<TRACKCHANGE> TrackChangeData;
 		public IReadOnlyList<CVECTOR[]> LightTables;
 
-		//OBJECT *Background;
-		//uint BackgroundAddYRotation;
-		//int BackgroundHeightAdjust;
+		#region Pre Croc 2 Demo
+		public int BackgroundAddr;//Offset to Background
+		public OBJECT Background;
+		public uint BackgroundAddYRotation;
+		public int BackgroundHeightAdjust;
+		#endregion
 
 		public MATRIX wlm;
 		public MATRIX lcm;
@@ -258,76 +263,130 @@ namespace ArgonautReverse.WadChunks.DPSX
 
 		private Map(){}
 
-		public static Map Parse(WadReader data_in, WadFlag wadFlag, LevelGeom3DData[] chunk_models)
+		private static Map ParseStruct(WadReader reader)
 		{
 			var map = new Map();
 
-			var mapParamCount = data_in.Read<int>();
-			map.Params = data_in.ReadInt32Array(mapParamCount);
-
-			map.NumberOfPieces = data_in.Read<int>();
-			map.NumberOfStrats = data_in.Read<ushort>();
+			map.NumberOfPieces = reader.Read<int>();
+			map.NumberOfStrats = reader.Read<ushort>();
 
 			ushort? unknownField = null;
 
 			//TODO: What are these values
-			if(data_in.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
+			if(reader.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
 				//Guessing here
-				map.PolyListSize = data_in.Read<ushort>();
-				map.MaxStrats = data_in.Read<ushort>();
-				map.LevelFlag = data_in.Read<ushort>();
+				map.PolyListSize = reader.Read<ushort>();
+				map.MaxStrats = reader.Read<ushort>();
+				map.LevelFlag = reader.Read<ushort>();
 			}
 			else
 			{
-				//TODO: Which field is this?
-				unknownField = data_in.Read<ushort>();
+				//TODO: Which field is this? Or is this just padding?
+				unknownField = reader.Read<ushort>();
 				if(unknownField!=0)
 				{
 
 				}
 			}
 
-			map.MapXY = data_in.Read<int>();
-			map.MapX = data_in.Read<uint>();
-			map.MapZ = data_in.Read<uint>();
+			map.MapXY = reader.Read<int>();
+			map.MapX = reader.Read<uint>();
+			map.MapZ = reader.Read<uint>();
 			Utils.Assert(map.MapXY == map.MapX*map.MapZ);
 
 			ushort? n_lighting_headers;
 			ushort? n_add_sub_chunks_lighting;
-			int? idk3;
-			if(data_in.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
+			int? doorListPlaceholder;
+			if(reader.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
-				n_lighting_headers = data_in.Read<ushort>();
-				n_add_sub_chunks_lighting = data_in.Read<ushort>();
-				idk3 = data_in.Read<int>();
+				n_lighting_headers = reader.Read<ushort>();
+				n_add_sub_chunks_lighting = reader.Read<ushort>();
+				doorListPlaceholder = reader.Read<int>();
 			}
 			else
 			{
 				n_lighting_headers = null;
 				n_add_sub_chunks_lighting = null;
-				idk3 = null;
+				doorListPlaceholder = null;
 			}
 
 			//Not sure about these fields
 			map.NumberOfDoors = n_lighting_headers ?? 0;
 			map.NumberOfOtherPieces = n_add_sub_chunks_lighting;
-			if(idk3.HasValue && idk3.Value != 0)
+			if(doorListPlaceholder.HasValue && doorListPlaceholder.Value != 0)
 			{
 				throw new Exception("DoorList reference set");
 			}
-			map.NumberOfWP = data_in.Read<uint>();//n_idk4
+			map.NumberOfWP = reader.Read<uint>();
 
-			if(data_in.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
+			reader.AssertRead<uint>(0);//WPList placeholder
+			reader.AssertRead<uint>(0);//Params placeholder
+			if(reader.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
-				//Skips the rest of the map
-				data_in.Seek(116, SeekOrigin.Current);
+				//uint DrawMode;
+				reader.AssertRead<uint>(0);//CrystalList placeholder
+
+				reader.AssertRead<uint>(0);//Strats placeholder
+
+				reader.AssertRead<uint>(0);//not_used1 placeholder
+				reader.AssertRead<uint>(0);//not_used2 placeholder
+
+				reader.AssertRead<uint>(0);//Positions placeholder
+				
+				reader.AssertRead<uint>(0);//Grid placeholder
+				reader.AssertRead<uint>(0);//IndexGrid placeholder
+
+				reader.AssertRead<uint>(0);//ZoneData placeholder
+				
+				reader.AssertRead<uint>(0);//Pieces placeholder
+
+				reader.AssertRead<uint>(0);//TrackChangeData placeholder
+				reader.AssertRead<uint>(0);//LightTables placeholder
+
+				//OBJECT *Background;
+				//uint BackgroundAddYRotation;
+				//int BackgroundHeightAdjust;
+
+				map.wlm = reader.Read<MATRIX>();
+				map.lcm = reader.Read<MATRIX>();
 			}
 			else
 			{
-				data_in.Seek(80, SeekOrigin.Current);
-				//var data = data_in.ReadArray<int>(20);
+				map.DrawMode = reader.Read<uint>();
+
+				var placeholders1 = reader.ReadArray<int>(7);
+				//These are likely placeholder fields
+				for(int i=0; i<7; i++)
+				{
+					Utils.Assert(placeholders1[i] == 0);
+					//reader.AssertRead<uint>(0);
+				}
+
+				map.BackgroundAddr = reader.Read<int>();
+				map.BackgroundAddYRotation = reader.Read<uint>();
+				map.BackgroundHeightAdjust = reader.Read<int>();
+				
+				var placeholders2 = reader.ReadArray<int>(7);
+				//These are likely placeholder fields
+				for(int i=0; i<7; i++)
+				{
+					Utils.Assert(placeholders2[i] == 0);
+					//reader.AssertRead<uint>(0);
+				}
 			}
+
+			return map;
+		}
+
+		public static Map Parse(WadReader data_in, WadFlag wadFlag, LevelGeom3DData[] chunk_models)
+		{
+			//Params are stored before the map
+			var mapParamCount = data_in.Read<int>();
+			var mapParams = data_in.ReadInt32Array(mapParamCount);
+
+			var map = ParseStruct(data_in);
+			map.Params = mapParams;
 
 			var mapGridOffsets = data_in.ReadArray<int>(map.MapXY);
 
@@ -392,7 +451,7 @@ namespace ArgonautReverse.WadChunks.DPSX
 			else
 			{
 				map.LightTuples = null;
-				data_in.Seek(-4, SeekOrigin.Current);
+				data_in.SkipBytes(-4);
 			}
 
 			map.Positions =  data_in.ReadArray<POS>(map.NumberOfPieces);
@@ -428,8 +487,21 @@ namespace ArgonautReverse.WadChunks.DPSX
 			}
 			else
 			{
-				//This means that DUMMY definitely supports the WF_NOMATPOS flag
+				if(data_in.DatVersion==CROC_2_DEMO_PS1_DUMMY.DatVersion)
+				{
+					//Getting here means that DUMMY definitely supports the WF_NOMATPOS flag
+				}
 			}
+
+
+			if(data_in.DatVersion==CROC_2_DEMO_PS1_DUMMY.DatVersion)
+			{
+				//TODO: Unknown data
+				var unknownData = data_in.ReadArray<int>(20);
+			}
+
+
+
 
 			if((wadFlag&WadFlag.WF_CAMERAPOINTS)!=0)
 			{
@@ -469,7 +541,7 @@ namespace ArgonautReverse.WadChunks.DPSX
 				//TODO: This is a lot to be skipping on the release version
 				if(data_in.DatVersion == CROC_2_PS1.DatVersion)
 				{
-					data_in.Seek(30732, SeekOrigin.Current);
+					data_in.SkipBytes(30732);
 				}
 				else if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 				{
@@ -490,7 +562,7 @@ namespace ArgonautReverse.WadChunks.DPSX
 							for(int i=0; i<sub_chunks_n_lighting[model_id]; i++)
 							{
 								var size = 4 * chunk_models[map.Pieces[model_id]].Data.n_vertices;
-								data_in.Seek(size, SeekOrigin.Current);
+								data_in.SkipBytes(size);
 							}
 						}
 						for(int model_id=0; model_id<map.NumberOfOtherPieces.Value; model_id++)
@@ -498,7 +570,7 @@ namespace ArgonautReverse.WadChunks.DPSX
 							for(int i=0; i<sub_chunks_n_add_lighting[model_id]; i++)
 							{
 								var size = 4 * chunk_models[map.TrackChangeData[model_id].OtherPiece].Data.n_vertices;
-								data_in.Seek(size, SeekOrigin.Current);
+								data_in.SkipBytes(size);
 							}
 						}
 						if(data_in.DatVersion != CROC_2_DEMO_PS1.DatVersion)// Not present in Croc 2 Demo Dummy
@@ -506,83 +578,98 @@ namespace ArgonautReverse.WadChunks.DPSX
 							var idk_size = data_in.Read<int>();
 							if(idk_size != 0)
 							{
-								data_in.Seek(4 + idk_size, SeekOrigin.Current);
+								data_in.SkipBytes(4 + idk_size);
 							}
 							else
 							{
-								data_in.Seek(-4, SeekOrigin.Current);
+								data_in.SkipBytes(-4);
 							}
 							var n_idk3 = data_in.Read<int>();
 							if(n_idk3 == 0)
 							{
-								data_in.Seek(-4, SeekOrigin.Current);
+								data_in.SkipBytes(-4);
 							}
 							var idk4 = data_in.ReadArrayOfByteArrays(40, n_idk3);//var idk3 = [int.from_bytes(data_in.read(40), "little") for _ in range(n_idk3)]
 						}
-						data_in.Seek(12, SeekOrigin.Current);
+						data_in.SkipBytes(12);
 					}
 				}
 			}
 
+			if(data_in.WadFile.Stem == "01507800")
+			{
+
+			}
 			if((wadFlag&WadFlag.WF_MAP_PRELIT)!=0)
 			{
 				var preMap = new PRE_LIT[2][];
 				for(int i=0; i<preMap.Length; i++)
 				{
 					preMap[i] = new PRE_LIT[map.NumberOfPieces];
-					for(int j=0; j<map.NumberOfPieces; j++)
+
+					for(int j = 0; j<map.NumberOfPieces; j++)
 					{
-						var lfacePlaceholder = data_in.Read<uint>();//lface placeholder
+						var lfacePlaceholder = data_in.Read<uint>();
 						if(lfacePlaceholder != 0)
 						{
 							throw new Exception();
 						}
 						preMap[i][j] = new PRE_LIT();
 					}
-					
+
 					for(int j=0; j<map.NumberOfPieces; j++)
 					{
 						var trackObj = chunk_models[map.Pieces[j]];
 						preMap[i][j].lface = data_in.ReadArray<POLY_ALL>(trackObj.Header.n_faces);
 					}
 				}
-
 				map.pre_map = preMap;
 			}
-
-			var remaining = data_in.Length - data_in.Position;
-
-			var soundDataFlags = data_in.WadFile.SPSX?.spsx_flags ?? 0;
-			if((soundDataFlags&SPSXFlags.HAS_AMBIENT_TRACKS)!=0)
+			else
 			{
-				var totalSequenceByteLength = data_in.Read<int>();
-				map.SequenceCount = 0;
-				if((soundDataFlags&SPSXFlags.AMBIENTSEP)!=0)
+				//TODO: What is this and where does it go? (DUMMY related)
+				if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 				{
-					map.SequenceCount = data_in.Read<int>();
+					//data_in.SkipBytes(12);
+					var unknownData = data_in.ReadArray<int>(3);
 				}
-				map.RawSequenceData = data_in.ReadArray<byte>(totalSequenceByteLength);
-				//TODO: Parse sequence data
-
-				IReadOnlyList<ALAmbience> ambience = null;
-				if((soundDataFlags&SPSXFlags.AMBIENTSEP)!=0)
-				{
-					if((wadFlag&WadFlag.WF_HASMULTIAMBIENT)!=0)
-					{
-						var ambienceCount = data_in.Read<int>();
-						ambience = data_in.ReadArray<ALAmbience>(ambienceCount);
-					}
-				}
-				else
-				{
-					if((wadFlag&WadFlag.WF_HASMULTIAMBIENT)!=0)
-					{
-						var ambienceCount = data_in.Read<int>();
-						ambience = data_in.ReadArray<ALAmbience>(ambienceCount);
-					}
-				}
-				map.Ambiences = ambience;
 			}
+
+			//var soundDataFlags = data_in.WadFile.SPSX?.spsx_flags ?? 0;
+			//if((soundDataFlags&SPSXFlags.HAS_AMBIENT_TRACKS)!=0)
+			//{
+			//	var totalSequenceByteLength = data_in.Read<int>();
+			//	map.SequenceCount = 0;
+			//	if((soundDataFlags&SPSXFlags.AMBIENTSEP)!=0)
+			//	{
+			//		map.SequenceCount = data_in.Read<int>();
+			//	}
+			//	map.RawSequenceData = data_in.ReadArray<byte>(totalSequenceByteLength);
+			//	//TODO: Parse sequence data
+
+			//	IReadOnlyList<ALAmbience> ambience = null;
+			//	if((soundDataFlags&SPSXFlags.AMBIENTSEP)!=0)
+			//	{
+			//		if((wadFlag&WadFlag.WF_HASMULTIAMBIENT)!=0)
+			//		{
+			//			var ambienceCount = data_in.Read<int>();
+			//			ambience = data_in.ReadArray<ALAmbience>(ambienceCount);
+			//		}
+			//	}
+			//	else
+			//	{
+			//		if((wadFlag&WadFlag.WF_HASMULTIAMBIENT)!=0)
+			//		{
+			//			var ambienceCount = data_in.Read<int>();
+			//			ambience = data_in.ReadArray<ALAmbience>(ambienceCount);
+			//		}
+			//	}
+			//	map.Ambiences = ambience;
+			//}
+			//else
+			//{
+				
+			//}
 
 			if((wadFlag&WadFlag.WF_HASINVENTORY)!=0)
 			{
@@ -593,15 +680,6 @@ namespace ArgonautReverse.WadChunks.DPSX
 			{
 				throw new NotImplementedException();
 			}
-
-
-			//TODO: What is this and where does it go? (DUMMY related)
-			if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
-			{
-				data_in.Seek(92, SeekOrigin.Current);
-			}
-
-			
 
 			return map;
 		}

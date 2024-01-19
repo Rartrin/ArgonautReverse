@@ -23,7 +23,7 @@ namespace ArgonautReverse
 		}
 
 
-		public static void PadIn2048Bytes(BaseReader bio)
+		public static void PadIn2048Bytes(FileReader bio)
 		{
 			bio.Position = RoundUpPadding(bio.Position);
 		}
