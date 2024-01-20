@@ -18,7 +18,7 @@ namespace ArgonautReverse.WadChunks.TPSX
 		public readonly bool has_alpha;
 		public IReadOnlyList<TextureData> Textures{get;}
 
-		private TextureFile(int n_rows, byte[] textures_data, bool legacy_alpha, IReadOnlyList<TextureData>textures)
+		private TextureFile(int n_rows, byte[] textures_data, bool legacy_alpha, IReadOnlyList<TextureData> textures)
 		{
 			this.Textures = textures;
 			this.n_rows = n_rows;
@@ -33,7 +33,7 @@ namespace ArgonautReverse.WadChunks.TPSX
 		{
 			var textures = new List<TextureData>();
 			int n_textures = data_in.Read<int>();
-			int n_rows = data_in.Read<int>();
+			int n_rows = data_in.Read<int>();//Pages
 
 			if(n_textures > 4000 || ((n_rows<0) || (4<n_rows)))
 			{

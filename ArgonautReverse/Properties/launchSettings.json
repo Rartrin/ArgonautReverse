@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "PS1-Argonaut-Reverse.NET": {
+    "ArgonautReverse": {
       "commandName": "Project"
     },
     "Extract DUMMY": {
