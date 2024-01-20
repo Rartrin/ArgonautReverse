@@ -6,7 +6,7 @@
 		public static WadVersion WadVersion => HARRY_POTTER_1_PS1_Wad.Instance;
 		public static DirFormat DirFormat => CROC_2_PS1.DirFormat;
 
-		private sealed class HARRY_POTTER_1_PS1_Dat:DatVersion
+		private sealed class HARRY_POTTER_1_PS1_Dat:DatVersionPSX
 		{
 			public static readonly DatVersion Instance = new HARRY_POTTER_1_PS1_Dat();
 

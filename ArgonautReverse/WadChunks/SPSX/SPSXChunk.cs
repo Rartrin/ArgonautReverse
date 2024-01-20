@@ -20,7 +20,6 @@ namespace ArgonautReverse.WadChunks.SPSX
 		public override SPSXChunk Parse(WadReader data_in)
 		{
 			bool isHarryPotterGame = data_in.ReadVersion==HARRY_POTTER_1_PS1.WadVersion || data_in.ReadVersion==HARRY_POTTER_2_PS1.WadVersion;
-			base.ParseHeader(data_in, out var size, out var start);
 
 			var spsx_flags = (SPSXFlags)data_in.Read<uint>();
 
@@ -119,7 +118,7 @@ namespace ArgonautReverse.WadChunks.SPSX
 				Utils.Assert(ambient_tracks_total_size == ambient_tracks.size);
 				ambient_tracks.parse_vags(data_in);
 			}
-			this.CheckSize(size, start, data_in.AbsolutePosition);
+			CheckSize(data_in);
 			return new SPSXChunk(spsx_flags, common_sfx, ambient_tracks, level_sfx_groups, level_sfx_mapping, idk1, idk2, dialogues_bgms);
 		}
 	}

@@ -14,8 +14,6 @@ namespace ArgonautReverse.WadChunks
 
 		public override PORTChunk Parse(WadReader data_in)
 		{
-			var fallback_data = GetChunkData(data_in);
-			base.ParseHeader(data_in, out var size, out var start);
 			var n_zones = data_in.Read<int>();
 			var n_idk1 = data_in.Read<int>();
 			var idk1 = new byte[n_idk1][];
@@ -40,8 +38,8 @@ namespace ArgonautReverse.WadChunks
 					chunks_zones[i][v] = data_in.Read<short>();
 				}
 			}
-			CheckSize(size, start, data_in.AbsolutePosition);
-			return new PORTChunk(idk1, chunks_zones, fallback_data);
+			CheckSize(data_in);
+			return new PORTChunk(idk1, chunks_zones, data_in.GetAllWadData());
 		}
 	}
 

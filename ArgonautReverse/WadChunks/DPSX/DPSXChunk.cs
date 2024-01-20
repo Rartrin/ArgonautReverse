@@ -21,9 +21,6 @@ namespace ArgonautReverse.WadChunks.DPSX
 
 		public override DPSXChunk Parse(WadReader data_in)
 		{
-			var fallback_data = GetChunkData(data_in);
-			base.ParseHeader(data_in, out var size, out var start);
-
 			//TODO: WadFlag and SpriteOffset
 			WadFlag wadFlag = (WadFlag)data_in.Read<uint>();
 
@@ -82,9 +79,9 @@ namespace ArgonautReverse.WadChunks.DPSX
 			// FIXME End of Croc 2 & Croc 2 Demo Dummy's level files aren't reversed yet
 			if(data_in.ReadVersion!=CROC_2_PS1.WadVersion && data_in.DatVersion!=CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
-				CheckSize(size, start, data_in.AbsolutePosition);
+				CheckSize(data_in);
 			}
-			return new DPSXChunk(models_3d, animations, actors, level_file, fallback_data);
+			return new DPSXChunk(models_3d, animations, actors, level_file, data_in.GetAllWadData());
 		}
 	}
 

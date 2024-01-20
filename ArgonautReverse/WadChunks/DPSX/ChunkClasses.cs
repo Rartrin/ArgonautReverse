@@ -85,7 +85,7 @@ namespace ArgonautReverse.WadChunks.DPSX
 			return string.Join('\n',
 				Enumerable.Range(0,this.n_rows).Select(x => string.Join(' ',
 						Enumerable.Range(0,this.n_columns).Select(y =>
-							ChunkHolders[x * this.n_columns + y]!=null ? (x * this.n_columns + y).ToString().PadRight(4) : "░░░░"
+							ChunkHolders[x * this.n_columns + y]!=null ? $"{x * this.n_columns + y, -4}" : "░░░░"
 						)
 					)
 				)
@@ -107,7 +107,7 @@ namespace ArgonautReverse.WadChunks.DPSX
 					var subchunks = ChunkHolders[x * this.n_columns + y];
 					if(subchunks != null)
 					{
-						res.Write(subchunk_id.ToString().PadRight(4));
+						res.Write($"{subchunk_id,-4}");
 						subchunk_id += subchunks.Count;
 					}
 					else

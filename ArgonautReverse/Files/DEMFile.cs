@@ -6,6 +6,9 @@ namespace ArgonautReverse.Files
 
 		public DEMFile(string stem, byte[] data) : base(stem, data){}
 
-		public override string ToString() => "Demonstration (DEMO) script";
+		public override void PrintInfo(TextWriter output)
+		{
+			output.WriteLine("Demonstration (DEMO) script");
+		}
 	}
 }

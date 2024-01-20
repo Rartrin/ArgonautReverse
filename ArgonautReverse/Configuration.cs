@@ -14,7 +14,6 @@ namespace ArgonautReverse
 			ReadVersion = input;
 			WriteVersion = output;
 			IgnoreWarnings = ignoreWarnings;
-			//logging.basicConfig(format="%(message)s", level=logging.DEBUG if debug else logging.WARNING)
 		}
 
 		public static readonly DatVersion[] SUPPORTED_GAMES = new DatVersion[]
@@ -25,9 +24,11 @@ namespace ArgonautReverse
 			CROC_2_DEMO_PS1_DUMMY.DatVersion,
 			HARRY_POTTER_1_PS1.DatVersion,
 			HARRY_POTTER_2_PS1.DatVersion,
+			Croc2_PC.DatVersion,
 		};
+
 		//Croc 1 parsing is not supported, but it can be sliced
-		public static readonly DatVersion[] PARSABLE_GAMES = new DatVersion[]
+		public static readonly DatVersion[] PSX_PARSABLE_GAMES = new DatVersion[]
 		{
 			CROC_2_PS1.DatVersion,
 			CROC_2_DEMO_PS1.DatVersion,
@@ -36,7 +37,18 @@ namespace ArgonautReverse
 			HARRY_POTTER_2_PS1.DatVersion,
 		};
 
+		public static readonly DatVersion[] PC_PARSABLE_GAMES = new DatVersion[]
+		{
+			Croc2_PC.DatVersion,
+		};
+
+		public static readonly DatVersion[] ALL_PARSABLE_GAMES = PSX_PARSABLE_GAMES.Concat(PC_PARSABLE_GAMES).ToArray();
+
+		
 		public static readonly WadVersion[] ALL_WADS = SUPPORTED_GAMES.SelectMany(game => game.WadVersions).ToArray();
-		public static readonly WadVersion[] PARSABLE_WADS = PARSABLE_GAMES.SelectMany(game => game.WadVersions).ToArray();
+		
+		public static readonly WadVersion[] PSX_PARSABLE_WADS = PSX_PARSABLE_GAMES.SelectMany(game => game.WadVersions).ToArray();
+		public static readonly WadVersion[] PC_PARSABLE_WADS = PC_PARSABLE_GAMES.SelectMany(game => game.WadVersions).ToArray();
+		public static readonly WadVersion[] ALL_PARSABLE_WADS = ALL_PARSABLE_GAMES.SelectMany(game => game.WadVersions).ToArray();
 	}
 }

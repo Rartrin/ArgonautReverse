@@ -9,6 +9,9 @@ namespace ArgonautReverse.Files
 			Suffix = suffix;
 		}
 
-		public override string ToString() => $"Unknown file type: {Suffix}";
+		public override void PrintInfo(TextWriter output)
+		{
+			output.WriteLine($"Unknown file type: {Suffix}");
+		}
 	}
 }

@@ -29,7 +29,7 @@ namespace ArgonautReverse.WadChunks.TPSX
 
 		public int n_textures => Textures.Count;
 
-		public static TextureFile parse(WadReader data_in, bool compressed16bit, bool hasMemoryCardIcons, int end)
+		public static TextureFile parse(WadReader data_in, bool compressed16bit, bool hasMemoryCardIcons)
 		{
 			var textures = new List<TextureData>();
 			int n_textures = data_in.Read<int>();
@@ -80,7 +80,7 @@ namespace ArgonautReverse.WadChunks.TPSX
 			{
 				var raw_textures = new byte[image_bytes_size];
 				var raw_texturesStream = new MemoryStream(raw_textures);
-				while(data_in.AbsolutePosition < end)
+				while(data_in.Remaining>0)
 				{
 					var run = data_in.Read<int>();
 					if(run < 0)

@@ -1,4 +1,3 @@
-using System.Reflection.PortableExecutable;
 using System.Text;
 using ArgonautReverse.Engine;
 using ArgonautReverse.Engine.Versions;
@@ -32,31 +31,29 @@ namespace ArgonautReverse.Files
 			Version = version;
 		}
 
-		public override string ToString()
+		public override void PrintInfo(TextWriter output)
 		{
-			string titles = "";
+			output.Write("Game level");
+
 			if(this.titles != null)
 			{
-				titles = $"({string.Join(", ", this.titles.Select(titles => titles.Trim(' ')))})";
+				output.Write($" ({string.Join(", ", this.titles.Select(titles => titles.Trim(' ')))})");
 			}
-			var res = $"Game level{titles}";
-			//if(this)
+			
+			output.WriteLine();
+			if(this.TPSX != null)
 			{
-				res += "\n";
-				if(this.TPSX != null)
-				{
-					res += $" {this.n_textures} texture(s)";
-				}
-				if(this.SPSX != null)
-				{
-					res += $" {this.n_sounds} audio file(s)";
-				}
-				if(this.DPSX != null)
-				{
-					res += $" {this.n_models} model(s) {this.n_animations} animation(s) {this.n_filled_chunks} chunk(s)";
-				}
+				output.Write($" {this.n_textures} texture(s)");
 			}
-			return res;
+			if(this.SPSX != null)
+			{
+				output.Write($" {this.n_sounds} audio file(s)");
+			}
+			if(this.DPSX != null)
+			{
+				output.Write($" {this.n_models} model(s) {this.n_animations} animation(s) {this.n_filled_chunks} chunk(s)");
+			}
+			output.WriteLine();
 		}
 		// WAD Chunks
 
@@ -316,25 +313,24 @@ namespace ArgonautReverse.Files
 			}
 		}
 
-		private static unsafe IEnumerable<(ChunkType type, int start, int length)> LocateChunks(WadReader reader)
+		private static unsafe IEnumerable<(ChunkType type, int dataStart,int dataLength)> LocateChunks(WadReader reader)
 		{
-			var chunkLocations = new List<(ChunkType type, int start,int size)>();
+			var chunkLocations = new List<(ChunkType type, int dataStart,int dataLength)>();
 			
 			var wadDataLength = reader.Read<int>();
 
 			ChunkType chunkType;
 			do
 			{
-				var start = reader.Position;
 				chunkType = (ChunkType)reader.Read<uint>();
 				var chunkDataLength = reader.Read<int>();
 
 				// Detects incorrect WADs like FESOUND or FETHUND
-				if (chunkLocations.Count == 0 & chunkType != ChunkType.ID_TEXTPSX)
+				if (chunkLocations.Count == 0 & (chunkType != ChunkType.ID_TEXTPSX && chunkType != ChunkType.ID_CWAD))
 				{
 					throw new ChunkNameError(reader.Position, ChunkType.ID_TEXTPSX.ToString(), chunkType.ToString());
 				}
-				chunkLocations.Add((chunkType, start, chunkDataLength + sizeof(ChunkType) + sizeof(int)));//Adding for chunk type and chunkDataLength fields
+				chunkLocations.Add((chunkType, reader.Position, chunkDataLength));
 				
 				
 				reader.Position += chunkDataLength;
@@ -351,10 +347,10 @@ namespace ArgonautReverse.Files
 			var chunkLocations = LocateChunks(data_in);
 
 			this.chunks.Clear();
-			foreach(var(type, start, length) in chunkLocations)
+			foreach(var(type, dataStart, dataLength) in chunkLocations)
 			{
-				data_in.Position = start;
-				var chunkReader = data_in.ReadChunk(length);
+				data_in.Position = dataStart;
+				var chunkReader = data_in.ReadChunk(dataLength);
 				if(WADFile.chunkInfoLookup.TryGetValue(type, out var chunkInfo))
 				{
 					if(chunkInfo.SupportedWadVersions.Contains(chunkReader.ReadVersion))

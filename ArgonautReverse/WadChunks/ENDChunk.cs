@@ -10,8 +10,8 @@ namespace ArgonautReverse.WadChunks
 		public static readonly ENDChunkInfo Instance = new ENDChunkInfo();
 
 		public override ChunkType ChunkType => ChunkType.ID_END;
-		public override string ChunkDescription => "sound effects, background music & dialogues";
-		public override WadVersion[] SupportedWadVersions{get;} = Configuration.PARSABLE_WADS;//new[]{HARRY_POTTER_1_PS1.Instance, HARRY_POTTER_2_PS1.Instance};
+		public override string ChunkDescription => "END but sometimes includes sound effects, background music, and dialogues";
+		public override WadVersion[] SupportedWadVersions{get;} = Configuration.ALL_PARSABLE_WADS;//new[]{HARRY_POTTER_1_PS1.Instance, HARRY_POTTER_2_PS1.Instance};
 
 		public override ENDChunk Parse(WadReader data_in)
 		{
@@ -19,8 +19,7 @@ namespace ArgonautReverse.WadChunks
 			if(spsxChunk != null)
 			{
 				//TODO: Implement sound for other games
-				base.ParseHeader(data_in, out var size, out var start);
-				if(size != 0)
+				if(data_in.Length != 0)
 				{
 					if((spsxChunk.spsx_flags&SPSXFlags.HAS_LEVEL_SFX)!=0)
 					{
@@ -34,7 +33,7 @@ namespace ArgonautReverse.WadChunks
 					{
 						data_in.AbsolutePosition = 2048 * (int)Math.Ceiling(data_in.AbsolutePosition / 2048.0);
 					}
-					CheckSize(size, start, data_in.AbsolutePosition);
+					CheckSize(data_in);
 				}
 			}
 			return new ENDChunk(spsxChunk);

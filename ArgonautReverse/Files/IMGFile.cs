@@ -104,16 +104,15 @@ namespace ArgonautReverse.Files
 		public IReadOnlyList<Bitmap> Images{get;private set;}
 
 		public IMGFile(string stem, byte[] data):base(stem, data){}
-	
-		public override string ToString()
+
+		public override void PrintInfo(TextWriter output)
 		{
-			var dimensions = string.Join(", ", Images.Select(x => $"({x.Width}x{x.Height} px)"));
-			var res = "Menu image";
-			if(!string.IsNullOrEmpty(dimensions))
+			output.WriteLine("Menu image");
+			if(Images.Count != 0)
 			{
-				res += $"\n{dimensions}";
+				var dimensions = string.Join(", ", Images.Select(x => $"({x.Width}x{x.Height} px)"));
+				output.WriteLine(dimensions);
 			}
-			return res;
 		}
 		public override void Parse(Configuration conf/*, string kwargs_stem*/)
 		{

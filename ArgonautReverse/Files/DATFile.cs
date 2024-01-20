@@ -22,7 +22,10 @@ namespace ArgonautReverse.Files
 			this.Stem = stem;
 		}
 	
-		public override string ToString() => "(?) Unknown file";
+		public virtual void PrintInfo(TextWriter output)
+		{
+			output.WriteLine("(?) Unknown file");
+		}
 
 		public virtual void Parse(Configuration conf){}
 

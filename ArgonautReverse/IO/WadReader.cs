@@ -23,5 +23,7 @@ namespace ArgonautReverse.IO
 		{
 			return new ChunkReader(this, Position, length);
 		}
+
+		public byte[] GetAllWadData() => Data.AsSpan(Offset, Length).ToArray();
 	}
 }

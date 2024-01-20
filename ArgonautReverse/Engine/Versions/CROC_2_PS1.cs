@@ -10,7 +10,7 @@ namespace ArgonautReverse.Engine.Versions
 		public static WadVersion WadVersion => CROC_2_PS1_Wad.Instance;
 		public static DirFormat DirFormat => CROC_2_PS1_DirFormat.Instance;
 
-		private sealed class CROC_2_PS1_Dat:DatVersion
+		private sealed class CROC_2_PS1_Dat:DatVersionPSX
 		{
 			public static readonly DatVersion Instance = new CROC_2_PS1_Dat();
 

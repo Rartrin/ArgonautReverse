@@ -12,8 +12,10 @@ namespace ArgonautReverse
 		{
 			public string ReadFormat;
 			public string WriteFormat;
-			public string DirDat;//Path to DIR/DAT files
-			public string Files;//Path to WAD files
+
+			public string PsxDirDat;//Path to PSX DIR/DAT files
+			public string WadFiles;//Path to WAD files or directories containing WADs
+
 			public string ExportTextures;//Output path for textures
 			public string ExportModels;//Output path for models
 			public string ExportAudio;//Output path for WAV audio
@@ -34,8 +36,10 @@ namespace ArgonautReverse
 				{
 					case "--read-format":parsedArgs.ReadFormat = args[++i];break;
 					case "--write-format":parsedArgs.WriteFormat = args[++i];break;
-					case "--dirdat":parsedArgs.DirDat = args[++i];break;
-					case "--files":parsedArgs.Files = args[++i];break;
+
+					case "--psx-dirdat":parsedArgs.PsxDirDat = args[++i];break;
+					case "--wad-files":parsedArgs.WadFiles = args[++i];break;
+
 					case "--export-textures":parsedArgs.ExportTextures = args[++i];break;
 					case "--export-models":parsedArgs.ExportModels = args[++i];break;
 					case "--export-audio":parsedArgs.ExportAudio = args[++i];break;
@@ -140,7 +144,7 @@ namespace ArgonautReverse
 
 			var readFormat = Configuration.SUPPORTED_GAMES.SingleOrDefault(g => g.Title == parsedArgs.ReadFormat);
 			var writeFormat = Configuration.SUPPORTED_GAMES.SingleOrDefault(g => g.Title == parsedArgs.WriteFormat);
-			if(!Configuration.PARSABLE_GAMES.Contains(readFormat))
+			if(!Configuration.ALL_PARSABLE_GAMES.Contains(readFormat))
 			{
 				throw new NotImplementedException("Files from this game can be extracted, but not reversed (yet). If you just want to extract them, use the extract_files_from_dat.py script.");
 			}
@@ -148,11 +152,11 @@ namespace ArgonautReverse
 			var conf = new Configuration(readFormat, writeFormat, parsedArgs.IgnoreWarnings);
 
 			DIR_DAT dir_dat;
-			if(parsedArgs.DirDat is string dirdat)
+			if(parsedArgs.PsxDirDat is string dirdat)
 			{
 				dir_dat = DIR_DAT.FromDirDat(conf, dirdat);
 			}
-			else if(parsedArgs.Files is string files)
+			else if(parsedArgs.WadFiles is string files)
 			{
 				dir_dat = DIR_DAT.FromFiles(conf, files.Split(','));
 			}
@@ -206,7 +210,7 @@ namespace ArgonautReverse
 						wadFile.Parse(conf);
 						ExportAssetsFromWad(wadFile, parsedArgs, conf);
 					}
-					Console.WriteLine(datFile);
+					datFile.PrintInfo(Console.Out);
 				}
 				catch(Exception e)
 				{

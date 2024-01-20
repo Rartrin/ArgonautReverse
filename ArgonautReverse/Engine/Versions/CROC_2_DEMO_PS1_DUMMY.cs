@@ -10,7 +10,7 @@
 		public static WadVersion WadVersion_Early => CROC_2_DEMO_PS1_DUMMY_Wad.Instance_Early;
 		public static WadVersion WadVersion_Latest => CROC_2_DEMO_PS1_DUMMY_Wad.Instance_Latest;
 
-		private sealed class CROC_2_DEMO_PS1_DUMMY_Dat:DatVersion
+		private sealed class CROC_2_DEMO_PS1_DUMMY_Dat:DatVersionPSX
 		{
 			public static readonly DatVersion Instance = new CROC_2_DEMO_PS1_DUMMY_Dat();
 
