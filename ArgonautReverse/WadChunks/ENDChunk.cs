@@ -6,7 +6,7 @@ using ArgonautReverse.WadChunks.PSX;
 
 namespace ArgonautReverse.WadChunks
 {
-    public sealed class ENDChunkInfo:BaseWADChunkInfo
+	public sealed class ENDChunkInfo:BaseWADChunkInfo
 	{
 		public static readonly ENDChunkInfo Instance = new ENDChunkInfo();
 

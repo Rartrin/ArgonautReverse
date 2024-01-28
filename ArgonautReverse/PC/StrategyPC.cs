@@ -1,4 +1,6 @@
-﻿namespace ArgonautReverse.PC
+﻿using ArgonautReverse.OpenStratEngine;
+
+namespace ArgonautReverse.PC
 {
     public enum StratEntityFlags0PC : uint
 	{

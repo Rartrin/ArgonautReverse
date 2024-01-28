@@ -6,9 +6,11 @@ namespace ArgonautReverse.PSX.LibGTE
 	{
 		public const int ByteSize = 32;
 
-		public readonly short[][] m;//[3][3];	/* 3x3 rotation matrix */
+		//3x3 Rotation matrix
+		public readonly short[][] m;//[3][3];
 		//2 bytes of padding here
-		public readonly int[] t;//[3];		/* transfer vector */
+		//Translation vector
+		public readonly int[] t;//[3];
 
 		private MATRIX(short[][] m, int[] t)
 		{

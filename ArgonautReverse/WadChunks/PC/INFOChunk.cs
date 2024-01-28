@@ -3,30 +3,30 @@ using ArgonautReverse.IO;
 
 namespace ArgonautReverse.WadChunks.PC
 {
-    public sealed class INFOChunkInfo : BaseWADChunkInfo
-    {
-        public static readonly INFOChunkInfo Instance = new INFOChunkInfo();
+	public sealed class INFOChunkInfo:BaseWADChunkInfo
+	{
+		public static readonly INFOChunkInfo Instance = new INFOChunkInfo();
 
-        public override WadVersion[] SupportedWadVersions => Configuration.PC_PARSABLE_WADS;
-        public override string ChunkDescription => "Debug chunk info (empty)";
-        public override ChunkType ChunkType => ChunkType.ID_PC_INFO;
+		public override WadVersion[] SupportedWadVersions => Configuration.PC_PARSABLE_WADS;
+		public override string ChunkDescription => "Debug chunk info (empty)";
+		public override ChunkType ChunkType => ChunkType.ID_PC_INFO;
 
-        public override BaseWadChunk Parse(WadReader reader)
-        {
-            if (reader.Remaining != 4)
-            {
-                throw new Exception("INFO chunk is not an int32");
-            }
-            var value = reader.Read<int>();
-            if (value != 1)
-            {
-                throw new Exception("INFO chunk value is not 1");
-            }
-            return new INFOChunk(this, reader.GetAllWadData());
-        }
-    }
-    public sealed class INFOChunk : BaseWadChunk
-    {
-        public INFOChunk(BaseWADChunkInfo info, byte[] data = null) : base(info, data) { }
-    }
+		public override BaseWadChunk Parse(WadReader reader)
+		{
+			if(reader.Remaining != 4)
+			{
+				throw new Exception("INFO chunk is not an int32");
+			}
+			var value = reader.Read<int>();
+			if(value != 1)
+			{
+				throw new Exception("INFO chunk value is not 1");
+			}
+			return new INFOChunk(this, reader.GetAllWadData());
+		}
+	}
+	public sealed class INFOChunk:BaseWadChunk
+	{
+		public INFOChunk(BaseWADChunkInfo info, byte[] data = null) : base(info, data) { }
+	}
 }

@@ -2,12 +2,12 @@
 
 namespace ArgonautReverse.PC
 {
-	public sealed class WaypointPC:IReadable<WaypointPC>
+	public sealed class WaypointPC : IReadable<WaypointPC>
 	{
 		//union
 		public WaypointPC Next;
 		public int NextRawValue;
-		
+
 		//union
 		public WaypointPC Prev;
 		public int PrevRawValue;
@@ -37,11 +37,11 @@ namespace ArgonautReverse.PC
 			var waypoints = reader.ReadArray<WaypointPC>(count);
 
 			WaypointPC prevWaypoint = null;
-			for(int i=0; i < count; i++)
+			for (int i = 0; i < count; i++)
 			{
 				WaypointPC waypoint = waypoints[i];
 				waypoint.LinkFlag = 0;
-				if(prevWaypoint != null)
+				if (prevWaypoint != null)
 				{
 					waypoint.Prev = prevWaypoint;
 				}
@@ -49,7 +49,7 @@ namespace ArgonautReverse.PC
 				{
 					waypoint.LinkFlag |= 2;
 				}
-				if(waypoint.NextRawValue != 0)
+				if (waypoint.NextRawValue != 0)
 				{
 					waypoint.Next = waypoints[i+1];
 					prevWaypoint = waypoint;

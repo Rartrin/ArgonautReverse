@@ -5,7 +5,7 @@ using ArgonautReverse.WadChunks.PC;
 
 namespace ArgonautReverse.PC
 {
-    public enum DoorFlags0:uint
+	public enum DoorFlags0:uint
 	{
 		DOOR0_1 = 0x1,
 		DOOR0_2 = 0x2,
@@ -21,69 +21,68 @@ namespace ArgonautReverse.PC
 
 	public sealed class DoorPC:IReadable<DoorPC>
 	{
-		public Vector3I position;
-		public int GotoX;
-		public int GotoY;
-		public int GotoZ;
-		public WadFileType type;
+		public Vector3I Position;
+		public Vector3I Goto;
+		public WadFileType LevelType;
+
 		public DoorFlags0 GotoRotY;
 		public DoorFlags1 ThisRotY;
 		public int Fade;
+
 		public StratObjectPC Background;
-		public int field1;
-		public int width;
-		public int field3;
-		public short rotation;
-		public short wField1;
-		public int minVisableRangle;
-		public int maxVisableRange;
-		public int field5;
-		public int field6;
-		public Color32 color;
-		public ColorBGRA32 d3dColor;
-		public ushort field9;
-		public ushort field10;
-		public int musicId;
+		
+		public int BackgroundAddYRotation;
+		public int BackgroundHeightAdjust;
+
+		public int DrawMode;
+
+		public short MoveForward;
+
+		public int rt_from;
+		public int rt_val;
+		public int rt_obj_from;
+		public int rt_obj_val;
+
+		public Color32 AmbientLight;
+		public ColorBGRA32 BackColor;
+		
+		public ushort EffectFlags;
+		public ushort ReverbType;
+		public int MusicTrack;
 
 		public static DoorPC Parse(WadReader reader)
 		{
 			var door = new DoorPC();
 
-			door.position = reader.Read<Vector3I>();
-			door.GotoX = reader.Read<int>();
-			door.GotoY = reader.Read<int>();
-			door.GotoZ = reader.Read<int>();
-			door.type = (WadFileType)reader.Read<int>();
+			door.Position = reader.Read<Vector3I>();
+			door.Goto = reader.Read<Vector3I>();
+			door.LevelType = (WadFileType)reader.Read<int>();
 			door.GotoRotY = (DoorFlags0)reader.Read<uint>();
 			door.ThisRotY = (DoorFlags1)reader.Read<uint>();
 			door.Fade = reader.Read<int>();
 			int backgroundOffset = reader.Read<int>();
 			if(backgroundOffset != 0)
 			{
-				//TODO: Not sure if this will work.
-				//This is the byte offset within the STPC chunk data.
 				var stpcChunk = reader.WadFile.GetChunk<STPCChunk>(ChunkType.ID_PC_STRAT);
-
 				door.Background = stpcChunk.GetStratObject(backgroundOffset).model;
-				//door.Background = (StratObject)&data.fileData[backgroundOffset];
 			}
 			else
 			{
 				door.Background = null;
 			}
-			door.field1 = reader.Read<int>();
-			door.width = reader.Read<int>();
-			door.field3 = reader.Read<int>();
-			door.rotation = reader.Read<short>();
-			door.minVisableRangle = reader.Read<int>();
-			door.maxVisableRange = reader.Read<int>();
-			door.field5 = reader.Read<int>();
-			door.field6 = reader.Read<int>();
-			door.color = reader.Read<Color32>();
-			door.d3dColor = reader.Read<ColorBGRA32>();
-			door.field9 = reader.Read<ushort>();
-			door.field10 = reader.Read<ushort>();
-			door.musicId = reader.Read<int>();
+			door.BackgroundAddYRotation = reader.Read<int>();
+			door.BackgroundHeightAdjust = reader.Read<int>();
+			door.DrawMode = reader.Read<int>();
+			door.MoveForward = reader.Read<short>();
+			door.rt_from = reader.Read<int>();
+			door.rt_val = reader.Read<int>();
+			door.rt_obj_from = reader.Read<int>();
+			door.rt_obj_val = reader.Read<int>();
+			door.AmbientLight = reader.Read<Color32>();
+			door.BackColor = reader.Read<ColorBGRA32>();
+			door.EffectFlags = reader.Read<ushort>();
+			door.ReverbType = reader.Read<ushort>();
+			door.MusicTrack = reader.Read<int>();
 
 			return door;
 		}

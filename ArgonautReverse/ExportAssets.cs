@@ -4,7 +4,7 @@ using ArgonautReverse.WadChunks.PSX;
 
 namespace ArgonautReverse
 {
-    public static class ExportAssets
+	public static class ExportAssets
 	{
 		public sealed class ProgramArgs
 		{

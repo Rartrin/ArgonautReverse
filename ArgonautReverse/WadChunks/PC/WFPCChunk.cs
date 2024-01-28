@@ -4,30 +4,30 @@ using ArgonautReverse.PC;
 
 namespace ArgonautReverse.WadChunks.PC
 {
-    public sealed class WFPCChunkInfo : BaseWADChunkInfo
-    {
-        public static readonly WFPCChunkInfo Instance = new WFPCChunkInfo();
+	public sealed class WFPCChunkInfo:BaseWADChunkInfo
+	{
+		public static readonly WFPCChunkInfo Instance = new WFPCChunkInfo();
 
-        public override WadVersion[] SupportedWadVersions => Configuration.PC_PARSABLE_WADS;
-        public override string ChunkDescription => "WadFlags";
-        public override ChunkType ChunkType => ChunkType.ID_PC_WADFLAGS;
+		public override WadVersion[] SupportedWadVersions => Configuration.PC_PARSABLE_WADS;
+		public override string ChunkDescription => "WadFlags";
+		public override ChunkType ChunkType => ChunkType.ID_PC_WADFLAGS;
 
-        private WFPCChunkInfo() { }
+		private WFPCChunkInfo() { }
 
-        public override BaseWadChunk Parse(WadReader reader)
-        {
-            var wadFlags = (WadFlagPC)reader.Read<uint>();
-            reader.AssertEndOfChunk(ChunkType);
-            return new WFPCChunk(this, wadFlags);
-        }
+		public override BaseWadChunk Parse(WadReader reader)
+		{
+			var wadFlags = (WadFlagPC)reader.Read<uint>();
+			reader.AssertEndOfChunk(ChunkType);
+			return new WFPCChunk(this, wadFlags);
+		}
 
-    }
-    public sealed class WFPCChunk : BaseWadChunk
-    {
-        public WadFlagPC WadFlags { get; }
-        public WFPCChunk(BaseWADChunkInfo info, WadFlagPC wadFlags) : base(info)
-        {
-            WadFlags = wadFlags;
-        }
-    }
+	}
+	public sealed class WFPCChunk:BaseWadChunk
+	{
+		public WadFlagPC WadFlags { get; }
+		public WFPCChunk(BaseWADChunkInfo info, WadFlagPC wadFlags) : base(info)
+		{
+			WadFlags = wadFlags;
+		}
+	}
 }

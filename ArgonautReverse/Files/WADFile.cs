@@ -17,7 +17,7 @@ namespace ArgonautReverse.Files
 		WAD_TYPE_SECRET = 2,
 		WAD_TYPE_INTERFACE = 3,
 	}
-    public class WADFile:DATFile
+	public class WADFile:DATFile
 	{
 		private readonly Dictionary<ChunkType,BaseWadChunk> chunks = new Dictionary<ChunkType,BaseWadChunk>();
 

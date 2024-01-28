@@ -24,4 +24,12 @@
     <Folder Include="OpenStratEngine\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EditorConfigFiles Remove="N:\Rartrin\Documents\Programming Projects\ArgonautReverse\ArgonautReverse\.editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="N:\Rartrin\Documents\Programming Projects\ArgonautReverse\ArgonautReverse\.editorconfig" />
+  </ItemGroup>
+
 </Project>

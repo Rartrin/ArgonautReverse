@@ -5,7 +5,7 @@ using ArgonautReverse.WadChunks.PC;
 
 namespace ArgonautReverse.PC
 {
-    public readonly struct ModelCollisionStruct0PC : IReadable<ModelCollisionStruct0PC>
+	public readonly struct ModelCollisionStruct0PC:IReadable<ModelCollisionStruct0PC>
 	{
 		public readonly short wField0;
 		public readonly short wField1;
@@ -27,7 +27,7 @@ namespace ArgonautReverse.PC
 		}
 	}
 
-	public sealed class Model_SubStruct1PC : IReadable<Model_SubStruct1PC>
+	public sealed class Model_SubStruct1PC:IReadable<Model_SubStruct1PC>
 	{
 		public byte bField0;
 		public byte bField1;
@@ -51,7 +51,7 @@ namespace ArgonautReverse.PC
 		}
 	}
 
-	public readonly struct ModelVertexPC : IReadable<ModelVertexPC>
+	public readonly struct ModelVertexPC:IReadable<ModelVertexPC>
 	{
 		public readonly Vector3F Position;
 		public readonly Vector3F Direction;
@@ -70,7 +70,7 @@ namespace ArgonautReverse.PC
 		}
 	}
 
-	public sealed class ModelTrianglePC : IReadable<ModelTrianglePC>
+	public sealed class ModelTrianglePC:IReadable<ModelTrianglePC>
 	{
 		public ushort flags;
 		public ushort[] vertexIndices;//[3];

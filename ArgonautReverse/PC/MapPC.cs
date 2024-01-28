@@ -4,7 +4,7 @@ using ArgonautReverse.WadChunks.PC;
 
 namespace ArgonautReverse.PC
 {
-    public sealed class MapPiecePC//WorldCellInfo
+	public sealed class MapPiecePC//WorldCellInfo
 	{
 		public Vector3F Pos;
 		public float RotY;
@@ -119,20 +119,31 @@ namespace ArgonautReverse.PC
 		public int cameraStackCount;
 	}
 
-	public sealed class ZoneStruct
+	public readonly struct ZonePC:IReadable<ZonePC>
 	{
-		public uint Zone;
-		public uint ViewZone;
+		public readonly uint Zone;
+		//public uint ViewZone;
+
+		public ZonePC(uint zone)
+		{
+			Zone = zone;
+		}
+
+		public static ZonePC Parse(WadReader reader)
+		{
+			var zone = reader.Read<uint>();
+			return new ZonePC(zone);
+		}
 	}
 
-	public sealed class TrackChange:IReadable<TrackChange,MapPiecePC>//PieceStruct
+	public sealed class TrackChangePC:IReadable<TrackChangePC,MapPiecePC>//PieceStruct
 	{
 		public Vector3I Pos;
 		public int NormalPiece;//field0;
 		public int OtherPiece;//modelIndex
 		public MapPiecePC PieceMem;//cellInfo
 
-		public TrackChange(Vector3I pos, int normalPiece, int otherPiece, MapPiecePC pieceMem)
+		public TrackChangePC(Vector3I pos, int normalPiece, int otherPiece, MapPiecePC pieceMem)
 		{
 			Pos = pos;
 			NormalPiece = normalPiece;
@@ -140,12 +151,12 @@ namespace ArgonautReverse.PC
 			PieceMem = pieceMem;
 		}
 
-		public static TrackChange Parse(WadReader reader, MapPiecePC pieceMem)
+		public static TrackChangePC Parse(WadReader reader, MapPiecePC pieceMem)
 		{
 			var pos = reader.Read<Vector3I>();
 			var normalPiece = reader.Read<int>();
 			var otherPiece = reader.Read<int>();
-			return new TrackChange(pos, normalPiece, otherPiece, pieceMem);
+			return new TrackChangePC(pos, normalPiece, otherPiece, pieceMem);
 		}
 	}
 
@@ -162,7 +173,7 @@ namespace ArgonautReverse.PC
 		public IReadOnlyList<LightPC> Lights;
 		//public StrategyList    strategy_list;
 
-		public IReadOnlyList<ZoneStruct> ZoneData;
+		public IReadOnlyList<ZonePC> ZoneData;
 		public IReadOnlyList<RotPos3Fx> Positions;
 
 		//public uint NumberOfDoors;
@@ -178,8 +189,8 @@ namespace ArgonautReverse.PC
 		//public int NumParams;
 		public IReadOnlyList<int> Params;
 
-		public IReadOnlyList<TrackChange> TrackChangeData;
-		public int NumberOfOtherPieces;
+		public IReadOnlyList<TrackChangePC> TrackChangeData;
+		//public int NumberOfOtherPieces;
 
 		public short wField2;
 		public short wField3;
@@ -286,24 +297,25 @@ namespace ArgonautReverse.PC
 			map.WaterLevelArray = reader.ReadArray<WaterLevelStructPC>(32);
 			map.WaterLevel = -65536;
 
-			var waterIndexArray = new int[map.MapWidth * map.MapHeight];
+			var zoneData = new ZonePC[map.MapWidth * map.MapHeight];
 			for(int m = 0; m < map.MapHeight; ++m)
 			{
 				for(int n = 0; n < map.MapWidth; ++n)
 				{
-					waterIndexArray[n + m * map.MapWidth] = reader.Read<int>();
+					zoneData[n + m * map.MapWidth] = reader.Read<ZonePC>();
 				}
 			}
+			map.ZoneData = zoneData;
 			map.Positions = reader.ReadArray<RotPos3Fx>(map.NumPieces);
 			var modelIndices = reader.ReadArray<int>(map.NumPieces);
 			if((wadFlags & WadFlagPC.WAD_FLAG_HAS_CHANGING_GEOMETRY) != 0)
 			{
-				var pieceCount = reader.Read<int>();
-				map.TrackChangeData = reader.ReadArray<TrackChange,MapPiecePC>(dataPos, pieceCount);
+				var numberOfOtherPieces = reader.Read<int>();
+				map.TrackChangeData = reader.ReadArray<TrackChangePC,MapPiecePC>(dataPos, numberOfOtherPieces);
 			}
 			else
 			{
-				map.TrackChangeData = Array.Empty<TrackChange>();
+				map.TrackChangeData = Array.Empty<TrackChangePC>();
 			}
 			var colorArray = new Color32[map.NumPieces][];
 			var trackModels = reader.WadFile.GetChunk<TRAKChunk>(ChunkType.ID_PC_TRACK).Models;
