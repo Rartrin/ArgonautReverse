@@ -8,7 +8,7 @@ namespace ArgonautReverse.WadChunks.DPSX
 	public sealed class DPSXChunkInfo:BaseWADChunkInfo
 	{
 		public static readonly DPSXChunkInfo Instance = new DPSXChunkInfo();
-		public override ChunkType ChunkType => ChunkType.ID_DATAPSX;
+		public override ChunkType ChunkType => ChunkType.ID_PSX_DATA;
 		public override WadVersion[] SupportedWadVersions{get;} = new[]
 		{
 			CROC_2_PS1.DatVersion,
@@ -79,7 +79,7 @@ namespace ArgonautReverse.WadChunks.DPSX
 			// FIXME End of Croc 2 & Croc 2 Demo Dummy's level files aren't reversed yet
 			if(data_in.ReadVersion!=CROC_2_PS1.WadVersion && data_in.DatVersion!=CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
-				CheckSize(data_in);
+				data_in.AssertEndOfChunk(ChunkType);
 			}
 			return new DPSXChunk(models_3d, animations, actors, level_file, data_in.GetAllWadData());
 		}

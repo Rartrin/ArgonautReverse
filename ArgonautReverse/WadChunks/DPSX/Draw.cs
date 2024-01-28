@@ -1,5 +1,5 @@
 ﻿using ArgonautReverse.IO;
-using ArgonautReverse.LibGTE;
+using ArgonautReverse.PSX.LibGTE;
 
 namespace ArgonautReverse.WadChunks.DPSX
 {

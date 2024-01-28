@@ -1,4 +1,4 @@
-﻿namespace ArgonautReverse.LibGPU
+﻿namespace ArgonautReverse.PSX.LibGPU
 {
 	/* Flat Triangle */
 	public struct POLY_F3

@@ -1,6 +1,6 @@
 ﻿using ArgonautReverse.IO;
 
-namespace ArgonautReverse.LibGTE
+namespace ArgonautReverse.PSX.LibGTE
 {
 	public readonly struct MATRIX:IReadable<MATRIX>
 	{

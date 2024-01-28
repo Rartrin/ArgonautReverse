@@ -79,5 +79,9 @@ namespace ArgonautReverse
 				throw new Exception("Assertion failed");
 			}
 		}
+
+
+		public static float Deg2Rad(float degrees) => degrees * MathF.PI / 180f;
+		public static float Rad2Deg(float radians) => radians * 180f / MathF.PI;
 	}
 }

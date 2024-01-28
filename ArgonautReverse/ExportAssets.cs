@@ -175,7 +175,7 @@ namespace ArgonautReverse
 				parsedArgs.UnpackAudio,
 				parsedArgs.ExportLevels,
 			};
-			bool wads_parsing_needed =
+			bool wads_parsing_needed = true ||
 			(
 				parsedArgs.ExportTextures!=null ||
 				parsedArgs.ExportModels!=null ||

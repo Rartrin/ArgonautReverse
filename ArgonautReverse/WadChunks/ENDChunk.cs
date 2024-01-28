@@ -33,7 +33,7 @@ namespace ArgonautReverse.WadChunks
 					{
 						data_in.AbsolutePosition = 2048 * (int)Math.Ceiling(data_in.AbsolutePosition / 2048.0);
 					}
-					CheckSize(data_in);
+					data_in.AssertEndOfChunk(ChunkType);
 				}
 			}
 			return new ENDChunk(spsxChunk);

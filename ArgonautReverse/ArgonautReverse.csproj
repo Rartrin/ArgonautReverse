@@ -14,15 +14,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="GameFiles\CROCII\Raw\CROCII.DAT">
+    <None Update="GameFiles\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="GameFiles\CROCII\Raw\CROCII.DIR">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="GameFiles\DUMMY\Raw\DUMMY.DAT">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="GameFiles\Croc2PC\" />
+    <Folder Include="OpenStratEngine\" />
   </ItemGroup>
 
 </Project>

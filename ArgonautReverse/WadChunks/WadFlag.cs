@@ -1,5 +1,14 @@
 ﻿namespace ArgonautReverse.WadChunks
 {
+	public enum WadFileType:int
+	{
+		WAD_TYPE_INVALID = -1,
+		WAD_TYPE_LEVEL = 0,
+		WAD_TYPE_BOSS = 1,
+		WAD_TYPE_SECRET = 2,
+		WAD_TYPE_INTERFACE = 3,
+	}
+
 	[Flags]
 	public enum WadFlag:uint
 	{

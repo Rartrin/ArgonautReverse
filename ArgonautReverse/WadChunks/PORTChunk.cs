@@ -8,7 +8,7 @@ namespace ArgonautReverse.WadChunks
 	{
 		public static readonly PORTChunkInfo Instance = new PORTChunkInfo();
 
-		public override ChunkType ChunkType => ChunkType.ID_PORT;
+		public override ChunkType ChunkType => ChunkType.ID_PSX_PORT;
 		public override WadVersion[] SupportedWadVersions{get;} = new WadVersion[]{HARRY_POTTER_1_PS1.WadVersion, HARRY_POTTER_2_PS1.WadVersion};
 		public override string ChunkDescription => "chunk zone ids";
 
@@ -38,7 +38,7 @@ namespace ArgonautReverse.WadChunks
 					chunks_zones[i][v] = data_in.Read<short>();
 				}
 			}
-			CheckSize(data_in);
+			data_in.AssertEndOfChunk(ChunkType);
 			return new PORTChunk(idk1, chunks_zones, data_in.GetAllWadData());
 		}
 	}

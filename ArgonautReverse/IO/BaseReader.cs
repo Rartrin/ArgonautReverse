@@ -15,23 +15,23 @@ namespace ArgonautReverse.IO
 			Position += count;
 		}
 
-		public unsafe void Read<T>(out T value) where T : unmanaged, IBinaryInteger<T>
+		public unsafe void Read<T>(out T value) where T : unmanaged, IBinaryNumber<T>
 		{
 			ReadData(out value);
 		}
 
-		public unsafe T Read<T>() where T : unmanaged, IBinaryInteger<T>
+		public unsafe T Read<T>() where T : unmanaged, IBinaryNumber<T>
 		{
 			ReadData(out T ret);
 			return ret;
 		}
 
-		public unsafe void ReadArray<T>(Span<T> array) where T : unmanaged, IBinaryInteger<T>
+		public unsafe void ReadArray<T>(Span<T> array) where T : unmanaged, IBinaryNumber<T>
 		{
 			ReadData(array);
 		}
 
-		public unsafe T[] ReadArray<T>(int length) where T : unmanaged, IBinaryInteger<T>
+		public unsafe T[] ReadArray<T>(int length) where T : unmanaged, IBinaryNumber<T>
 		{
 			if(length == 0){return Array.Empty<T>();}
 
@@ -84,12 +84,25 @@ namespace ArgonautReverse.IO
 		//	return null;
 		//}
 
-		public void AssertRead<T>(T expected) where T : unmanaged, IBinaryInteger<T>
+		public void AssertRead<T>(T expected) where T : unmanaged, IBinaryNumber<T>
 		{
 			var value = Read<T>();
 			if(value != expected)
 			{
 				throw new Exception($"Expected {expected} but read {value}");
+			}
+		}
+
+		public unsafe void AssertEmptyReadData<T>(int elementCount) where T : unmanaged,IEquatable<T>
+		{
+			Span<T> data = stackalloc T[elementCount];
+			ReadData(data);
+			for(int i=0; i<data.Length; i++)
+			{
+				if(!data[i].Equals(default))
+				{
+					throw new Exception($"Data read is not empty");
+				}
 			}
 		}
 

@@ -1,7 +1,7 @@
 ﻿using System;
 using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
-using ArgonautReverse.LibGTE;
+using ArgonautReverse.PSX.LibGTE;
 using ArgonautReverse.WadChunks.SPSX;
 
 namespace ArgonautReverse.WadChunks.DPSX

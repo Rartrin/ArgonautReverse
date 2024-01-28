@@ -8,7 +8,7 @@ namespace ArgonautReverse.WadChunks.SPSX
 	{
 		public static readonly SPSXChunkInfo Instance = new SPSXChunkInfo();
 
-		public override ChunkType ChunkType => ChunkType.ID_SAMPLEPSX;
+		public override ChunkType ChunkType => ChunkType.ID_PSX_SAMPLE;
 		public override string ChunkDescription => "sound effects, background music & dialogues";
 		public override WadVersion[] SupportedWadVersions{get;} = new[]
 		{
@@ -118,7 +118,7 @@ namespace ArgonautReverse.WadChunks.SPSX
 				Utils.Assert(ambient_tracks_total_size == ambient_tracks.size);
 				ambient_tracks.parse_vags(data_in);
 			}
-			CheckSize(data_in);
+			data_in.AssertEndOfChunk(ChunkType);
 			return new SPSXChunk(spsx_flags, common_sfx, ambient_tracks, level_sfx_groups, level_sfx_mapping, idk1, idk2, dialogues_bgms);
 		}
 	}

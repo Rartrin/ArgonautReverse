@@ -4,8 +4,16 @@ using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
 using ArgonautReverse.WadChunks;
 using ArgonautReverse.WadChunks.DPSX;
+using ArgonautReverse.WadChunks.FONT;
+using ArgonautReverse.WadChunks.INFO;
+using ArgonautReverse.WadChunks.MAP;
 using ArgonautReverse.WadChunks.SPSX;
+using ArgonautReverse.WadChunks.STPC;
+using ArgonautReverse.WadChunks.TEXT;
 using ArgonautReverse.WadChunks.TPSX;
+using ArgonautReverse.WadChunks.TRAK;
+using ArgonautReverse.WadChunks.VERS;
+using ArgonautReverse.WadChunks.WFPC;
 
 namespace ArgonautReverse.Files
 {
@@ -15,12 +23,37 @@ namespace ArgonautReverse.Files
 
 		private static readonly Dictionary<ChunkType,BaseWADChunkInfo> chunkInfoLookup = new Dictionary<ChunkType, BaseWADChunkInfo>()
 		{
-			[ChunkType.ID_TEXTPSX] = TPSXChunkInfo.Instance,
-			[ChunkType.ID_SAMPLEPSX] = SPSXChunkInfo.Instance,
-			[ChunkType.ID_DATAPSX] = DPSXChunkInfo.Instance,
-			[ChunkType.ID_PORT] = PORTChunkInfo.Instance,
+			#region PC Chunks
+			[ChunkType.ID_PC_INFO] = INFOChunkInfo.Instance,
+			[ChunkType.ID_PC_VERSION] = VERSChunkInfo.Instance,
+			[ChunkType.ID_PC_MAP] = MAPChunkInfo.Instance,
+			[ChunkType.ID_PC_TRACK] = TRAKChunkInfo.Instance,
+			[ChunkType.ID_PC_TEXT] = TEXTChunkInfo.Instance,
+			//[ChunkType.ID_PC_LIGHT] = LGHTChunkInfo.Instance,
+			[ChunkType.ID_PC_STRAT] = STPCChunkInfo.Instance,
+			[ChunkType.ID_PC_WADFLAGS] = WFPCChunkInfo.Instance,
+
+			//[ChunkType.ID_PC_SAMPLE] = SMPCChunkInfo.Instance,
+			//[ChunkType.ID_PC_LANG] = LANGChunkInfo.Instance,
+
+			//[ChunkType.ID_PC_AMPC] = AMPCChunkInfo.Instance,
+			[ChunkType.ID_PC_FONT] = FONTChunkInfo.Instance,
+			//[ChunkType.ID_PC_SPRITE] = SPRTChunkInfo.Instance,
+			//[ChunkType.ID_PC_RIMG] = RIMGChunkInfo.Instance,
+			#endregion
+			#region PSX Chunks
+			[ChunkType.ID_PSX_TEXT] = TPSXChunkInfo.Instance,
+			[ChunkType.ID_PSX_SAMPLE] = SPSXChunkInfo.Instance,
+			[ChunkType.ID_PSX_DATA] = DPSXChunkInfo.Instance,
+			[ChunkType.ID_PSX_PORT] = PORTChunkInfo.Instance,
+			#endregion
+
+			#region Universal Chunks
 			[ChunkType.ID_END] = ENDChunkInfo.Instance,
+			#endregion
 		};
+
+		public T GetChunk<T>(ChunkType chunkType) where T:BaseWadChunk => (T)chunks[chunkType];
 
 		public override string Suffix => "WAD";
 
@@ -57,13 +90,13 @@ namespace ArgonautReverse.Files
 		}
 		// WAD Chunks
 
-		public TPSXChunk TPSX => this.chunks.GetValueOrDefault(ChunkType.ID_TEXTPSX) as TPSXChunk;
+		public TPSXChunk TPSX => this.chunks.GetValueOrDefault(ChunkType.ID_PSX_TEXT) as TPSXChunk;
 
-		public SPSXChunk SPSX => this.chunks.GetValueOrDefault(ChunkType.ID_SAMPLEPSX) as SPSXChunk;
+		public SPSXChunk SPSX => this.chunks.GetValueOrDefault(ChunkType.ID_PSX_SAMPLE) as SPSXChunk;
 
-		public DPSXChunk DPSX => this.chunks.GetValueOrDefault(ChunkType.ID_DATAPSX) as DPSXChunk;
+		public DPSXChunk DPSX => this.chunks.GetValueOrDefault(ChunkType.ID_PSX_DATA) as DPSXChunk;
 
-		public PORTChunk PORT => this.chunks.GetValueOrDefault(ChunkType.ID_PORT) as PORTChunk;
+		public PORTChunk PORT => this.chunks.GetValueOrDefault(ChunkType.ID_PSX_PORT) as PORTChunk;
 
 		public ENDChunk END => this.chunks.GetValueOrDefault(ChunkType.ID_END) as ENDChunk;
 
@@ -319,21 +352,50 @@ namespace ArgonautReverse.Files
 			
 			var wadDataLength = reader.Read<int>();
 
+			ChunkType prevChunk = ChunkType.Unknown;
 			ChunkType chunkType;
 			do
 			{
 				chunkType = (ChunkType)reader.Read<uint>();
+				if(!Enum.IsDefined(chunkType))
+				{
+					if(prevChunk == ChunkType.ID_PC_MAP)
+					{
+						reader.Position -= 8;
+						chunkType = (ChunkType)reader.Read<uint>();
+						var mapChunk = chunkLocations[^1];
+						chunkLocations[^1] = mapChunk with {dataLength = mapChunk.dataLength-4};
+					}
+					else
+					{
+						throw new Exception("Unknown chunk type");
+					}
+				}
+
 				var chunkDataLength = reader.Read<int>();
 
 				// Detects incorrect WADs like FESOUND or FETHUND
-				if (chunkLocations.Count == 0 & (chunkType != ChunkType.ID_TEXTPSX && chunkType != ChunkType.ID_CWAD))
+				if (chunkLocations.Count == 0)
 				{
-					throw new ChunkNameError(reader.Position, ChunkType.ID_TEXTPSX.ToString(), chunkType.ToString());
+					if(chunkType != ChunkType.ID_PC_INFO){}//Start of PC wads
+					else if(chunkType != ChunkType.ID_PSX_CWAD){}//Start of compressed PSX Wads
+					else if(chunkType != ChunkType.ID_PSX_TEXT){}//Start of uncompressed PSX Wads
+					else
+					{
+						throw new ChunkNameError(reader.Position, ChunkType.ID_PSX_TEXT.ToString(), chunkType.ToString());
+					}
 				}
+
+				//if(chunkType == ChunkType.ID_PC_MAP)
+				//{
+				//	chunkDataLength-=4;
+				//	//TODO: The size on the MAP chunk is sometimes wrong. Anyway to fix it before parsing?
+				//}
+
 				chunkLocations.Add((chunkType, reader.Position, chunkDataLength));
 				
-				
 				reader.Position += chunkDataLength;
+				prevChunk = chunkType;
 			}
 			while(chunkType!=ChunkType.ID_END);
 

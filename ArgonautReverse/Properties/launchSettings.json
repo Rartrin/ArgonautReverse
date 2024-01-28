@@ -26,6 +26,14 @@
     "Export DUMMY - Levels+Models+Textures": {
       "commandName": "Project",
       "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --psx-dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --export-levels \"GameFiles/DUMMY\" --export-textures \"GameFiles/DUMMY/Textures\" --export-models \"GameFiles/DUMMY/Models\" --no-confirm"
+    },
+    "Export Croc 2 PC": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 PC\" --wad-files \"GameFiles/Croc2PC\" --no-confirm"
+    },
+    "Export C2PC T1L1M001": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 PC\" --wad-files \"GameFiles/Croc2PC/T1L1M001.WAD\" --no-confirm"
     }
   }
 }

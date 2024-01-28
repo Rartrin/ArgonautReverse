@@ -1,8 +1,8 @@
 ﻿using System.Runtime.InteropServices;
 using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
-using ArgonautReverse.LibGPU;
-using ArgonautReverse.LibGTE;
+using ArgonautReverse.PSX.LibGPU;
+using ArgonautReverse.PSX.LibGTE;
 
 namespace ArgonautReverse.WadChunks.DPSX
 {

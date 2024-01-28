@@ -4,8 +4,9 @@ namespace ArgonautReverse.WadChunks
 {
 	public enum ChunkType:uint
 	{
+		Unknown = 0,
 		#region PC Chunks
-		ID_PC_INFO      = (('I' << 24) + ('N' << 16) + ('F' << 8) + 'O'),
+		ID_PC_INFO		= (('I' << 24) + ('N' << 16) + ('F' << 8) + 'O'),
 		ID_PC_VERSION	= (('V' << 24) + ('E' << 16) + ('R' << 8) + 'S'),
 		ID_PC_MAP		= (('M' << 24) + ('A' << 16) + ('P' << 8) + ' '),
 		ID_PC_TRACK		= (('T' << 24) + ('R' << 16) + ('A' << 8) + 'K'),
@@ -25,18 +26,18 @@ namespace ArgonautReverse.WadChunks
 
 		#region PSX Chunks
 		//CWAD indicated the wad is compressed
-		ID_CWAD         =(('C' << 24) + ('W' << 16) + ('A' << 8) + 'D'),
+		ID_PSX_CWAD		=(('C' << 24) + ('W' << 16) + ('A' << 8) + 'D'),
 
-		ID_TEXTPSX		=(('T' << 24) + ('P' << 16) + ('S' << 8) + 'X'),
-		ID_SAMPLEPSX	=(('S' << 24) + ('P' << 16) + ('S' << 8) + 'X'),
-		ID_DATAPSX		=(('D' << 24) + ('P' << 16) + ('S' << 8) + 'X'),
+		ID_PSX_TEXT		=(('T' << 24) + ('P' << 16) + ('S' << 8) + 'X'),
+		ID_PSX_SAMPLE	=(('S' << 24) + ('P' << 16) + ('S' << 8) + 'X'),
+		ID_PSX_DATA		=(('D' << 24) + ('P' << 16) + ('S' << 8) + 'X'),
 		
 		//Unknown Chunk
-		ID_PORT			=(('P' << 24) + ('O' << 16) + ('R' << 8) + 'T'),
+		ID_PSX_PORT		=(('P' << 24) + ('O' << 16) + ('R' << 8) + 'T'),
 		#endregion
 
 		#region Universal Chunks
-		ID_END          =(('E' << 24) + ('N' << 16) + ('D' << 8) + ' '),
+		ID_END			=(('E' << 24) + ('N' << 16) + ('D' << 8) + ' '),
 		#endregion
 	}
 
@@ -50,7 +51,7 @@ namespace ArgonautReverse.WadChunks
 			//Names are in reverse order
 			for(int i=0; i<4; i++)
 			{
-				retBytes[i-3] = typeBytes[i];
+				retBytes[3-i] = typeBytes[i];
 			}
 
 			return Encoding.ASCII.GetString(retBytes);

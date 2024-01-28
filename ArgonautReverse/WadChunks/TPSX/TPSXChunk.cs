@@ -1,4 +1,3 @@
-using System.Text;
 using ArgonautReverse.Engine;
 using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
@@ -17,7 +16,7 @@ namespace ArgonautReverse.WadChunks.TPSX
 	{
 		public static readonly TPSXChunkInfo Instance = new TPSXChunkInfo();
 
-		public override ChunkType ChunkType => ChunkType.ID_TEXTPSX;
+		public override ChunkType ChunkType => ChunkType.ID_PSX_TEXT;
 		public override WadVersion[] SupportedWadVersions => Configuration.PSX_PARSABLE_WADS;
 		public override string ChunkDescription => "textures";
 
@@ -75,7 +74,7 @@ namespace ArgonautReverse.WadChunks.TPSX
 			}
 			var texture_file = TextureFile.parse(data_in, compressed16bit, hasMemoryCardIcons);
 
-			CheckSize(data_in);
+			data_in.AssertEndOfChunk(ChunkType);
 			return new TPSXChunk(texture_file, titles, fontLookup, data_in.GetAllWadData());
 		}
 	}

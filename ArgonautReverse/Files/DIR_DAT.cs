@@ -38,7 +38,7 @@ namespace ArgonautReverse.Files
 			}
 			else if(File.Exists(inputPath))
 			{
-				if(Path.GetExtension(inputPath) == ".DIR")
+				if(string.Equals(Path.GetExtension(inputPath), ".DIR", StringComparison.OrdinalIgnoreCase))
 				{
 					dirPath = inputPath;
 					datPath = Path.ChangeExtension(inputPath, ".DAT");
@@ -96,7 +96,7 @@ namespace ArgonautReverse.Files
 						// WADs generally start with TPSbut can start with CWAD for compression
 						var chunkType = (ChunkType)datData.Read<uint>();
 						string suffix;
-						if(chunkType == ChunkType.ID_CWAD || chunkType == ChunkType.ID_TEXTPSX)
+						if(chunkType == ChunkType.ID_PSX_CWAD || chunkType == ChunkType.ID_PSX_TEXT)
 						{
 							suffix = ".WAD";
 						}

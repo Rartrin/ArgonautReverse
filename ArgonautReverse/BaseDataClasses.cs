@@ -11,24 +11,7 @@ namespace ArgonautReverse
 		public abstract string ChunkDescription{get;}
 		public abstract ChunkType ChunkType{get;}
 
-		public BaseWADChunkInfo(){}
-
-		public unsafe void CheckChunkType(WadReader data_in)
-		{
-			var readChunkType = (ChunkType)data_in.Read<uint>();
-			if(readChunkType != ChunkType)
-			{
-				throw new ChunkNameError(data_in.AbsolutePosition, ChunkType.ToString(), readChunkType.GetRawName());
-			}
-		}
-
-		public void CheckSize(WadReader reader)
-		{
-			if(reader.Remaining != 0)
-			{
-				throw new ChunkSizeMismatch(reader.AbsolutePosition, ChunkType.ToString(), reader.Remaining);
-			}
-		}
+		
 		public abstract BaseWadChunk Parse(WadReader data_in);
 	}
 
@@ -47,7 +30,6 @@ namespace ArgonautReverse
 			}
 		}
 
-	
 		public virtual void Serialize(Serializer data_out)
 		{
 			data_out.Write((uint)Info.ChunkType);
@@ -89,9 +71,10 @@ namespace ArgonautReverse
 			UnsuppportedType = unsuppportedType;
 		}
 
-		public override UnsupportedChunk Parse(WadReader data_in)
+		public override UnsupportedChunk Parse(WadReader reader)
 		{
-			return new UnsupportedChunk(this, data_in.GetAllWadData());
+			var data = reader.ReadArray<byte>(reader.Remaining);
+			return new UnsupportedChunk(this, data);
 		}
 	}
 
@@ -113,9 +96,10 @@ namespace ArgonautReverse
 			ChunkType = chunkType;
 		}
 
-		public override UnknownChunk Parse(WadReader data_in)
+		public override UnknownChunk Parse(WadReader reader)
 		{
-			return new UnknownChunk(this, data_in.GetAllWadData());
+			var data = reader.ReadArray<byte>(reader.Remaining);
+			return new UnknownChunk(this, data);
 		}
 	}
 
