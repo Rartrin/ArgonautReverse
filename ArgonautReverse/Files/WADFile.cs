@@ -2,22 +2,22 @@ using System.Text;
 using ArgonautReverse.Engine;
 using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
+using ArgonautReverse.PSX;
 using ArgonautReverse.WadChunks;
-using ArgonautReverse.WadChunks.DPSX;
-using ArgonautReverse.WadChunks.FONT;
-using ArgonautReverse.WadChunks.INFO;
-using ArgonautReverse.WadChunks.MAP;
-using ArgonautReverse.WadChunks.SPSX;
-using ArgonautReverse.WadChunks.STPC;
-using ArgonautReverse.WadChunks.TEXT;
-using ArgonautReverse.WadChunks.TPSX;
-using ArgonautReverse.WadChunks.TRAK;
-using ArgonautReverse.WadChunks.VERS;
-using ArgonautReverse.WadChunks.WFPC;
+using ArgonautReverse.WadChunks.PC;
+using ArgonautReverse.WadChunks.PSX;
 
 namespace ArgonautReverse.Files
 {
-	public class WADFile:DATFile
+	public enum WadFileType:int
+	{
+		WAD_TYPE_INVALID = -1,
+		WAD_TYPE_LEVEL = 0,
+		WAD_TYPE_BOSS = 1,
+		WAD_TYPE_SECRET = 2,
+		WAD_TYPE_INTERFACE = 3,
+	}
+    public class WADFile:DATFile
 	{
 		private readonly Dictionary<ChunkType,BaseWadChunk> chunks = new Dictionary<ChunkType,BaseWadChunk>();
 
@@ -104,7 +104,7 @@ namespace ArgonautReverse.Files
 
 		public IReadOnlyList<string> titles => this.TPSX?.Titles ?? Array.Empty<string>();
 
-		public IReadOnlyList<TextureData> textures => this.TPSX?.TextureFile?.Textures;
+		public IReadOnlyList<TextureDataPSX> textures => this.TPSX?.TextureFile?.Textures;
 
 		public int n_textures => this.TPSX?.TextureFile?.Textures?.Count ?? 0;
 
@@ -113,19 +113,19 @@ namespace ArgonautReverse.Files
 		public int n_sounds => this.SPSX?.n_sounds ?? 0;
 
 		// DPSX
-		public IReadOnlyList<Object3DData> models_3d => this.DPSX?.models_3d;
+		public IReadOnlyList<Object3DDataPSX> models_3d => this.DPSX?.models_3d;
 
 		public int n_models => this.DPSX?.models_3d.Count ?? 0;
 
-		public IReadOnlyList<AnimationData> animations => this.DPSX?.animations;
+		public IReadOnlyList<AnimationDataPSX> animations => this.DPSX?.animations;
 
 		public int n_animations => this.DPSX?.animations?.Count ?? 0;
 
-		public IReadOnlyList<ActorData> actors => this.DPSX?.actors;
+		public IReadOnlyList<ActorDataPSX> actors => this.DPSX?.actors;
 
 		public int n_scripts => this.DPSX?.actors?.Count ?? 0;
 
-		public ChunksMatrix chunks_matrix => this.DPSX?.level_file?.chunks_matrix;
+		public ChunksMatrixPSX chunks_matrix => this.DPSX?.level_file?.chunks_matrix;
 
 		public int n_filled_chunks => this.DPSX?.level_file?.chunks_matrix?.n_filled_chunks ?? 0;
 
@@ -234,7 +234,7 @@ namespace ArgonautReverse.Files
 
 			if(this.SPSX != null)
 			{
-				var mono_sounds = new Dictionary<string, IEnumerable<VAGSoundData>>()
+				var mono_sounds = new Dictionary<string, IEnumerable<VAGSoundDataPSX>>()
 				{
 					["effect"] = this.SPSX.common_sfx.vags,
 					["ambient"] = this.SPSX.ambient_tracks.vags,
@@ -256,7 +256,7 @@ namespace ArgonautReverse.Files
 				foreach(var sound in this.SPSX.dialogues_bgms.Sounds)
 				{
 					string filename;
-					if((((DialogueBGMSound)sound).flagsAndLoop&DialoguesBGMsSoundFlags.IS_BACKGROUND_MUSIC)!=0)
+					if((((DialogueBGMSoundPSX)sound).flagsAndLoop&DialoguesBGMsSoundFlagsPSX.IS_BACKGROUND_MUSIC)!=0)
 					{
 						filename = $"{wad_filename}_background_music_{bgm_index}";
 						bgm_index += 1;
@@ -267,7 +267,7 @@ namespace ArgonautReverse.Files
 						dialogue_index += 1;
 					}
 					var audio_bytes = (fmt == "VAG") ? sound.vag.to_vag() : new[]{sound.vag.to_wav(filename)};
-					if(fmt == "VAG" && audio_bytes.Length == VAGSoundData.STEREO)
+					if(fmt == "VAG" && audio_bytes.Length == VAGSoundDataPSX.STEREO)
 					{
 						File.WriteAllBytes(Path.Join(folder_path, $"{filename}_L.VAG"), audio_bytes[0]);
 						File.WriteAllBytes(Path.Join(folder_path, $"{filename}_R.VAG"), audio_bytes[1]);
@@ -301,7 +301,7 @@ namespace ArgonautReverse.Files
 			using(var obj_file = new StreamWriter(Path.Join(folder_path, (wad_filename + ".OBJ")), false, Encoding.ASCII))
 			{
 				var obj = new StringWriter();
-				obj.WriteLine(string.Format(Model3DData.mtl_header, wad_filename));
+				obj.WriteLine(string.Format(Model3DDataPSX.mtl_header, wad_filename));
 				int vio = 0;
 				int sub_chunk_id = 0;
 				foreach(var texture in this.textures)

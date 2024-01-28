@@ -1,13 +1,10 @@
 ﻿using ArgonautReverse.IO;
 using ArgonautReverse.WadChunks;
-using ArgonautReverse.WadChunks.DPSX;
-using ArgonautReverse.WadChunks.MAP;
-using ArgonautReverse.WadChunks.TRAK;
-using ArgonautReverse.WadChunks.WFPC;
+using ArgonautReverse.WadChunks.PC;
 
 namespace ArgonautReverse.PC
 {
-	public sealed class MapPiecePC//WorldCellInfo
+    public sealed class MapPiecePC//WorldCellInfo
 	{
 		public Vector3F Pos;
 		public float RotY;
@@ -197,7 +194,7 @@ namespace ArgonautReverse.PC
 		public IReadOnlyList<IReadOnlyList<Color32>> ColorArray;
 
 		public int PolygonArraysCount;
-		public IReadOnlyList<PolygonArray> PolygonArrays;
+		public IReadOnlyList<PolygonArrayPC> PolygonArrays;
 
 		public int MaxParticles;
 
@@ -299,7 +296,7 @@ namespace ArgonautReverse.PC
 			}
 			map.Positions = reader.ReadArray<RotPos3Fx>(map.NumPieces);
 			var modelIndices = reader.ReadArray<int>(map.NumPieces);
-			if((wadFlags & WadFlagsPC.WAD_FLAG_HAS_CHANGING_GEOMETRY) != 0)
+			if((wadFlags & WadFlagPC.WAD_FLAG_HAS_CHANGING_GEOMETRY) != 0)
 			{
 				var pieceCount = reader.Read<int>();
 				map.TrackChangeData = reader.ReadArray<TrackChange,MapPiecePC>(dataPos, pieceCount);
@@ -393,13 +390,13 @@ namespace ArgonautReverse.PC
 			}
 			map.MapStrats = mapStrats;
 
-			if((wadFlags & WadFlagsPC.WAD_FLAG_200000) != 0)
+			if((wadFlags & WadFlagPC.WAD_FLAG_200000) != 0)
 			{
 				map.PolygonArraysCount = reader.Read<int>();
-				map.PolygonArrays = reader.ReadArray<PolygonArray,WadFlagsPC>(wadFlags, map.PolygonArraysCount);
+				map.PolygonArrays = reader.ReadArray<PolygonArrayPC,WadFlagPC>(wadFlags, map.PolygonArraysCount);
 				//map.PolygonArraysCount--;
 			}
-			if((wadFlags & WadFlagsPC.WAD_FLAG_HAS_PARTICLES) != 0)
+			if((wadFlags & WadFlagPC.WAD_FLAG_HAS_PARTICLES) != 0)
 			{
 				map.MaxParticles = reader.Read<int>();
 			}

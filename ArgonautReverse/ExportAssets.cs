@@ -1,12 +1,10 @@
 using System.Drawing.Imaging;
 using ArgonautReverse.Files;
-using ArgonautReverse.WadChunks.DPSX;
-using ArgonautReverse.WadChunks.SPSX;
-using ArgonautReverse.WadChunks.TPSX;
+using ArgonautReverse.WadChunks.PSX;
 
 namespace ArgonautReverse
 {
-	public static class ExportAssets
+    public static class ExportAssets
 	{
 		public sealed class ProgramArgs
 		{

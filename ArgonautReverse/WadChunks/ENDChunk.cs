@@ -1,11 +1,12 @@
 using ArgonautReverse.Engine;
 using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
-using ArgonautReverse.WadChunks.SPSX;
+using ArgonautReverse.PSX;
+using ArgonautReverse.WadChunks.PSX;
 
 namespace ArgonautReverse.WadChunks
 {
-	public sealed class ENDChunkInfo:BaseWADChunkInfo
+    public sealed class ENDChunkInfo:BaseWADChunkInfo
 	{
 		public static readonly ENDChunkInfo Instance = new ENDChunkInfo();
 
@@ -21,7 +22,7 @@ namespace ArgonautReverse.WadChunks
 				//TODO: Implement sound for other games
 				if(data_in.Length != 0)
 				{
-					if((spsxChunk.spsx_flags&SPSXFlags.HAS_LEVEL_SFX)!=0)
+					if((spsxChunk.spsx_flags&SPSXFlagsPSX.HAS_LEVEL_SFX)!=0)
 					{
 						spsxChunk.level_sfx_groups.parse_vags(data_in);
 						spsxChunk.level_sfx_mapping.parse_mapping(spsxChunk.level_sfx_groups);
@@ -53,12 +54,12 @@ namespace ArgonautReverse.WadChunks
 			var start = base.SerializeHeader(data_out);
 			if(spsxChunk!=null)
 			{
-				if((this.spsxChunk.spsx_flags&SPSXFlags.HAS_LEVEL_SFX)!=0)
+				if((this.spsxChunk.spsx_flags&SPSXFlagsPSX.HAS_LEVEL_SFX)!=0)
 				{
 					this.spsxChunk.level_sfx_groups.serialize_vags(data_out);
 				}
 
-				if((this.spsxChunk.spsx_flags&SPSXFlags.HAS_COMMON_SFX_AND_DIALOGUES_BGMS)!=0)
+				if((this.spsxChunk.spsx_flags&SPSXFlagsPSX.HAS_COMMON_SFX_AND_DIALOGUES_BGMS)!=0)
 				{
 					Utils.PadOut2048Bytes(data_out);
 					this.spsxChunk.dialogues_bgms.serialize_vags(data_out);
