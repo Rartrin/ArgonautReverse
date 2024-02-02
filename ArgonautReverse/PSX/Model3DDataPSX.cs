@@ -44,10 +44,6 @@ namespace ArgonautReverse.PSX
 
 		public int n_vertices => header.n_vertices;
 
-		public int n_faces => header.n_faces;
-
-		public int n_bounding_box_info => header.n_bounding_box_info;
-
 		public static unsafe Model3DDataPSX Parse<FaceType>(WadReader data_in, Model3DHeaderPSX header, BaseObjectPSX<FaceType> obj, bool is_world_model_3d) where FaceType : IReadable<FaceType>
 		{
 			obj.ParseSetupData(data_in, is_world_model_3d);
@@ -365,7 +361,7 @@ namespace ArgonautReverse.PSX
 			{
 				//var rotation = animation[frame_id][i][.., 0..3];
 				//var translation = animation[frame_id][i].Translation;
-				var transform = animation[frame_id][i];
+				var transform = animation.Frames[frame_id][i];
 				vertices[i] = Data.vertices[i].Select(v => Vector3.Transform(v, transform)).ToArray();//np.add(this.vertices[i].dot(rotation), translation)
 				normals[i] = Data.normals[i].Select(v => Vector3.Transform(v, transform)).ToArray();//np.add(this.normals[i].dot(rotation), translation)
 			}

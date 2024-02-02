@@ -4,7 +4,7 @@ using ArgonautReverse.PC;
 
 namespace ArgonautReverse.WadChunks.PC
 {
-	public sealed class MAPChunkInfo:BaseWADChunkInfo
+    public sealed class MAPChunkInfo:BaseWADChunkInfo<MAPChunk>
 	{
 		public static MAPChunkInfo Instance = new MAPChunkInfo();
 

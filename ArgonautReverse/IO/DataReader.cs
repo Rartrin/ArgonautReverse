@@ -3,6 +3,7 @@
 	public class DataReader:BaseReader
 	{
 		public override int Position{get;set;} = 0;
+
 		[Obsolete]
 		public int AbsolutePosition
 		{

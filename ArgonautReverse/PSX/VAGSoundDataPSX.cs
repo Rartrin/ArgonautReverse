@@ -32,7 +32,7 @@ namespace ArgonautReverse.PSX
 			var bytes = (byte*)&value;
 			for(int i = 3; i >= 0; i--)
 			{
-				writer.WriteByte(bytes[i]);
+				writer.Write(bytes[i]);
 			}
 		}
 
@@ -60,7 +60,7 @@ namespace ArgonautReverse.PSX
 			);
 		}
 
-		public void serialize(Serializer data_out)
+		public void serialize(WadWriter data_out)
 		{
 			data_out.WriteBytes(data);
 		}
@@ -71,7 +71,7 @@ namespace ArgonautReverse.PSX
 			if(with_headers)
 			{
 				header = new byte[48];
-				using var headerStream = new BaseWriter(new MemoryStream(header));
+				using var headerStream = new IO.StreamWriter(new MemoryStream(header), 0, true);
 				headerStream.WriteBytes(vagpBytes);
 				headerStream.SkipBytes(8);//TODO: What is this?
 				WriteInt32BE(headerStream, size / n_channels);
@@ -79,8 +79,8 @@ namespace ArgonautReverse.PSX
 
 				//TODO: What is this data here for? This is 28 bytes in total.
 				headerStream.SkipBytes(10);
-				headerStream.WriteByte(1);
-				headerStream.WriteByte(0);
+				headerStream.Write<byte>(1);
+				headerStream.Write<byte>(0);
 				headerStream.WriteBytes(Encoding.ASCII.GetBytes("OverSurgeReverse"));
 			}
 			else
@@ -143,7 +143,7 @@ namespace ArgonautReverse.PSX
 
 			var total_wav_size = 44 + audio_data_size;
 			var ret = new byte[total_wav_size];
-			using(var headerStream = new BaseWriter(new MemoryStream(ret)))
+			using(var headerStream = new IO.StreamWriter(new MemoryStream(ret), 0, true))
 			{
 				//RIFF header
 				headerStream.WriteBytes(riffBytes);

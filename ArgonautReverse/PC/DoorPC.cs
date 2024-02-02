@@ -5,7 +5,7 @@ using ArgonautReverse.WadChunks.PC;
 
 namespace ArgonautReverse.PC
 {
-	public enum DoorFlags0:uint
+    public enum DoorFlags0:uint
 	{
 		DOOR0_1 = 0x1,
 		DOOR0_2 = 0x2,
@@ -29,6 +29,7 @@ namespace ArgonautReverse.PC
 		public DoorFlags1 ThisRotY;
 		public int Fade;
 
+		public int BackgroundOffset;
 		public StratObjectPC Background;
 		
 		public int BackgroundAddYRotation;
@@ -60,11 +61,11 @@ namespace ArgonautReverse.PC
 			door.GotoRotY = (DoorFlags0)reader.Read<uint>();
 			door.ThisRotY = (DoorFlags1)reader.Read<uint>();
 			door.Fade = reader.Read<int>();
-			int backgroundOffset = reader.Read<int>();
-			if(backgroundOffset != 0)
+			door.BackgroundOffset = reader.Read<int>();
+			if(door.BackgroundOffset != 0)
 			{
-				var stpcChunk = reader.WadFile.GetChunk<STPCChunk>(ChunkType.ID_PC_STRAT);
-				door.Background = stpcChunk.GetStratObject(backgroundOffset).model;
+				var stpcChunk = reader.WadFile.GetChunk(STPCChunkInfo.Instance);
+				door.Background = stpcChunk.GetStratObject(door.BackgroundOffset).model;
 			}
 			else
 			{

@@ -29,7 +29,7 @@ namespace ArgonautReverse.Files
 
 		public virtual void Parse(Configuration conf){}
 
-		public virtual void Serialize(Serializer data_out)
+		public virtual void Serialize(WadWriter data_out)
 		{
 			data_out.WriteBytes(this._data);
 		}

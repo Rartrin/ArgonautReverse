@@ -3,7 +3,7 @@ using ArgonautReverse.IO;
 
 namespace ArgonautReverse.WadChunks.PC
 {
-	public sealed class INFOChunkInfo:BaseWADChunkInfo
+    public sealed class INFOChunkInfo:BaseWADChunkInfo<INFOChunk>
 	{
 		public static readonly INFOChunkInfo Instance = new INFOChunkInfo();
 

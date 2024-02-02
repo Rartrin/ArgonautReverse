@@ -84,49 +84,63 @@ namespace ArgonautReverse
 
 		public static void ExportAssetsFromWad(WADFile wadFile, ProgramArgs args, Configuration conf)
 		{
-			if(TPSXChunkInfo.Instance.SupportedWadVersions.Intersect(conf.ReadVersion.WadVersions).Any())
+			switch(wadFile)
 			{
-				if(args.ExportTextures is string exportTextures)
+				case WadFilePSX wadFilePSX:
 				{
-					wadFile.TPSX.TextureFile.to_colorized_texture().Save(Path.Join(exportTextures, $"{wadFile.Stem}.PNG"), ImageFormat.Png);
-				}
-			}
+					if(TPSXChunkInfo.Instance.SupportedWadVersions.Intersect(conf.ReadVersion.WadVersions).Any())
+					{
+						if(args.ExportTextures is string exportTextures)
+						{
+							wadFilePSX.TPSX.TextureFile.to_colorized_texture().Save(Path.Join(exportTextures, $"{wadFilePSX.Stem}.PNG"), ImageFormat.Png);
+						}
+					}
 
-			if(SPSXChunkInfo.Instance.SupportedWadVersions.Intersect(conf.ReadVersion.WadVersions).Any())
-			{
-				if(args.ExportAudio is string exportAudio)
-				{
-					var wad_audio_export_folder_path = Path.Join(exportAudio, wadFile.Stem);
-					CreateExportDirectory(wad_audio_export_folder_path);
-					wadFile.export_audio_to_wav(wad_audio_export_folder_path, wadFile.Stem);
+					if(SPSXChunkInfo.Instance.SupportedWadVersions.Intersect(conf.ReadVersion.WadVersions).Any())
+					{
+						if(args.ExportAudio is string exportAudio)
+						{
+							var wad_audio_export_folder_path = Path.Join(exportAudio, wadFilePSX.Stem);
+							CreateExportDirectory(wad_audio_export_folder_path);
+							wadFilePSX.export_audio_to_wav(wad_audio_export_folder_path, wadFilePSX.Stem);
+						}
+						if(args.UnpackAudio is string unpackAudio)
+						{
+							var wad_audio_unpack_folder_path = Path.Join(unpackAudio, wadFilePSX.Stem);
+							CreateExportDirectory(wad_audio_unpack_folder_path);
+							wadFilePSX.export_audio_to_vag(wad_audio_unpack_folder_path, wadFilePSX.Stem);
+						}
+					}
+					if(DPSXChunkInfo.Instance.SupportedWadVersions.Intersect(conf.ReadVersion.WadVersions).Any())
+					{
+						if(args.ExportActors is string exportActors)
+						{
+							var wad_actors_folder_path = Path.Join(exportActors, wadFilePSX.Stem);
+							CreateExportDirectory(wad_actors_folder_path);
+							wadFilePSX.ExportActors(wad_actors_folder_path, wadFilePSX.Stem);
+						}
+						if(args.ExportModels is string exportModels)
+						{
+							var wad_models_3d_folder_path = Path.Join(exportModels, wadFilePSX.Stem);
+							CreateExportDirectory(wad_models_3d_folder_path);
+							wadFilePSX.export_experimental_models(wad_models_3d_folder_path, wadFilePSX.Stem);
+						}
+						if(args.ExportLevels is string exportLevels)
+						{
+							var wad_level_folder_path = Path.Join(exportLevels, wadFilePSX.Stem);
+							CreateExportDirectory(wad_level_folder_path);
+							wadFilePSX.export_level(wad_level_folder_path, wadFilePSX.Stem);
+						}
+					}
+					break;
 				}
-				if(args.UnpackAudio is string unpackAudio)
+				case WadFilePC wadFilePC:
 				{
-					var wad_audio_unpack_folder_path = Path.Join(unpackAudio, wadFile.Stem);
-					CreateExportDirectory(wad_audio_unpack_folder_path);
-					wadFile.export_audio_to_vag(wad_audio_unpack_folder_path, wadFile.Stem);
+					//TODO: Export assets
+					break;
 				}
-			}
-			if(DPSXChunkInfo.Instance.SupportedWadVersions.Intersect(conf.ReadVersion.WadVersions).Any())
-			{
-				if(args.ExportActors is string exportActors)
-				{
-					var wad_actors_folder_path = Path.Join(exportActors, wadFile.Stem);
-					CreateExportDirectory(wad_actors_folder_path);
-					wadFile.ExportActors(wad_actors_folder_path, wadFile.Stem);
-				}
-				if(args.ExportModels is string exportModels)
-				{
-					var wad_models_3d_folder_path = Path.Join(exportModels, wadFile.Stem);
-					CreateExportDirectory(wad_models_3d_folder_path);
-					wadFile.export_experimental_models(wad_models_3d_folder_path, wadFile.Stem);
-				}
-				if(args.ExportLevels is string exportLevels)
-				{
-					var wad_level_folder_path = Path.Join(exportLevels, wadFile.Stem);
-					CreateExportDirectory(wad_level_folder_path);
-					wadFile.export_level(wad_level_folder_path, wadFile.Stem);
-				}
+				default:
+					throw new Exception();
 			}
 		}
 

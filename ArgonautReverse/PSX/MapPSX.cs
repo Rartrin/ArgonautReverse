@@ -1,7 +1,6 @@
 ﻿using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
 using ArgonautReverse.PSX.LibGTE;
-using ArgonautReverse.WadChunks.PSX;
 
 namespace ArgonautReverse.PSX
 {
@@ -78,51 +77,51 @@ namespace ArgonautReverse.PSX
 		}
 	}
 
-	public sealed class WaypointPSX
+	public sealed class WaypointPSX:IReadable<WaypointPSX>
 	{
 		public const int ByteSize = 12 + POS.ByteSize;//36
 
 		public WaypointPSX Next{get;private set;}
+		public int NextRawValue;
+
 		public WaypointPSX Prev{get;private set;}
+		public int PrevRawValue;
+
 		public POS Position{get;private set;}
 		public int Value{get;private set;}
 
 		private WaypointPSX(){}
 
+		public static WaypointPSX Parse(WadReader reader)
+		{
+			var waypoint = new WaypointPSX();
+			waypoint.NextRawValue = reader.Read<int>();
+			reader.AssertRead<uint>(0);//waypoint.PrevRawValue
+			waypoint.Position = reader.Read<POS>();
+			waypoint.Value = reader.Read<int>();
+			return waypoint;
+		}
+
 		public static IReadOnlyList<WaypointPSX> ParseWaypointList(WadReader parser, int waypointCount)
 		{
-			var list = new WaypointPSX[waypointCount];
-			for(int i = 0; i < waypointCount; i++)
-			{
-				list[i] = new WaypointPSX();
-			}
+			var waypoints = parser.ReadArray<WaypointPSX>(waypointCount);
 
 			for(int i = 0; i < waypointCount; i++)
 			{
-				var waypoint = list[i];
+				var waypoint = waypoints[i];
 
 				//Sometimes this will be the index of the next value, but not always
-				var nextValue = parser.Read<int>();
-				if(nextValue == 0)
+				if(waypoint.NextRawValue == 0)
 				{
 					waypoint.Next = null;
 				}
 				else
 				{
-					waypoint.Next = list[i + 1];
+					waypoint.Next = waypoints[i + 1];
 					waypoint.Next.Prev = waypoint;
 				}
-
-				var prevValue = parser.Read<int>();
-				if(prevValue != 0)
-				{
-					throw new Exception("Prev reference was set");
-				}
-
-				waypoint.Position = parser.Read<POS>();
-				waypoint.Value = parser.Read<int>();
 			}
-			return list;
+			return waypoints;
 		}
 	}
 
@@ -382,7 +381,7 @@ namespace ArgonautReverse.PSX
 		{
 			//Params are stored before the map
 			var mapParamCount = data_in.Read<int>();
-			var mapParams = data_in.ReadInt32Array(mapParamCount);
+			var mapParams = data_in.ReadArray<int>(mapParamCount);
 
 			var map = ParseStruct(data_in);
 			map.Params = mapParams;
@@ -552,8 +551,8 @@ namespace ArgonautReverse.PSX
 					{
 						//TODO: This appears to be in the wrong order compared to any of my versions
 
-						var sub_chunks_n_lighting = data_in.ReadUInt32Array(map.NumberOfPieces);
-						var sub_chunks_n_add_lighting = data_in.ReadUInt32Array(map.NumberOfOtherPieces.Value);
+						var sub_chunks_n_lighting = data_in.ReadArray<uint>(map.NumberOfPieces);
+						var sub_chunks_n_add_lighting = data_in.ReadArray<uint>(map.NumberOfOtherPieces.Value);
 
 
 						for(int model_id = 0; model_id < map.NumberOfPieces; model_id++)
@@ -588,7 +587,11 @@ namespace ArgonautReverse.PSX
 							{
 								data_in.SkipBytes(-4);
 							}
-							var idk4 = data_in.ReadArrayOfByteArrays(40, n_idk3);//var idk3 = [int.from_bytes(data_in.read(40), "little") for _ in range(n_idk3)]
+							var idk4 = new byte[n_idk3][];//var idk3 = [int.from_bytes(data_in.read(40), "little") for _ in range(n_idk3)]
+							for(int i=0; i<n_idk3; i++)
+							{
+								idk4[i] = data_in.ReadArray<byte>(40);
+							}
 						}
 						data_in.SkipBytes(12);
 					}
@@ -597,7 +600,7 @@ namespace ArgonautReverse.PSX
 
 			if(data_in.WadFile.Stem == "01507800")
 			{
-
+				//TODO: Remove test block
 			}
 			if((wadFlag & WadFlagPSX.WF_MAP_PRELIT) != 0)
 			{

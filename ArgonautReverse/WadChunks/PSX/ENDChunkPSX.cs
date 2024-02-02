@@ -1,23 +1,21 @@
-using ArgonautReverse.Engine;
+﻿using ArgonautReverse.Engine;
 using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
 using ArgonautReverse.PSX;
-using ArgonautReverse.WadChunks.PSX;
 
-namespace ArgonautReverse.WadChunks
+namespace ArgonautReverse.WadChunks.PSX
 {
-	public sealed class ENDChunkInfo:BaseWADChunkInfo
+    public sealed class ENDChunkInfoPSX:BaseWADChunkInfo<ENDChunkPSX>
 	{
-		public static readonly ENDChunkInfo Instance = new ENDChunkInfo();
+		public static ENDChunkInfoPSX Instance{get;} = new ENDChunkInfoPSX();
 
 		public override ChunkType ChunkType => ChunkType.ID_END;
 		public override string ChunkDescription => "END but sometimes includes sound effects, background music, and dialogues";
-		public override WadVersion[] SupportedWadVersions{get;} = Configuration.ALL_PARSABLE_WADS;//new[]{HARRY_POTTER_1_PS1.Instance, HARRY_POTTER_2_PS1.Instance};
+		public override WadVersion[] SupportedWadVersions{get;} = Configuration.PSX_PARSABLE_WADS;//new[]{HARRY_POTTER_1_PS1.Instance, HARRY_POTTER_2_PS1.Instance};
 
-		public override ENDChunk Parse(WadReader data_in)
+		public override ENDChunkPSX Parse(WadReader data_in)
 		{
-			var spsxChunk = data_in.WadFile.SPSX;
-			if(spsxChunk != null)
+			if(data_in.WadFile.GetChunk(SPSXChunkInfo.Instance) is SPSXChunk spsxChunk)
 			{
 				//TODO: Implement sound for other games
 				if(data_in.Length != 0)
@@ -36,20 +34,21 @@ namespace ArgonautReverse.WadChunks
 					}
 					data_in.AssertEndOfChunk(ChunkType);
 				}
+				return new ENDChunkPSX(spsxChunk ?? null);
 			}
-			return new ENDChunk(spsxChunk);
+			return new ENDChunkPSX(null);
 		}
 	}
-	public sealed class ENDChunk:BaseWadChunk
+	public sealed class ENDChunkPSX:BaseWadChunk
 	{
 		public readonly SPSXChunk spsxChunk;
 
-		public ENDChunk(SPSXChunk spsxChunk):base(ENDChunkInfo.Instance)
+		public ENDChunkPSX(SPSXChunk spsxChunk):base(ENDChunkInfoPSX.Instance)
 		{
 			this.spsxChunk = spsxChunk;
 		}
 		
-		public override void Serialize(Serializer data_out)
+		public override void Serialize(WadWriter data_out)
 		{
 			var start = base.SerializeHeader(data_out);
 			if(spsxChunk!=null)

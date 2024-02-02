@@ -15,7 +15,7 @@ namespace ArgonautReverse.PSX
 
 		public IEnumerable<VAGSoundDataPSX> vags => Sounds.Select(sound => sound.vag);
 
-		public virtual void serialize(Serializer data_out)
+		public virtual void serialize(WadWriter data_out)
 		{
 			foreach(var sound in Sounds)
 			{
@@ -31,7 +31,7 @@ namespace ArgonautReverse.PSX
 			}
 		}
 
-		public void serialize_vags(Serializer data_out)
+		public void serialize_vags(WadWriter data_out)
 		{
 			foreach(var sound in Sounds)
 			{
@@ -69,8 +69,8 @@ namespace ArgonautReverse.PSX
 			return new LevelSFXGroupContainerPSX(Array.Empty<SoundPSX>(), n_sound_effects);
 		}
 
-		public override void serialize(Serializer data_out) => throw new Exception();
-		public void serialize(Serializer data_out, int group_header_offset, int end_offset)
+		public override void serialize(WadWriter data_out) => throw new Exception();
+		public void serialize(WadWriter data_out, int group_header_offset, int end_offset)
 		{
 			data_out.WriteInt32(group_header_offset);
 			data_out.WriteInt32(Sounds.Count);
@@ -87,7 +87,7 @@ namespace ArgonautReverse.PSX
 			_n_sound_effects = null;
 		}
 
-		public void serialize_children(Serializer data_out)
+		public void serialize_children(WadWriter data_out)
 		{
 			foreach(var sound in Sounds)
 			{
@@ -112,7 +112,7 @@ namespace ArgonautReverse.PSX
 
 		public IEnumerable<VAGSoundDataPSX> vags => Groups.SelectMany(group => group.Sounds.Select(sound => sound.vag));
 
-		public void serialize(Serializer data_out)
+		public void serialize(WadWriter data_out)
 		{
 			int group_header_offset = 0;
 			int end_offset = 0;
@@ -143,7 +143,7 @@ namespace ArgonautReverse.PSX
 				group.parse_vags(data_in);
 			}
 		}
-		public void serialize_vags(Serializer data_out)
+		public void serialize_vags(WadWriter data_out)
 		{
 			foreach(var group in Groups)
 			{
@@ -166,7 +166,7 @@ namespace ArgonautReverse.PSX
 			}
 		}
 
-		public override void serialize(Serializer data_out)
+		public override void serialize(WadWriter data_out)
 		{
 			int end_section_offset = 0;
 			foreach(var sound in Sounds)

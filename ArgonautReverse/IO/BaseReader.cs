@@ -95,6 +95,8 @@ namespace ArgonautReverse.IO
 
 		public unsafe void AssertEmptyReadData<T>(int elementCount) where T : unmanaged,IEquatable<T>
 		{
+			if(elementCount == 0){return;}
+
 			Span<T> data = stackalloc T[elementCount];
 			ReadData(data);
 			for(int i=0; i<data.Length; i++)
@@ -104,20 +106,6 @@ namespace ArgonautReverse.IO
 					throw new Exception($"Data read is not empty");
 				}
 			}
-		}
-
-		public unsafe uint[] ReadUInt32Array(int length) => ReadArray<uint>(length);
-
-		public unsafe int[] ReadInt32Array(int length) => ReadArray<int>(length);
-
-		public unsafe byte[][] ReadArrayOfByteArrays(int byteCount, int arrayCount)
-		{
-			var ret = new byte[arrayCount][];
-			for (int i = 0; i < arrayCount; i++)
-			{
-				ret[i] = ReadArray<byte>(byteCount);
-			}
-			return ret;
 		}
 	}
 }

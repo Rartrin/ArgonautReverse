@@ -1,6 +1,8 @@
-﻿namespace ArgonautReverse.PC
+﻿using ArgonautReverse.Universal;
+
+namespace ArgonautReverse.PC
 {
-	public sealed class PCCameraStackEntry
+    public sealed class PCCameraStackEntry
 	{
 		public StratEntityPC target;
 		public StratEntityPC camera;

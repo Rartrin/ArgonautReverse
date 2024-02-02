@@ -3,7 +3,7 @@ using ArgonautReverse.IO;
 
 namespace ArgonautReverse.WadChunks.PC
 {
-	public sealed class VERSChunkInfo:BaseWADChunkInfo
+    public sealed class VERSChunkInfo:BaseWADChunkInfo<VERSChunk>
 	{
 		public static readonly VERSChunkInfo Instance = new VERSChunkInfo();
 

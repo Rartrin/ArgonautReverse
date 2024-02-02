@@ -1,4 +1,4 @@
-﻿using ArgonautReverse.OpenStratEngine;
+﻿using ArgonautReverse.Universal;
 
 namespace ArgonautReverse.PC
 {

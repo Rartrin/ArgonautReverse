@@ -9,7 +9,7 @@ using ArgonautReverse.WadChunks.PSX;
 
 namespace ArgonautReverse.Files
 {
-	public enum WadFileType:int
+    public enum WadFileType:int
 	{
 		WAD_TYPE_INVALID = -1,
 		WAD_TYPE_LEVEL = 0,
@@ -17,51 +17,315 @@ namespace ArgonautReverse.Files
 		WAD_TYPE_SECRET = 2,
 		WAD_TYPE_INTERFACE = 3,
 	}
-	public class WADFile:DATFile
+	public abstract class WADFile:DATFile
 	{
-		private readonly Dictionary<ChunkType,BaseWadChunk> chunks = new Dictionary<ChunkType,BaseWadChunk>();
-
-		private static readonly Dictionary<ChunkType,BaseWADChunkInfo> chunkInfoLookup = new Dictionary<ChunkType, BaseWADChunkInfo>()
-		{
-			#region PC Chunks
-			[ChunkType.ID_PC_INFO] = INFOChunkInfo.Instance,
-			[ChunkType.ID_PC_VERSION] = VERSChunkInfo.Instance,
-			[ChunkType.ID_PC_MAP] = MAPChunkInfo.Instance,
-			[ChunkType.ID_PC_TRACK] = TRAKChunkInfo.Instance,
-			[ChunkType.ID_PC_TEXT] = TEXTChunkInfo.Instance,
-			//[ChunkType.ID_PC_LIGHT] = LGHTChunkInfo.Instance,
-			[ChunkType.ID_PC_STRAT] = STPCChunkInfo.Instance,
-			[ChunkType.ID_PC_WADFLAGS] = WFPCChunkInfo.Instance,
-
-			//[ChunkType.ID_PC_SAMPLE] = SMPCChunkInfo.Instance,
-			//[ChunkType.ID_PC_LANG] = LANGChunkInfo.Instance,
-
-			//[ChunkType.ID_PC_AMPC] = AMPCChunkInfo.Instance,
-			[ChunkType.ID_PC_FONT] = FONTChunkInfo.Instance,
-			//[ChunkType.ID_PC_SPRITE] = SPRTChunkInfo.Instance,
-			//[ChunkType.ID_PC_RIMG] = RIMGChunkInfo.Instance,
-			#endregion
-			#region PSX Chunks
-			[ChunkType.ID_PSX_TEXT] = TPSXChunkInfo.Instance,
-			[ChunkType.ID_PSX_SAMPLE] = SPSXChunkInfo.Instance,
-			[ChunkType.ID_PSX_DATA] = DPSXChunkInfo.Instance,
-			[ChunkType.ID_PSX_PORT] = PORTChunkInfo.Instance,
-			#endregion
-
-			#region Universal Chunks
-			[ChunkType.ID_END] = ENDChunkInfo.Instance,
-			#endregion
-		};
-
-		public T GetChunk<T>(ChunkType chunkType) where T:BaseWadChunk => (T)chunks[chunkType];
+		private readonly List<BaseWadChunk> chunks = new List<BaseWadChunk>();
 
 		public override string Suffix => "WAD";
 
 		public WadVersion Version{get;}
 
+		public static WADFile Create(DatVersion datVerion, WadVersion wadVersion, string stem, byte[] data) => datVerion.Platform switch
+		{
+			Platform.PC => new WadFilePC(wadVersion, stem, data),
+			Platform.PSX => new WadFilePSX(wadVersion, stem, data),
+			_ => throw new NotImplementedException($"Platform not implemented: {datVerion.Platform}"),
+		};
+
 		public WADFile(WadVersion version, string stem, byte[] data):base(stem, data)
 		{
 			Version = version;
+		}
+		
+		public abstract bool TryGetChunkInfo(ChunkType chunkType, out BaseWADChunkInfo info);
+		
+		public abstract void AddChunk(BaseWadChunk chunk);
+
+		public abstract T GetChunk<T>(BaseWADChunkInfo<T> info) where T:BaseWadChunk;
+
+		private sealed class ChunkLocation
+		{
+			public BaseWADChunkInfo Info;
+			public int DataStart;
+			public int DataLength;
+
+			public ChunkLocation(BaseWADChunkInfo info, int dataStart, int dataLength)
+			{
+				Info = info;
+				DataStart = dataStart;
+				DataLength = dataLength;
+			}
+		}
+
+		private unsafe IEnumerable<ChunkLocation> LocateChunks(WadReader reader)
+		{
+			var chunkLocations = new List<ChunkLocation>();
+			
+			var wadDataLength = reader.Read<int>();
+
+			ChunkType prevChunk = ChunkType.Unknown;
+			ChunkType chunkType;
+			do
+			{
+				chunkType = (ChunkType)reader.Read<uint>();
+
+				if(!Enum.IsDefined(chunkType))
+				{
+					//The size on the MAP chunk is sometimes off by 4 bytes.
+					//If we don't recognize the current chunk type and the last chunk was a map, reduce its length and then try again
+					//TODO: Any better way to handle MAP size programatically?
+					if(prevChunk == ChunkType.ID_PC_MAP)
+					{
+						reader.Position -= 8;
+						chunkType = (ChunkType)reader.Read<uint>();
+						if(!Enum.IsDefined(chunkType))
+						{
+							throw new Exception("Map chunk's size is offset more than normal");
+						}
+						chunkLocations[^1].DataLength -= 4;
+					}
+					else
+					{
+						throw new Exception("Unknown chunk type");
+					}
+				}
+
+				var chunkDataLength = reader.Read<int>();
+
+				// Detects incorrect WADs like FESOUND or FETHUND
+				if (chunkLocations.Count == 0)
+				{
+					switch(chunkType)
+					{
+						case ChunkType.ID_PC_INFO://Start of PC wads
+						case ChunkType.ID_PSX_CWAD://Start of compressed PSX Wads
+						case ChunkType.ID_PSX_TEXT://Start of uncompressed PSX Wads
+							break;
+						default:
+							throw new Exception($"Wad starts with unsupported chunk type {chunkType} at file position 0x{reader.Position:X8}");
+					}
+				}
+
+				if(!TryGetChunkInfo(chunkType, out var chunkInfo))
+				{
+					Console.WriteLine($"Unknown Chunk: {chunkType.GetRawName()}");
+					chunkInfo = new UnknownChunkInfo(chunkType);
+				}
+				else if(!chunkInfo.SupportedWadVersions.Contains(reader.ReadVersion))
+				{
+					Console.WriteLine($"Unsupported Chunk: {chunkType}");
+					chunkInfo = new UnsupportedChunkInfo(chunkInfo);
+				}
+
+				chunkLocations.Add(new ChunkLocation(chunkInfo, reader.Position, chunkDataLength));
+				
+				reader.Position += chunkDataLength;
+				prevChunk = chunkType;
+			}
+			while(chunkType!=ChunkType.ID_END);
+
+			if(reader.Remaining != 0)
+			{
+				Console.WriteLine($"Wad file has {reader.Remaining} unread bytes following END chunk.");
+			}
+			return chunkLocations;
+		}
+
+		public override unsafe void Parse(Configuration conf)
+		{
+			var data_in = new WadReader(this, conf, conf.ReadVersion.GetWadVersion(Stem), this._data);
+			
+			var chunkLocations = LocateChunks(data_in);
+
+			var chunkTypesRead = new HashSet<ChunkType>();
+			this.chunks.Clear();
+			foreach(var chunkLocation in chunkLocations)
+			{
+				data_in.Position = chunkLocation.DataStart;
+				var chunkReader = data_in.ReadChunk(chunkLocation.DataLength);
+				{
+					if(!chunkTypesRead.Add(chunkLocation.Info.ChunkType))
+					{
+						throw new Exception($"Chunk {chunkLocation.Info.ChunkType} already read");
+					}
+					var chunk = chunkLocation.Info.Parse(chunkReader);
+					this.AddChunk(chunk);
+					this.chunks.Add(chunk);
+					if(chunkReader.Remaining != 0)
+					{
+						Console.WriteLine($"WARNING: There were {chunkReader.Remaining} bytes of unparsed data in {chunkLocation.Info.ChunkType}!");
+					}
+				}
+			}
+		}
+		public override void Serialize(WadWriter data_out)
+		{
+			var wad_size_offset = data_out.Position;
+
+			//TODO: Understand data
+			data_out.Write<uint>(0);//Placeholder for total data size
+			foreach(var chunk in this.chunks)
+			{
+				chunk.Serialize(data_out);
+			}
+			var end_offset = data_out.Position;
+			var wad_size = end_offset - wad_size_offset;
+			if(data_out.WriteVersion==CROC_2_PS1.WadVersion || data_out.WriteVersion==HARRY_POTTER_1_PS1.WadVersion || data_out.WriteVersion==HARRY_POTTER_2_PS1.WadVersion)
+			{
+				wad_size += 2048;
+			}
+			data_out.Position += wad_size_offset;
+			data_out.WriteInt32(wad_size);
+			data_out.Position += end_offset;
+		}
+	}
+
+	public sealed class WadFilePC:WADFile
+	{
+		public INFOChunk InfoChunk{get;private set;}
+		public VERSChunk VersionChunk{get;private set;}
+		public MAPChunk MapChunk{get;private set;}
+		public TRAKChunk TrackChunk{get;private set;}
+		public TEXTChunk TextChunk{get;private set;}
+		//public LGHTChunk LightChunk{get;private set;}
+		public STPCChunk StratChunk{get;private set;}
+		public WFPCChunk WadflagsChunk{get;private set;}
+		//public SMPCChunk SampleChunk{get;private set;}
+		//public LANGChunk LanguageChunk{get;private set;}
+		//public AMPCChunk AMPCChunk{get;private set;}
+		public FONTChunk FontChunk{get;private set;}
+		//public SPRTChunk SpriteChunk{get;private set;}
+		//public RIMGChunk RIMGChunk{get;private set;}
+		public ENDChunkPC EndChunk{get;private set;}
+
+		public WadFilePC(WadVersion version, string stem, byte[] data) : base(version, stem, data){}
+
+		public override bool TryGetChunkInfo(ChunkType chunkType, out BaseWADChunkInfo info)
+		{
+			info = chunkType switch
+			{
+				ChunkType.ID_PC_INFO => INFOChunkInfo.Instance,
+				ChunkType.ID_PC_VERSION => VERSChunkInfo.Instance,
+				ChunkType.ID_PC_MAP => MAPChunkInfo.Instance,
+				ChunkType.ID_PC_TRACK => TRAKChunkInfo.Instance,
+				ChunkType.ID_PC_TEXT => TEXTChunkInfo.Instance,
+				//ChunkType.ID_PC_LIGHT => LGHTChunkInfo.Instance,
+				ChunkType.ID_PC_STRAT => STPCChunkInfo.Instance,
+				ChunkType.ID_PC_WADFLAGS => WFPCChunkInfo.Instance,
+
+				//ChunkType.ID_PC_SAMPLE => SMPCChunkInfo.Instance,
+				//ChunkType.ID_PC_LANG => LANGChunkInfo.Instance,
+
+				//ChunkType.ID_PC_AMPC => AMPCChunkInfo.Instance,
+				ChunkType.ID_PC_FONT => FONTChunkInfo.Instance,
+				//ChunkType.ID_PC_SPRITE => SPRTChunkInfo.Instance,
+				//ChunkType.ID_PC_RIMG => RIMGChunkInfo.Instance,
+
+				ChunkType.ID_END => ENDChunkPCInfo.Instance,
+				_ => null
+			};
+			return info != null;
+		}
+		public override T GetChunk<T>(BaseWADChunkInfo<T> info)
+		{
+			return (T)(BaseWadChunk)(info.ChunkType switch
+			{
+				ChunkType.ID_PC_INFO => InfoChunk,
+				ChunkType.ID_PC_VERSION => VersionChunk,
+				ChunkType.ID_PC_MAP => MapChunk,
+				ChunkType.ID_PC_TRACK => TrackChunk,
+				ChunkType.ID_PC_TEXT => TextChunk,
+				//ChunkType.ID_PC_LIGHT => LightChunk,
+				ChunkType.ID_PC_STRAT => StratChunk,
+				ChunkType.ID_PC_WADFLAGS => WadflagsChunk,
+
+				//ChunkType.ID_PC_SAMPLE => SampleChunk,
+				//ChunkType.ID_PC_LANG => LanguageChunk,
+
+				//ChunkType.ID_PC_AMPC => AMPCChunk,
+				ChunkType.ID_PC_FONT => FontChunk,
+				//ChunkType.ID_PC_SPRITE => SpriteChunk,
+				//ChunkType.ID_PC_RIMG => RIMGChunk,
+
+				ChunkType.ID_END => EndChunk,
+				_ => throw new Exception($"Unknown type: {info.ChunkType}")
+			});
+		}
+
+		public override void AddChunk(BaseWadChunk chunk)
+		{
+			switch(chunk.Info.ChunkType)
+			{
+				case ChunkType.ID_PC_INFO:InfoChunk = (INFOChunk)chunk;break;
+				case ChunkType.ID_PC_VERSION:VersionChunk = (VERSChunk)chunk;break;
+				case ChunkType.ID_PC_MAP:MapChunk = (MAPChunk)chunk;break;
+				case ChunkType.ID_PC_TRACK:TrackChunk = (TRAKChunk)chunk;break;
+				case ChunkType.ID_PC_TEXT:TextChunk = (TEXTChunk)chunk;break;
+				//case ChunkType.ID_PC_LIGHT:LightChunk = (LGHTChunk)chunk;break;
+				case ChunkType.ID_PC_STRAT:StratChunk = (STPCChunk)chunk;break;
+				case ChunkType.ID_PC_WADFLAGS:WadflagsChunk = (WFPCChunk)chunk;break;
+
+				//case ChunkType.ID_PC_SAMPLE:SampleChunk = (SMPCChunk)chunk;break;
+				//case ChunkType.ID_PC_LANG:LanguageChunk = (LANGChunk)chunk;break;
+
+				//case ChunkType.ID_PC_AMPC:AMPCChunk = (AMPCChunk)chunk;break;
+				case ChunkType.ID_PC_FONT:FontChunk = (FONTChunk)chunk;break;
+				//case ChunkType.ID_PC_SPRITE:SpriteChunk = (SPRTChunk)chunk;break;
+				//case ChunkType.ID_PC_RIMG:RIMGChunk = (RIMGChunk)chunk;break;
+
+				case ChunkType.ID_END:EndChunk = (ENDChunkPC)chunk;break;
+				//default:throw new Exception("Unsupported chunk for platform");
+			}
+		}
+	}
+
+	public sealed class WadFilePSX:WADFile
+	{
+		public TPSXChunk TPSX{get;private set;}
+		public SPSXChunk SPSX{get;private set;}
+		public DPSXChunk DPSX{get;private set;}
+		public PORTChunk PORT{get;private set;}
+		public ENDChunkPSX END{get;private set;}
+
+		public WadFilePSX(WadVersion version, string stem, byte[] data) : base(version, stem, data){}
+
+		public override bool TryGetChunkInfo(ChunkType chunkType, out BaseWADChunkInfo info)
+		{
+			info = chunkType switch
+			{
+				ChunkType.ID_PSX_TEXT => TPSXChunkInfo.Instance,
+				ChunkType.ID_PSX_SAMPLE => SPSXChunkInfo.Instance,
+				ChunkType.ID_PSX_DATA => DPSXChunkInfo.Instance,
+				ChunkType.ID_PSX_PORT => PORTChunkInfo.Instance,
+
+				ChunkType.ID_END => ENDChunkInfoPSX.Instance,
+				_ => null
+			};
+			return info != null;
+		}
+		public override T GetChunk<T>(BaseWADChunkInfo<T> info)
+		{
+			return (T)(BaseWadChunk)(info.ChunkType switch
+			{
+				ChunkType.ID_PSX_TEXT => TPSX,
+				ChunkType.ID_PSX_SAMPLE => SPSX,
+				ChunkType.ID_PSX_DATA => DPSX,
+				ChunkType.ID_PSX_PORT => PORT,
+
+				ChunkType.ID_END => END,
+				_ => throw new Exception($"Unknown type: {info.ChunkType}")
+			});
+		}
+		public override void AddChunk(BaseWadChunk chunk)
+		{
+			switch(chunk.Info.ChunkType)
+			{
+				case ChunkType.ID_PSX_DATA:DPSX = (DPSXChunk)chunk;break;
+				case ChunkType.ID_PSX_SAMPLE:SPSX = (SPSXChunk)chunk;break;
+				case ChunkType.ID_PSX_TEXT:TPSX = (TPSXChunk)chunk;break;
+				case ChunkType.ID_END:END = (ENDChunkPSX)chunk;break;
+				default:throw new Exception("Unsupported chunk for platform");
+			}
 		}
 
 		public override void PrintInfo(TextWriter output)
@@ -88,17 +352,6 @@ namespace ArgonautReverse.Files
 			}
 			output.WriteLine();
 		}
-		// WAD Chunks
-
-		public TPSXChunk TPSX => this.chunks.GetValueOrDefault(ChunkType.ID_PSX_TEXT) as TPSXChunk;
-
-		public SPSXChunk SPSX => this.chunks.GetValueOrDefault(ChunkType.ID_PSX_SAMPLE) as SPSXChunk;
-
-		public DPSXChunk DPSX => this.chunks.GetValueOrDefault(ChunkType.ID_PSX_DATA) as DPSXChunk;
-
-		public PORTChunk PORT => this.chunks.GetValueOrDefault(ChunkType.ID_PSX_PORT) as PORTChunk;
-
-		public ENDChunk END => this.chunks.GetValueOrDefault(ChunkType.ID_END) as ENDChunk;
 
 		// TPSX
 
@@ -132,7 +385,7 @@ namespace ArgonautReverse.Files
 		/// <summary>Exports the material (MTL) and texture (PNG) files that are needed by the OBJ Wavefront file.</summary>
 		public void _prepare_obj_export(string folder_path, string wad_filename)
 		{
-			using(var mtl_file = new StreamWriter(Path.Join(folder_path, wad_filename+".MTL"), false, Encoding.ASCII))
+			using(var mtl_file = new System.IO.StreamWriter(Path.Join(folder_path, wad_filename+".MTL"), false, Encoding.ASCII))
 			{
 				mtl_file.WriteLine($"newmtl mtl1\nmap_Kd {wad_filename}.PNG");
 			}
@@ -188,7 +441,7 @@ namespace ArgonautReverse.Files
 			{
 				var model_3d = this.DPSX.models_3d[i];
 				var obj_filename = $"{wad_filename}_{i}";
-				using(var obj_file = new StreamWriter(Path.Join(folder_path, (obj_filename + ".OBJ")), false, Encoding.ASCII))
+				using(var obj_file = new System.IO.StreamWriter(Path.Join(folder_path, (obj_filename + ".OBJ")), false, Encoding.ASCII))
 				{
 					if(model_3d.Data.n_vertices_groups == 1)
 					{
@@ -217,7 +470,7 @@ namespace ArgonautReverse.Files
 		public void export_model_3d(int model_id, string folder_path, string filename)
 		{
 			this._prepare_obj_export(folder_path, filename);
-			using(var obj_file = new StreamWriter(Path.Join(folder_path, (filename + ".OBJ")), false, Encoding.ASCII))
+			using(var obj_file = new System.IO.StreamWriter(Path.Join(folder_path, (filename + ".OBJ")), false, Encoding.ASCII))
 			{
 				var obj = new StringWriter();
 				this.models_3d[model_id].Data.ToSingleObj(obj, filename, this.textures, filename);
@@ -280,11 +533,9 @@ namespace ArgonautReverse.Files
 			}
 		}
 
-		public void export_audio_to_wav(string folder_path, string wad_filename) =>
-			this.export_audio(folder_path, wad_filename, "WAV");
+		public void export_audio_to_wav(string folder_path, string wad_filename) => this.export_audio(folder_path, wad_filename, "WAV");
 
-		public void export_audio_to_vag(string  folder_path, string wad_filename) =>
-			this.export_audio(folder_path, wad_filename, "VAG");
+		public void export_audio_to_vag(string  folder_path, string wad_filename) => this.export_audio(folder_path, wad_filename, "VAG");
 
 		public void export_level(string folder_path, string wad_filename)
 		{
@@ -298,7 +549,7 @@ namespace ArgonautReverse.Files
 			}
 
 			this._prepare_obj_export(folder_path, wad_filename);
-			using(var obj_file = new StreamWriter(Path.Join(folder_path, (wad_filename + ".OBJ")), false, Encoding.ASCII))
+			using(var obj_file = new System.IO.StreamWriter(Path.Join(folder_path, (wad_filename + ".OBJ")), false, Encoding.ASCII))
 			{
 				var obj = new StringWriter();
 				obj.WriteLine(string.Format(Model3DDataPSX.mtl_header, wad_filename));
@@ -344,118 +595,6 @@ namespace ArgonautReverse.Files
 			{
 				File.WriteAllBytes(Path.Join(folder_path, $"{wad_filename}_{i}.raw_actor"), this.actors[i].data);
 			}
-		}
-
-		private static unsafe IEnumerable<(ChunkType type, int dataStart,int dataLength)> LocateChunks(WadReader reader)
-		{
-			var chunkLocations = new List<(ChunkType type, int dataStart,int dataLength)>();
-			
-			var wadDataLength = reader.Read<int>();
-
-			ChunkType prevChunk = ChunkType.Unknown;
-			ChunkType chunkType;
-			do
-			{
-				chunkType = (ChunkType)reader.Read<uint>();
-				if(!Enum.IsDefined(chunkType))
-				{
-					if(prevChunk == ChunkType.ID_PC_MAP)
-					{
-						reader.Position -= 8;
-						chunkType = (ChunkType)reader.Read<uint>();
-						var mapChunk = chunkLocations[^1];
-						chunkLocations[^1] = mapChunk with {dataLength = mapChunk.dataLength-4};
-					}
-					else
-					{
-						throw new Exception("Unknown chunk type");
-					}
-				}
-
-				var chunkDataLength = reader.Read<int>();
-
-				// Detects incorrect WADs like FESOUND or FETHUND
-				if (chunkLocations.Count == 0)
-				{
-					if(chunkType != ChunkType.ID_PC_INFO){}//Start of PC wads
-					else if(chunkType != ChunkType.ID_PSX_CWAD){}//Start of compressed PSX Wads
-					else if(chunkType != ChunkType.ID_PSX_TEXT){}//Start of uncompressed PSX Wads
-					else
-					{
-						throw new ChunkNameError(reader.Position, ChunkType.ID_PSX_TEXT.ToString(), chunkType.ToString());
-					}
-				}
-
-				//if(chunkType == ChunkType.ID_PC_MAP)
-				//{
-				//	chunkDataLength-=4;
-				//	//TODO: The size on the MAP chunk is sometimes wrong. Anyway to fix it before parsing?
-				//}
-
-				chunkLocations.Add((chunkType, reader.Position, chunkDataLength));
-				
-				reader.Position += chunkDataLength;
-				prevChunk = chunkType;
-			}
-			while(chunkType!=ChunkType.ID_END);
-
-			return chunkLocations;
-		}
-
-		public override unsafe void Parse(Configuration conf)
-		{
-			var data_in = new WadReader(this, conf, conf.ReadVersion.GetWadVersion(Stem), this._data);
-			
-			var chunkLocations = LocateChunks(data_in);
-
-			this.chunks.Clear();
-			foreach(var(type, dataStart, dataLength) in chunkLocations)
-			{
-				data_in.Position = dataStart;
-				var chunkReader = data_in.ReadChunk(dataLength);
-				if(WADFile.chunkInfoLookup.TryGetValue(type, out var chunkInfo))
-				{
-					if(chunkInfo.SupportedWadVersions.Contains(chunkReader.ReadVersion))
-					{
-						var chunk = chunkInfo.Parse(chunkReader);
-						this.chunks.Add(type, chunk);
-						if(chunkReader.Remaining != 0)
-						{
-							Console.WriteLine($"WARNING: There were {chunkReader.Remaining} bytes of unparsed data in {type}!");
-						}
-					}
-					else
-					{
-						Console.WriteLine($"Unsupported Chunk: {type}");
-						this.chunks.Add(type, new UnsupportedChunkInfo(chunkInfo).Parse(chunkReader));
-					}
-				}
-				else
-				{
-					Console.WriteLine($"Unknown Chunk: {type.GetRawName()}");
-					this.chunks.Add(type, new UnknownChunkInfo(type).Parse(chunkReader));
-				}
-			}
-		}
-		public override void Serialize(Serializer data_out)
-		{
-			var wad_size_offset = data_out.Position;
-
-			//TODO: Understand data
-			data_out.Write<uint>(0);//Placeholder for total data size
-			foreach(var chunk in this.chunks.Values)
-			{
-				chunk.Serialize(data_out);
-			}
-			var end_offset = data_out.Position;
-			var wad_size = end_offset - wad_size_offset;
-			if(data_out.WriteVersion==CROC_2_PS1.WadVersion || data_out.WriteVersion==HARRY_POTTER_1_PS1.WadVersion || data_out.WriteVersion==HARRY_POTTER_2_PS1.WadVersion)
-			{
-				wad_size += 2048;
-			}
-			data_out.Position += wad_size_offset;
-			data_out.WriteInt32(wad_size);
-			data_out.Position += end_offset;
 		}
 	}
 }

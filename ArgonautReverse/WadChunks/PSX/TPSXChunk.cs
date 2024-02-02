@@ -5,7 +5,7 @@ using ArgonautReverse.PSX;
 
 namespace ArgonautReverse.WadChunks.PSX
 {
-	public enum TextureFlag:int
+    public enum TextureFlag:int
 	{
 		CompressedTPage = 1 << 0,
 		Compressed16Bit = 1 << 1,
@@ -13,7 +13,7 @@ namespace ArgonautReverse.WadChunks.PSX
 		HasMemoryCardIcons = 1 << 3,
 		HasLongLevelName = 1 << 4,//Includes translated names
 	}
-	public sealed class TPSXChunkInfo:BaseWADChunkInfo
+	public sealed class TPSXChunkInfo:BaseWADChunkInfo<TPSXChunk>
 	{
 		public static readonly TPSXChunkInfo Instance = new TPSXChunkInfo();
 

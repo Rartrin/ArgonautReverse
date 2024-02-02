@@ -5,7 +5,7 @@ using ArgonautReverse.WadChunks.PC;
 
 namespace ArgonautReverse.PC
 {
-	public readonly struct ModelCollisionStruct0PC:IReadable<ModelCollisionStruct0PC>
+    public readonly struct ModelCollisionStruct0PC:IReadable<ModelCollisionStruct0PC>
 	{
 		public readonly short wField0;
 		public readonly short wField1;
@@ -75,6 +75,7 @@ namespace ArgonautReverse.PC
 		public ushort flags;
 		public ushort[] vertexIndices;//[3];
 
+		public int SpriteIndex;
 		public SpriteStructPC sprite;
 
 		public Vector4F pos;
@@ -85,10 +86,10 @@ namespace ArgonautReverse.PC
 			triangle.flags = reader.Read<ushort>();
 			triangle.vertexIndices = reader.ReadArray<ushort>(3);
 
-			var spriteIndex = reader.Read<ushort>();
+			triangle.SpriteIndex = reader.Read<ushort>();
 			reader.AssertRead<ushort>(0);//Padding
-			var textChunk = reader.WadFile.GetChunk<TEXTChunk>(ChunkType.ID_PC_TEXT);
-			triangle.sprite = textChunk.Sprites[spriteIndex];
+			var textChunk = reader.WadFile.GetChunk(TEXTChunkInfo.Instance);
+			triangle.sprite = textChunk.Sprites[triangle.SpriteIndex];
 
 			triangle.pos = reader.Read<Vector4F>();
 			return triangle;

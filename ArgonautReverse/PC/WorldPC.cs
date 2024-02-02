@@ -56,8 +56,8 @@ namespace ArgonautReverse.PC
 	public sealed class PolygonStructPC:IReadable<PolygonStructPC, WadFlagPC>
 	{
 		//public ushort pointCount;
-		public PolygonFlagsPC Flags { get; }
-		public IReadOnlyList<PolygonPointPC> Points { get; }
+		public PolygonFlagsPC Flags{get;}
+		public IReadOnlyList<PolygonPointPC> Points{get;}
 
 		public PolygonStructPC(PolygonFlagsPC flags, IReadOnlyList<PolygonPointPC> points)
 		{
@@ -105,7 +105,7 @@ namespace ArgonautReverse.PC
 	public sealed class PolygonArrayPC:IReadable<PolygonArrayPC, WadFlagPC>
 	{
 		//public int count;
-		public IReadOnlyList<PolygonStructPC> Polygons { get; }
+		public IReadOnlyList<PolygonStructPC> Polygons{get;}
 
 		public PolygonArrayPC(IReadOnlyList<PolygonStructPC> polygons)
 		{

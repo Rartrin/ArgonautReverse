@@ -1,8 +1,7 @@
 using ArgonautReverse.Engine;
 using ArgonautReverse.IO;
-using ArgonautReverse.WadChunks;
 
-namespace ArgonautReverse
+namespace ArgonautReverse.WadChunks
 {
 	public abstract class BaseWADChunkInfo
 	{
@@ -11,8 +10,11 @@ namespace ArgonautReverse
 		public abstract string ChunkDescription{get;}
 		public abstract ChunkType ChunkType{get;}
 
-		
 		public abstract BaseWadChunk Parse(WadReader data_in);
+	}
+
+	public abstract class BaseWADChunkInfo<T>:BaseWADChunkInfo where T:BaseWadChunk
+	{
 	}
 
 	public abstract class BaseWadChunk
@@ -30,13 +32,13 @@ namespace ArgonautReverse
 			}
 		}
 
-		public virtual void Serialize(Serializer data_out)
+		public virtual void Serialize(WadWriter data_out)
 		{
 			data_out.Write((uint)Info.ChunkType);
 			data_out.Write((uint)Data.Length);
 			data_out.WriteBytes(Data);
 		}
-		protected int SerializeHeader(Serializer data_out)
+		protected int SerializeHeader(WadWriter data_out)
 		{
 			if(!Info.SupportedWadVersions.Contains(data_out.WriteVersion))
 			{
@@ -47,7 +49,7 @@ namespace ArgonautReverse
 			return data_out.Position;
 		}
 
-		protected static void SerializeChunkSize(Serializer data_out, int start)
+		protected static void SerializeChunkSize(WadWriter data_out, int start)
 		{
 			var end = data_out.Position;
 			var size = end - start;
@@ -63,7 +65,7 @@ namespace ArgonautReverse
 
 		public override string ChunkDescription => "(Unsupported for the game) " + UnsuppportedType.ChunkDescription;
 
-		public BaseWADChunkInfo UnsuppportedType{get;}
+		public BaseWADChunkInfo UnsuppportedType { get; }
 		public override ChunkType ChunkType => UnsuppportedType.ChunkType;
 
 		public unsafe UnsupportedChunkInfo(BaseWADChunkInfo unsuppportedType)
@@ -80,7 +82,7 @@ namespace ArgonautReverse
 
 	public sealed class UnsupportedChunk:BaseWadChunk
 	{
-		public UnsupportedChunk(BaseWADChunkInfo info, byte[] data = null) : base(info, data){}
+		public UnsupportedChunk(BaseWADChunkInfo info, byte[] data = null) : base(info, data) { }
 	}
 
 	public sealed class UnknownChunkInfo:BaseWADChunkInfo
@@ -89,7 +91,7 @@ namespace ArgonautReverse
 
 		public override string ChunkDescription => $"{ChunkType.GetRawName()} chunk";
 
-		public override ChunkType ChunkType{get;}
+		public override ChunkType ChunkType { get; }
 
 		public unsafe UnknownChunkInfo(ChunkType chunkType)
 		{
@@ -105,6 +107,6 @@ namespace ArgonautReverse
 
 	public sealed class UnknownChunk:BaseWadChunk
 	{
-		public UnknownChunk(BaseWADChunkInfo info, byte[] data = null) : base(info, data){}
+		public UnknownChunk(BaseWADChunkInfo info, byte[] data = null) : base(info, data) { }
 	}
 }

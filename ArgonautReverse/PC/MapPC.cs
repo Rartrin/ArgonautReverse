@@ -1,10 +1,10 @@
 ﻿using ArgonautReverse.IO;
-using ArgonautReverse.WadChunks;
+using ArgonautReverse.Universal;
 using ArgonautReverse.WadChunks.PC;
 
 namespace ArgonautReverse.PC
 {
-	public sealed class MapPiecePC//WorldCellInfo
+    public sealed class MapPiecePC//WorldCellInfo
 	{
 		public Vector3F Pos;
 		public float RotY;
@@ -213,11 +213,12 @@ namespace ArgonautReverse.PC
 		{
 			var map = new MapPC();
 
-			var wadFlags = reader.WadFile.GetChunk<WFPCChunk>(ChunkType.ID_PC_WADFLAGS).WadFlags;
+			var wadFlags = reader.WadFile.GetChunk(WFPCChunkInfo.Instance).WadFlags;
 
 			map.NumPieces = reader.Read<int>();
 			map.MapWidth = reader.Read<int>();
 			map.MapHeight = reader.Read<int>();
+
 			var mapPieceArray = new MapPieceListPC[map.MapHeight][];
 			for(int i = 0; i < map.MapHeight; ++i)
 			{
@@ -251,27 +252,14 @@ namespace ArgonautReverse.PC
 				if(curCell != null)
 				{
 					var prevInfo = curCell.Piece;
-					var prevSecondaryCell = curCell.Next;
 					if(worldCellInfo.Pos.Y <= prevInfo.Pos.Y)
 					{
-						if(prevSecondaryCell != null)
-						{
-							ReadWadChunkMAP_InitCells(prevSecondaryCell, worldCellInfo);
-						}
-						else
-						{
-							curCell.Next = new MapPieceListPC(worldCellInfo);
-						}
-					}
-					else if(prevSecondaryCell != null)
-					{
-						ReadWadChunkMAP_InitCells(prevSecondaryCell, prevInfo);
-						curCell.Piece = worldCellInfo;
+						ReadWadChunkMAP_InitCells(curCell, worldCellInfo);
 					}
 					else
 					{
+						ReadWadChunkMAP_InitCells(curCell, prevInfo);
 						curCell.Piece = worldCellInfo;
-						curCell.Next = new MapPieceListPC(prevInfo);
 					}
 				}
 				else
@@ -318,7 +306,7 @@ namespace ArgonautReverse.PC
 				map.TrackChangeData = Array.Empty<TrackChangePC>();
 			}
 			var colorArray = new Color32[map.NumPieces][];
-			var trackModels = reader.WadFile.GetChunk<TRAKChunk>(ChunkType.ID_PC_TRACK).Models;
+			var trackModels = reader.WadFile.GetChunk(TRAKChunkInfo.Instance).Models;
 			for(int cellIndex=0; cellIndex<map.NumPieces; cellIndex++)
 			{
 				var cellModel = trackModels[modelIndices[cellIndex]];
@@ -423,25 +411,25 @@ namespace ArgonautReverse.PC
 
 		public static void ReadWadChunkMAP_InitCells(MapPieceListPC cell, MapPiecePC info)
 		{
-			var currCell = cell;
-			while(info.Pos.Y <= (double)currCell.Piece.Pos.Y)
+			if(cell.Next != null)
 			{
-				if(currCell.Next == null)
+				var currCell = cell.Next;
+				while(info.Pos.Y <= (double)currCell.Piece.Pos.Y)
 				{
-					currCell.Next = new MapPieceListPC(info);
-					return;
+					if(currCell.Next == null)
+					{
+						currCell.Next = new MapPieceListPC(info);
+						return;
+					}
+					currCell = currCell.Next;
 				}
-				currCell = currCell.Next;
-			}
-			if(currCell.Next != null)
-			{
-				ReadWadChunkMAP_InitCells(currCell.Next, currCell.Piece);
+				ReadWadChunkMAP_InitCells(currCell, currCell.Piece);
 				currCell.Piece = info;
+
 			}
 			else
 			{
-				currCell.Next = new MapPieceListPC(currCell.Piece);
-				currCell.Piece = info;
+				cell.Next = new MapPieceListPC(info);
 			}
 		}
 	}

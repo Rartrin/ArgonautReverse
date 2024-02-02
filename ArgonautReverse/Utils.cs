@@ -16,7 +16,7 @@ namespace ArgonautReverse
 		public static int RoundUpPadding(int n) => (n + PaddingSize - 1) & (-PaddingSize);
 
 
-		public static void PadOut2048Bytes(Serializer bio)
+		public static void PadOut2048Bytes(WadWriter bio)
 		{
 			var padding = new byte[RoundUpPadding(bio.Position) - bio.Position];
 			bio.WriteBytes(padding);

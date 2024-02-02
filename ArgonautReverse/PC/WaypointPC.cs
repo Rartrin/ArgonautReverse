@@ -1,8 +1,9 @@
 ﻿using ArgonautReverse.IO;
+using ArgonautReverse.Universal;
 
 namespace ArgonautReverse.PC
 {
-	public sealed class WaypointPC : IReadable<WaypointPC>
+    public sealed class WaypointPC : IReadable<WaypointPC>
 	{
 		//union
 		public WaypointPC Next;
@@ -14,7 +15,7 @@ namespace ArgonautReverse.PC
 
 		public RotPos3I Pos;
 
-		public uint LinkFlag;
+		public uint LinkFlag => (Prev==null?2u:0u) | (Next==null?1u:0u);
 		public uint Value;
 
 		public static WaypointPC Parse(WadReader reader)
@@ -36,28 +37,17 @@ namespace ArgonautReverse.PC
 			var count = reader.Read<int>();
 			var waypoints = reader.ReadArray<WaypointPC>(count);
 
-			WaypointPC prevWaypoint = null;
 			for (int i = 0; i < count; i++)
 			{
-				WaypointPC waypoint = waypoints[i];
-				waypoint.LinkFlag = 0;
-				if (prevWaypoint != null)
+				var waypoint = waypoints[i];
+				if (waypoint.NextRawValue == 0)
 				{
-					waypoint.Prev = prevWaypoint;
+					waypoint.Next = null;
 				}
 				else
-				{
-					waypoint.LinkFlag |= 2;
-				}
-				if (waypoint.NextRawValue != 0)
 				{
 					waypoint.Next = waypoints[i+1];
-					prevWaypoint = waypoint;
-				}
-				else
-				{
-					waypoint.LinkFlag |= 1u;
-					prevWaypoint = null;
+					waypoint.Next.Prev = waypoint;
 				}
 			}
 			return waypoints;

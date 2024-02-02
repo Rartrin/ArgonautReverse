@@ -5,87 +5,100 @@ namespace ArgonautReverse.PSX
 {
 	public sealed class AnimationDataPSX
 	{
-		public readonly AnimationHeaderPSX header;
-		public readonly IReadOnlyList<IReadOnlyList<Matrix4x4>> frames;
+		public readonly int n_vertices_groups;
+		public readonly IReadOnlyList<int> FrameIndexes;
+		public readonly IReadOnlyList<IReadOnlyList<Matrix4x4>> Frames;
 
-		public AnimationDataPSX(AnimationHeaderPSX header, IReadOnlyList<IReadOnlyList<Matrix4x4>> frames)
+		public AnimationDataPSX(int boneCount, IReadOnlyList<int> frameIndexes, IReadOnlyList<IReadOnlyList<Matrix4x4>> frames)
 		{
-			this.frames = frames;
-			this.header = header;
+			n_vertices_groups = boneCount;
+			FrameIndexes=frameIndexes;
+			Frames = frames;
 		}
 
-		public IReadOnlyList<Matrix4x4> this[int item] => frames[item];
-
-		public int n_vertices_groups => header.n_vertices_groups;
-
-		public static AnimationDataPSX Parse(WadReader data_in)
+		public static unsafe AnimationDataPSX Parse(WadReader reader)
 		{
-			//base.parse(data_in, conf);
-			var header = AnimationHeaderPSX.parse(data_in);
+			var animation = reader.ReadArrayWithoutMultipass<AnimationPSX>(1)[0];
 
-			var frame_indexes = new List<int>();
-			if(header.n_total_frames == header.n_stored_frames)
+			if(animation.FrameCount > 500 || animation.FrameCount == 0)
 			{
-				frame_indexes.AddRange(Enumerable.Range(0, header.n_total_frames));
+				if(reader.Configuration.IgnoreWarnings)
+				{
+					AnimationsWarning.Warn(animation.FrameCount);
+				}
+				else
+				{
+					throw new AnimationsWarning(reader.AbsolutePosition, animation.FrameCount);
+				}
 			}
 
-			var inter_frames_size = 4 * (int)Math.Ceiling(header.n_inter_frames * 2 / 4f);
-			var frames = new IReadOnlyList<Matrix4x4>[header.n_stored_frames];
-
-			for(int frame_id = 0; frame_id < header.n_stored_frames; frame_id++)
+			IReadOnlyList<int> frameIndexes;
+			Matrix4x4[][] frames;
+			if(animation.KeyframeCount==0)
 			{
-				var frame = new Matrix4x4[header.n_vertices_groups];
-				for(int i = 0; i < header.n_vertices_groups; i++)
+				//Matrix transforms
+				frameIndexes = Enumerable.Range(0, animation.FrameCount).ToArray();
+
+				frames = new Matrix4x4[animation.FrameCount][];
+				for(int frame_id = 0; frame_id < animation.FrameCount; frame_id++)
 				{
-					var sub_frame = new short[header.sub_frame_size / 2];//Floor division
-					for(int j = 0; j < sub_frame.Length; j++)
+					var frame = new Matrix4x4[animation.BoneCount];
+					for(int i = 0; i < animation.BoneCount; i++)
 					{
-						sub_frame[j] = data_in.Read<short>();//Signed
-					}
-					Matrix4x4 matrix;
-					if(header.old_animation_format)
-					{
+						var frameMatrix = animation.Bones[frame_id][i];
 						//matrix = np.divide((sub_frame[..3], sub_frame[3..6], sub_frame[6..9]), 4096).T;  // Need to be reversed
-						matrix = new Matrix4x4//TODO: Still need to be reversed?
+						var matrix = new Matrix4x4//TODO: Still need to be reversed?
 						(
-							m11: sub_frame[0] / 4096f,
-							m12: sub_frame[1] / 4096f,
-							m13: sub_frame[2] / 4096f,
+							m11: frameMatrix.m[0] / 4096f,
+							m12: frameMatrix.m[1] / 4096f,
+							m13: frameMatrix.m[2] / 4096f,
 							m14: 0,
-							m21: sub_frame[3] / 4096f,
-							m22: sub_frame[4] / 4096f,
-							m23: sub_frame[5] / 4096f,
+							m21: frameMatrix.m[3] / 4096f,
+							m22: frameMatrix.m[4] / 4096f,
+							m23: frameMatrix.m[5] / 4096f,
 							m24: 0,
-							m31: sub_frame[6] / 4096f,
-							m32: sub_frame[7] / 4096f,
-							m33: sub_frame[8] / 4096f,
+							m31: frameMatrix.m[6] / 4096f,
+							m32: frameMatrix.m[7] / 4096f,
+							m33: frameMatrix.m[8] / 4096f,
 							m34: 0,
 							//Translation
-							m41: sub_frame[9] / 4096f,
-							m42: sub_frame[10] / 4096f,
-							m43: sub_frame[11] / 4096f,
+							m41: frameMatrix.t[0] / 4096f,
+							m42: frameMatrix.t[1] / 4096f,
+							m43: frameMatrix.t[2] / 4096f,
 							m44: 0
 						);
+						frame[i] = matrix;
 					}
-					else
-					{
-						//TODO: The old Quaternion was w,x,y,z. This one is x,y,z,w
-						matrix = Matrix4x4.CreateFromQuaternion(new Quaternion(sub_frame[0], sub_frame[1], sub_frame[2], sub_frame[3]));//.rotation_matrix;
-						matrix.Translation = new Vector3(sub_frame[4], sub_frame[5], sub_frame[6]);
-						if(header.n_total_frames != header.n_stored_frames)
-						{
-							frame_indexes.Add(sub_frame[7]);
-						}
-					}
-					frame[i] = matrix;
+					frames[frame_id] = frame;
 				}
-				if(header.n_inter_frames != 0 && frame_id != header.n_stored_frames - 1)
-				{
-					data_in.SkipBytes(inter_frames_size);
-				}
-				frames[frame_id] = frame;
 			}
-			return new AnimationDataPSX(header, frames);
+			else
+			{
+				//Keyframes
+				var frameIndexList = new List<int>();
+				frames = new Matrix4x4[animation.KeyframeCount][];
+				for(int frame_id = 0; frame_id < animation.KeyframeCount; frame_id++)
+				{
+					var frame = new Matrix4x4[animation.BoneCount];
+					
+					for(int i = 0; i < animation.BoneCount; i++)
+					{
+						var keydata = animation.Keydata[frame_id][i];
+
+						//TODO: The old Quaternion was w,x,y,z. This one is x,y,z,w
+						var matrix = Matrix4x4.CreateFromQuaternion(new Quaternion(keydata.Rotation.W, keydata.Rotation.X, keydata.Rotation.Y, keydata.Rotation.Z));
+						matrix.Translation = new Vector3(keydata.Position.X, keydata.Position.Y, keydata.Position.Z);
+						if(animation.FrameCount != animation.KeyframeCount)
+						{
+							frameIndexList.Add(keydata.Frame);
+						}
+						frame[i] = matrix;
+					}
+					frames[frame_id] = frame;
+				}
+				frameIndexes = frameIndexList;
+			}
+			return new AnimationDataPSX(animation.BoneCount, frameIndexes, frames);
 		}
 	}
 }

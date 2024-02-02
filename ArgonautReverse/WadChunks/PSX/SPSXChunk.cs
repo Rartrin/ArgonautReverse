@@ -5,7 +5,7 @@ using ArgonautReverse.PSX;
 
 namespace ArgonautReverse.WadChunks.PSX
 {
-	public sealed class SPSXChunkInfo:BaseWADChunkInfo
+    public sealed class SPSXChunkInfo:BaseWADChunkInfo<SPSXChunk>
 	{
 		public static readonly SPSXChunkInfo Instance = new SPSXChunkInfo();
 
@@ -170,7 +170,7 @@ namespace ArgonautReverse.WadChunks.PSX
 
 		public int end_gap => level_sfx_groups.Groups.Sum(group => Utils.RoundUpPadding(group.size));
 
-		public override void Serialize(Serializer data_out)
+		public override void Serialize(WadWriter data_out)
 		{
 			var start = SerializeHeader(data_out);
 

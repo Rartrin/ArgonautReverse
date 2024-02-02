@@ -69,7 +69,7 @@ namespace ArgonautReverse.PSX.LibGTE
 	}
 	
 	/// <summary>Short word type 3D vector</summary>
-	public readonly struct SVECTOR:IReadable<SVECTOR>
+	public readonly struct SVECTOR:IReadable<SVECTOR>,IConvertibleOSE<Vector3I>
 	{
 		public const int ByteSize = 8;
 
@@ -109,6 +109,15 @@ namespace ArgonautReverse.PSX.LibGTE
 			var pad = parser.Read<short>();
 			
 			return new SVECTOR(vx, vy, vz, pad);
+		}
+
+		readonly Vector3I IConvertibleOSE<Vector3I>.ToOSE()
+		{
+			if(pad != 0)
+			{
+				throw new Exception("SVECTOR padding is not 0");
+			}
+			return new Vector3I(vx, vy, vz);
 		}
 	}
 

@@ -1,16 +1,17 @@
 ﻿using ArgonautReverse.IO;
+using ArgonautReverse.Universal;
 
 namespace ArgonautReverse.PC
 {
 	public readonly struct AnimTriggerPC:IReadable<AnimTriggerPC>
 	{
-		public readonly ushort wField0;
-		public readonly ushort wField1;
+		public readonly ushort Frame;
+		public readonly ushort Trigger;
 
 		public AnimTriggerPC(ushort wField0, ushort wField1)
 		{
-			this.wField0 = wField0;
-			this.wField1 = wField1;
+			this.Frame = wField0;
+			this.Trigger = wField1;
 		}
 
 		public static AnimTriggerPC Parse(WadReader reader)
@@ -52,7 +53,7 @@ namespace ArgonautReverse.PC
 		public IReadOnlyList<AnimTriggerPC> Triggers;
 		public int FrameCount;
 		
-		public bool Flag;//Unioned with the next field
+		public bool Flag;//Unioned with PositionDeltas
 		public IReadOnlyList<AnimationStruct1_PC> PositionDeltas;
 
 		public int MorphCount;
@@ -91,12 +92,14 @@ namespace ArgonautReverse.PC
 			short[][] morphs = null;
 			if(animation.MorphCount!=0 && animation.FrameCount!=0)
 			{
+				//Morphs array placeholder
 				reader.AssertEmptyReadData<int>(animation.FrameCount);//Type would actually be a short*
 				morphs = new short[animation.FrameCount][];
 			}
 			Matrix4x4F[][] bones = null;
 			if(animation.FrameCount!=0)
 			{
+				//Bones array placeholder
 				reader.AssertEmptyReadData<int>(animation.FrameCount);//Type would actually be a Matrix4x4F*
 				bones = new Matrix4x4F[animation.FrameCount][];
 			}
@@ -106,6 +109,7 @@ namespace ArgonautReverse.PC
 				{
 					if(frameIndex == 0)
 					{
+						//First value is a Vector4<short>
 						morphs[frameIndex] = reader.ReadArray<short>(4 * animation.MorphCount);
 					}
 					else

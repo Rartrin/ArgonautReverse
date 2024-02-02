@@ -158,8 +158,8 @@ namespace ArgonautReverse.Files
 				Directory.CreateDirectory(outputFolder);
 			}
 
-			using var dirOutput = new Serializer(conf, File.OpenWrite(Path.Join(outputFolder, conf.WriteVersion.FilenameDIR)));
-			using var datOutput = new Serializer(conf, File.OpenWrite(Path.Join(outputFolder, conf.WriteVersion.FilenameDAT)));
+			using var dirOutput = new WadWriter(conf, File.OpenWrite(Path.Join(outputFolder, conf.WriteVersion.FilenameDIR)), true);
+			using var datOutput = new WadWriter(conf, File.OpenWrite(Path.Join(outputFolder, conf.WriteVersion.FilenameDAT)), true);
 
 			if(dirOutput.DatVersion != CROC_1_PS1.DatVersion)
 			{

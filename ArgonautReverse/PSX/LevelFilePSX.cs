@@ -12,7 +12,7 @@ namespace ArgonautReverse.PSX
 			this.chunks_matrix = chunks_matrix;
 		}
 
-		public static LevelFilePSX parse(WadReader data_in, WadFlagPSX wadFlag)
+		public static LevelFilePSX Parse(WadReader data_in, WadFlagPSX wadFlag)
 		{
 			//Track Objects
 			var n_chunk_models = data_in.Read<int>();

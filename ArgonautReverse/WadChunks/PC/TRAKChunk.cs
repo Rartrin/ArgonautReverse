@@ -4,7 +4,7 @@ using ArgonautReverse.PC;
 
 namespace ArgonautReverse.WadChunks.PC
 {
-	public sealed class TRAKChunkInfo:BaseWADChunkInfo
+    public sealed class TRAKChunkInfo:BaseWADChunkInfo<TRAKChunk>
 	{
 		public static TRAKChunkInfo Instance = new TRAKChunkInfo();
 

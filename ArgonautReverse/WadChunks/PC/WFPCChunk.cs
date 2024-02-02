@@ -4,7 +4,7 @@ using ArgonautReverse.PC;
 
 namespace ArgonautReverse.WadChunks.PC
 {
-	public sealed class WFPCChunkInfo:BaseWADChunkInfo
+    public sealed class WFPCChunkInfo:BaseWADChunkInfo<WFPCChunk>
 	{
 		public static readonly WFPCChunkInfo Instance = new WFPCChunkInfo();
 

@@ -1,19 +1,19 @@
-﻿global using Vector2I = ArgonautReverse.PC.Vector2<int>;
-global using Vector2F = ArgonautReverse.PC.Vector2<float>;
-global using Vector3I = ArgonautReverse.PC.Vector3<int>;
-global using Vector3F = ArgonautReverse.PC.Vector3<float>;
-global using Vector4I = ArgonautReverse.PC.Vector4<int>;
-global using Vector4F = ArgonautReverse.PC.Vector4<float>;
+﻿global using Vector2I = ArgonautReverse.Universal.Vector2<int>;
+global using Vector2F = ArgonautReverse.Universal.Vector2<float>;
+global using Vector3I = ArgonautReverse.Universal.Vector3<int>;
+global using Vector3F = ArgonautReverse.Universal.Vector3<float>;
+global using Vector4I = ArgonautReverse.Universal.Vector4<int>;
+global using Vector4F = ArgonautReverse.Universal.Vector4<float>;
 
 using System.Numerics;
 using ArgonautReverse.IO;
 
-namespace ArgonautReverse.PC
+namespace ArgonautReverse.Universal
 {
 	#region Vector2
-	public struct Vector2<T>:IReadable<Vector2<T>> where T:unmanaged,IBinaryNumber<T>
+	public struct Vector2<T>:IReadable<Vector2<T>>, IWritable where T : unmanaged, IBinaryNumber<T>
 	{
-		public T X,Y;
+		public T X, Y;
 
 		public readonly T LengthSquared => X*X + Y*Y;
 
@@ -30,15 +30,21 @@ namespace ArgonautReverse.PC
 			return new Vector2<T>(x, y);
 		}
 
+		public readonly void Write(WadWriter writer)
+		{
+			writer.Write(X);
+			writer.Write(Y);
+		}
+
 		public static Vector2<T> operator +(in Vector2<T> a, in Vector2<T> b) => new Vector2<T>(a.X+b.X, a.Y+b.Y);
 		public static Vector2<T> operator -(in Vector2<T> a, in Vector2<T> b) => new Vector2<T>(a.X-b.X, a.Y-b.Y);
 	}
 	#endregion
 	#region Vector3
-	public struct Vector3<T>:IReadable<Vector3<T>> where T:unmanaged,IBinaryNumber<T>
+	public struct Vector3<T>:IReadable<Vector3<T>>, IWritable where T : unmanaged, IBinaryNumber<T>
 	{
-		public T X,Y,Z;
-		
+		public T X, Y, Z;
+
 		public readonly T LengthSquared => X*X + Y*Y + Z*Z;
 
 		public Vector3(T x, T y, T z)
@@ -54,6 +60,13 @@ namespace ArgonautReverse.PC
 			var y = reader.Read<T>();
 			var z = reader.Read<T>();
 			return new Vector3<T>(x, y, z);
+		}
+
+		public readonly void Write(WadWriter writer)
+		{
+			writer.Write(X);
+			writer.Write(Y);
+			writer.Write(Z);
 		}
 
 		public static T Dot(in Vector3<T> a, in Vector3<T> b)
@@ -83,9 +96,9 @@ namespace ArgonautReverse.PC
 	}
 	#endregion
 	#region Vector4
-	public struct Vector4<T>:IReadable<Vector4<T>> where T:unmanaged,IBinaryNumber<T>
+	public struct Vector4<T>:IReadable<Vector4<T>>, IWritable where T : unmanaged, IBinaryNumber<T>
 	{
-		public T X,Y,Z,W;
+		public T X, Y, Z, W;
 
 		public Vector4(T x, T y, T z, T w)
 		{
@@ -104,6 +117,14 @@ namespace ArgonautReverse.PC
 			return new Vector4<T>(x, y, z, w);
 		}
 
+		public readonly void Write(WadWriter writer)
+		{
+			writer.Write(X);
+			writer.Write(Y);
+			writer.Write(Z);
+			writer.Write(W);
+		}
+
 		public readonly Vector3<T> GetVector3() => new Vector3<T>(X, Y, Z);
 	}
 	#endregion
@@ -115,11 +136,11 @@ namespace ArgonautReverse.PC
 
 	public static class VectorMath
 	{
-		public static Vector3<int> Abs(in Vector3<int> v) => new Vector3<int>(Math.Abs(v.X),Math.Abs(v.Y),Math.Abs(v.Z));
+		public static Vector3I Abs(in Vector3I v) => new Vector3I(Math.Abs(v.X), Math.Abs(v.Y), Math.Abs(v.Z));
 
 		#region Extensions
-		public static float Length(this Vector3<float> that) => MathF.Sqrt(that.LengthSquared);
-		public static Vector3<float> Normalized(this Vector3<float> that) =>  that / that.Length();
+		public static float Length(this Vector3F that) => MathF.Sqrt(that.LengthSquared);
+		public static Vector3F Normalized(this Vector3F that) => that / that.Length();
 		#endregion
 	}
 }

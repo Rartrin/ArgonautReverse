@@ -6,7 +6,6 @@ namespace ArgonautReverse.PSX
 	{
 		public int n_vertices{get;protected set;}
 		public int n_faces{get;protected set;}
-		public int n_bounding_box_info{get;protected set;}
 	}
 
 	public sealed class Model3DHeaderPSX_Object:Model3DHeaderPSX
@@ -18,11 +17,6 @@ namespace ArgonautReverse.PSX
 			Object = obj;
 			n_vertices = (int)obj.nvert;
 			n_faces = (int)obj.nface;
-			n_bounding_box_info = obj.nfloor + obj.nceil;
-			if(obj.nwall.HasValue)
-			{
-				n_bounding_box_info += obj.nwall.Value;
-			}
 		}
 
 		public static Model3DHeaderPSX_Object Parse(WadReader data_in)
@@ -40,11 +34,6 @@ namespace ArgonautReverse.PSX
 			TrackObject = trackObj;
 			n_vertices = (int)trackObj.nvert;
 			n_faces = (int)trackObj.nface;
-			n_bounding_box_info = trackObj.nfloor + trackObj.nceil;
-			if(trackObj.nwall.HasValue)
-			{
-				n_bounding_box_info += trackObj.nwall.Value;
-			}
 		}
 
 		public static Model3DHeaderPSX_Track Parse(WadReader data_in)

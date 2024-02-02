@@ -31,6 +31,7 @@
 			public override DateTime BuildDate{get;}
 			
 			public override bool NEW_COLLISION => false;
+			public override bool KEYFRAME_STUFF => false;
 
 			private CROC_2_DEMO_PS1_DUMMY_Wad(int buildVersionOrder, params string[] wadNames)
 			{

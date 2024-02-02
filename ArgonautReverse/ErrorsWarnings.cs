@@ -28,16 +28,6 @@ namespace ArgonautReverse
 		public override string ToString() => Message;
 	}
 
-	public class ChunkNameError:ReverseError
-	{
-		public ChunkNameError(int absolute_file_offset, string expected, string found):base($"Chunk type is either missing or incorrect, expected '{expected}', got '{found}'.", absolute_file_offset){}
-	}
-
-	public class ChunkSizeMismatch:ReverseError
-	{
-		public ChunkSizeMismatch(int absolute_file_offset, string name, int remaining):base($"The {name} chunk size is different than expected: {remaining} unread bytes remaining.", absolute_file_offset){}
-	}
-
 	public class NegativeIndexError:ReverseError
 	{
 		public const string CAUSE_VERTEX = "vertex";

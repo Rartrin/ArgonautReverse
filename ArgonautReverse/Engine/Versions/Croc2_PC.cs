@@ -21,6 +21,7 @@
 			public override DateTime BuildDate => new DateTime(1999, 6, 30);
 			
 			public override bool NEW_COLLISION => false;
+			public override bool KEYFRAME_STUFF => false;
 		}
 	}
 }

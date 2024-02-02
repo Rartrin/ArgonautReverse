@@ -71,8 +71,8 @@ namespace ArgonautReverse.PSX
 				data_in.SkipBytes(15360);
 				for(int i = 0; i < 5; i++)
 				{
-					var mcPalette = data_in.ReadUInt32Array(128);
-					var mcBitmapData = data_in.ReadUInt32Array(16 * 40);
+					var mcPalette = data_in.ReadArray<uint>(128);
+					var mcBitmapData = data_in.ReadArray<uint>(16 * 40);
 				}
 			}
 			byte[] textures_data;

@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <Folder Include="GameFiles\Croc2PC\" />
-    <Folder Include="OpenStratEngine\" />
+    <Folder Include="ExternalFormat\" />
   </ItemGroup>
 
   <ItemGroup>

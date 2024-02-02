@@ -31,6 +31,7 @@ namespace ArgonautReverse.Engine.Versions
 			public override DateTime BuildDate => new DateTime(1999, 7, 1);
 			
 			public override bool NEW_COLLISION => false;
+			public override bool KEYFRAME_STUFF => false;
 		}
 
 		public sealed class CROC_2_PS1_DirFormat:DirFormat
@@ -45,7 +46,7 @@ namespace ArgonautReverse.Engine.Versions
 				size = reader.Read<int>();
 				start = reader.Read<int>();
 			}
-			public override void Pack(Serializer writer, string name, int size, int start)
+			public override void Pack(WadWriter writer, string name, int size, int start)
 			{
 				writer.WriteBytes(Encoding.ASCII.GetBytes(name.PadRight(12, '\0')));
 				writer.WriteInt32(size);

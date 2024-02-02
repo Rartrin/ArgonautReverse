@@ -283,21 +283,11 @@ namespace ArgonautReverse.PSX
 
 		public void ParseSetupData(WadReader reader, bool track)
 		{
-			var vertices = new SVECTOR[nvert];
-			for(int v = 0; v < nvert; v++)
-			{
-				vertices[v] = reader.Read(SVECTOR.ParseWithImportantPadding);
-			}
-			lvert = vertices;
+			lvert = reader.ReadArray(SVECTOR.ParseWithImportantPadding, (int)nvert);
 
-			if(!track || reader.ReadVersion != HARRY_POTTER_1_PS1.WadVersion && reader.ReadVersion != HARRY_POTTER_2_PS1.WadVersion)
+			if(!track || (reader.ReadVersion != HARRY_POTTER_1_PS1.WadVersion && reader.ReadVersion != HARRY_POTTER_2_PS1.WadVersion))
 			{
-				var normals = new SVECTOR[nvert];
-				for(int v = 0; v < nvert; v++)
-				{
-					normals[v] = reader.Read(SVECTOR.ParseWithImportantPadding);
-				}
-				lnorm = normals;
+				lnorm = reader.ReadArray(SVECTOR.ParseWithImportantPadding, (int)nvert);
 			}
 			else
 			{

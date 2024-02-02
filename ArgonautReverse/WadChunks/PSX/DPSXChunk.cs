@@ -5,7 +5,7 @@ using ArgonautReverse.PSX;
 
 namespace ArgonautReverse.WadChunks.PSX
 {
-	public sealed class DPSXChunkInfo:BaseWADChunkInfo
+    public sealed class DPSXChunkInfo:BaseWADChunkInfo<DPSXChunk>
 	{
 		public static readonly DPSXChunkInfo Instance = new DPSXChunkInfo();
 		public override ChunkType ChunkType => ChunkType.ID_PSX_DATA;
@@ -74,7 +74,7 @@ namespace ArgonautReverse.WadChunks.PSX
 				actors[i] = ActorDataPSX.Parse(data_in);
 			}
 
-			var level_file = LevelFilePSX.parse(data_in, wadFlag);
+			var level_file = LevelFilePSX.Parse(data_in, wadFlag);
 
 			// FIXME End of Croc 2 & Croc 2 Demo Dummy's level files aren't reversed yet
 			if(data_in.ReadVersion != CROC_2_PS1.WadVersion && data_in.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)

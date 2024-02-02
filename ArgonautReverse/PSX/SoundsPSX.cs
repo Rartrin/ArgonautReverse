@@ -32,9 +32,9 @@ namespace ArgonautReverse.PSX
 			_size = null;
 		}
 
-		public void serialize_vag(Serializer data_out) => vag.serialize(data_out);
+		public void serialize_vag(WadWriter data_out) => vag.serialize(data_out);
 
-		public abstract void serialize(Serializer data_out, uint end_section_offset);
+		public abstract void serialize(WadWriter data_out, uint end_section_offset);
 	}
 
 	public abstract class _AmbientOrEffectSoundPSX:SoundPSX
@@ -68,7 +68,7 @@ namespace ArgonautReverse.PSX
 			//return new cls(sampling_rate, volume_level, flags, uk1, uk2, size);
 		}
 
-		public override void serialize(Serializer data_out, uint end_section_offset)
+		public override void serialize(WadWriter data_out, uint end_section_offset)
 		{
 			var rounded_sampling_rate = (ushort)Math.Round(sampling_rate * 4096 / 44100.0);
 			PackIHHI2s2sI
@@ -95,7 +95,7 @@ namespace ArgonautReverse.PSX
 			base.parse_vag(data_in);
 		}
 
-		protected static void PackIHHI2s2sI(Serializer writer, uint samplingRate, ushort roundedSamplingRate, ushort volumeLevel, SoundEffectsAmbientFlagsPSX flags, ushort uk1, ushort uk2, uint size)
+		protected static void PackIHHI2s2sI(WadWriter writer, uint samplingRate, ushort roundedSamplingRate, ushort volumeLevel, SoundEffectsAmbientFlagsPSX flags, ushort uk1, ushort uk2, uint size)
 		{
 			//<IHHI2s2sI
 			writer.WriteUInt32(samplingRate);
@@ -118,7 +118,7 @@ namespace ArgonautReverse.PSX
 			return new AmbientSoundPSX(sampling_rate, volume_level, flags, uk1, uk2, size);
 		}
 
-		public override void serialize(Serializer data_out, uint end_section_offset)
+		public override void serialize(WadWriter data_out, uint end_section_offset)
 		{
 			var rounded_sampling_rate = (ushort)Math.Round(sampling_rate * 4096 / 48000.0);
 			PackIHHI2s2sI
@@ -172,7 +172,7 @@ namespace ArgonautReverse.PSX
 			return new DialogueBGMSoundPSX(sampling_rate, flags, uk1, size);
 		}
 
-		public override void serialize(Serializer data_out, uint end_section_offset)
+		public override void serialize(WadWriter data_out, uint end_section_offset)
 		{
 			var rounded_sampling_rate = (ushort)Math.Round(sampling_rate * 4096 / 44100.0);
 			PackIHH4sI
@@ -197,7 +197,7 @@ namespace ArgonautReverse.PSX
 			base.parse_vag(data_in);
 		}
 
-		private static void PackIHH4sI(Serializer writer, uint end_section_offset, ushort rounded_sampling_rate, DialoguesBGMsSoundFlagsPSX flags, uint uk1, uint size)
+		private static void PackIHH4sI(WadWriter writer, uint end_section_offset, ushort rounded_sampling_rate, DialoguesBGMsSoundFlagsPSX flags, uint uk1, uint size)
 		{
 			//<IHH4sI
 			writer.WriteUInt32(end_section_offset);

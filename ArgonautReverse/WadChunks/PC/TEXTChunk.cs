@@ -4,7 +4,7 @@ using ArgonautReverse.PC;
 
 namespace ArgonautReverse.WadChunks.PC
 {
-	public sealed class TEXTChunkInfo:BaseWADChunkInfo
+    public sealed class TEXTChunkInfo:BaseWADChunkInfo<TEXTChunk>
 	{
 		public static readonly TEXTChunkInfo Instance = new TEXTChunkInfo();
 

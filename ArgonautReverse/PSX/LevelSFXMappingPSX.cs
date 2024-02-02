@@ -25,7 +25,7 @@ namespace ArgonautReverse.PSX
 			return new LevelSFXMappingPSX(mapping: mapping);
 		}
 
-		public void serialize(Serializer data_out, LevelSFXContainerPSX level_sfx_groups)
+		public void serialize(WadWriter data_out, LevelSFXContainerPSX level_sfx_groups)
 		{
 			var mapping = new byte[n_unique_level_sfx][];
 			for(int i = 0; i < n_unique_level_sfx; i++)

@@ -25,7 +25,7 @@ namespace ArgonautReverse.Files
 			new DATFileType
 			(
 				"WAD",
-				(conf, stem, data) => new WADFile(conf.ReadVersion.GetWadVersion(stem), stem, data),
+				(conf, stem, data) => WADFile.Create(conf.ReadVersion, conf.ReadVersion.GetWadVersion(stem), stem, data),
 				"FESOUND", "FETHUND"
 			)
 		};

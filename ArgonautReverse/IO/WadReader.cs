@@ -27,21 +27,11 @@ namespace ArgonautReverse.IO
 
 		public byte[] GetAllWadData() => Data.AsSpan(Offset, Length).ToArray();
 
-
-		public unsafe void AssertChunkType(ChunkType chunkType)
-		{
-			var readChunkType = (ChunkType)Read<uint>();
-			if(readChunkType != chunkType)
-			{
-				throw new ChunkNameError(AbsolutePosition, chunkType.ToString(), readChunkType.GetRawName());
-			}
-		}
-
 		public void AssertEndOfChunk(ChunkType chunkType)
 		{
 			if(Remaining != 0)
 			{
-				throw new ChunkSizeMismatch(AbsolutePosition, chunkType.ToString(), Remaining);
+				throw new Exception($"Chunk {chunkType} is longer than expected. Total unread bytes: {Remaining}");
 			}
 		}
 	}

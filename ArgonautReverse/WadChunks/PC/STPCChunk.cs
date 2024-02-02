@@ -4,7 +4,7 @@ using ArgonautReverse.PC;
 
 namespace ArgonautReverse.WadChunks.PC
 {
-	public sealed class STPCChunkInfo:BaseWADChunkInfo
+    public sealed class STPCChunkInfo:BaseWADChunkInfo<STPCChunk>
 	{
 		public static readonly STPCChunkInfo Instance = new STPCChunkInfo();
 
@@ -23,7 +23,7 @@ namespace ArgonautReverse.WadChunks.PC
 			var animations = reader.ReadArrayWithoutMultipass<AnimationStructPC>(animationCount);
 
 			IReadOnlyList<STPC_Struct2> cutscenes = null;
-			var wadFlags = reader.WadFile.GetChunk<WFPCChunk>(ChunkType.ID_PC_WADFLAGS).WadFlags;
+			var wadFlags = reader.WadFile.GetChunk(WFPCChunkInfo.Instance).WadFlags;
 			if((wadFlags & WadFlagPC.WAD_FLAG_100) != 0)
 			{
 				var cutsceneCount = reader.Read<int>();

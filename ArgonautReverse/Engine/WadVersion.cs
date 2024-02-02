@@ -6,8 +6,9 @@
 		public abstract DateTime BuildDate{get;}
 
 		#region Macros
-		//TODO: Find way to determine NEW_COLLISION programmatically?
+		//TODO: Find way to determine these programmatically?
 		public abstract bool NEW_COLLISION{get;}
+		public abstract bool KEYFRAME_STUFF{get;}
 		#endregion
 
 		#region Comparison

@@ -4,7 +4,7 @@ using ArgonautReverse.IO;
 
 namespace ArgonautReverse.WadChunks.PSX
 {
-	public class PORTChunkInfo:BaseWADChunkInfo
+    public class PORTChunkInfo:BaseWADChunkInfo<PORTChunk>
 	{
 		public static readonly PORTChunkInfo Instance = new PORTChunkInfo();
 
