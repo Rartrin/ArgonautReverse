@@ -1,3 +1,4 @@
+using System.Formats.Tar;
 using System.Text;
 using ArgonautReverse.Engine;
 using ArgonautReverse.Engine.Versions;
@@ -155,6 +156,7 @@ namespace ArgonautReverse.Files
 					{
 						Console.WriteLine($"WARNING: There were {chunkReader.Remaining} bytes of unparsed data in {chunkLocation.Info.ChunkType}!");
 					}
+					chunk.PostParseSetup(this);
 				}
 			}
 		}
@@ -366,7 +368,7 @@ namespace ArgonautReverse.Files
 		public int n_sounds => this.SPSX?.n_sounds ?? 0;
 
 		// DPSX
-		public IReadOnlyList<Object3DDataPSX> models_3d => this.DPSX?.models_3d;
+		public IReadOnlyList<ObjectDataPSX> models_3d => this.DPSX?.models_3d;
 
 		public int n_models => this.DPSX?.models_3d.Count ?? 0;
 
@@ -593,7 +595,8 @@ namespace ArgonautReverse.Files
 		{
 			for(int i=0; i<this.n_scripts; i++)
 			{
-				File.WriteAllBytes(Path.Join(folder_path, $"{wad_filename}_{i}.raw_actor"), this.actors[i].data);
+				var script = this.actors[i];
+				script.Write(Path.Join(folder_path, $"{wad_filename}_{i}.strat_asm"));
 			}
 		}
 	}

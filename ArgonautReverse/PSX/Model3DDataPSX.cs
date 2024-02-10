@@ -9,7 +9,7 @@ namespace ArgonautReverse.PSX
 	{
 		public const string mtl_header = "mtllib {0}.MTL\nusemtl mtl1\ns off";
 
-		public readonly Model3DHeaderPSX header;
+		public readonly BaseObjectPSX obj;
 		public readonly bool is_world_model_3d;
 		public readonly IReadOnlyList<IReadOnlyList<Vector3>> vertices;
 		public readonly IReadOnlyList<IReadOnlyList<Vector3>> normals;
@@ -20,7 +20,7 @@ namespace ArgonautReverse.PSX
 		public readonly int n_vertices_groups;
 
 		public Model3DDataPSX(
-			Model3DHeaderPSX header,
+			BaseObjectPSX header,
 			bool is_world_model_3d,
 			IReadOnlyList<IReadOnlyList<Vector3>> vertices,
 			IReadOnlyList<IReadOnlyList<Vector3>> normals,
@@ -31,7 +31,7 @@ namespace ArgonautReverse.PSX
 			int n_vertices_groups)
 		{
 			//header parameter is needed for chunks 3D models, where the headers are separated from the 3D model data.
-			this.header = header;
+			this.obj = header;
 			this.is_world_model_3d = is_world_model_3d;
 			this.vertices = vertices;
 			this.normals = normals;
@@ -42,13 +42,13 @@ namespace ArgonautReverse.PSX
 			this.n_vertices_groups = n_vertices_groups;
 		}
 
-		public int n_vertices => header.n_vertices;
+		public int n_vertices => obj.nvert;
 
-		public static unsafe Model3DDataPSX Parse<FaceType>(WadReader data_in, Model3DHeaderPSX header, BaseObjectPSX<FaceType> obj, bool is_world_model_3d) where FaceType : IReadable<FaceType>
+		public static unsafe Model3DDataPSX Parse(WadReader data_in, BaseObjectPSX obj, bool track)
 		{
-			obj.ParseSetupData(data_in, is_world_model_3d);
+			obj.ParseSetupData(data_in, track);
 
-			static IReadOnlyList<IReadOnlyList<Vector3>> ParseVerticesNormals(BaseObjectPSX<FaceType> obj, IReadOnlyList<SVECTOR> verts_norms)
+			static IReadOnlyList<IReadOnlyList<Vector3>> ParseVerticesNormals(BaseObjectPSX obj, IReadOnlyList<SVECTOR> verts_norms)
 			{
 				var res = new List<Vector3[]>();
 				var group = new List<Vector3>();
@@ -80,7 +80,7 @@ namespace ArgonautReverse.PSX
 			var n_vertices_groups = vertices.Count;
 			IReadOnlyList<IReadOnlyList<Vector3>> normals;
 
-			if(!is_world_model_3d || data_in.ReadVersion != HARRY_POTTER_1_PS1.WadVersion && data_in.ReadVersion != HARRY_POTTER_2_PS1.WadVersion)
+			if(!track || data_in.ReadVersion != HARRY_POTTER_1_PS1.WadVersion && data_in.ReadVersion != HARRY_POTTER_2_PS1.WadVersion)
 			{
 				normals = ParseVerticesNormals(obj, obj.lnorm);
 				var n_normals_groups = normals.Count;
@@ -102,13 +102,15 @@ namespace ArgonautReverse.PSX
 
 			var faces = obj.lface;
 
-			if(!is_world_model_3d/*|| (data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)*/)
+
+			//Dummy has normal field on both
+			if(!track || (data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion))
 			{
 				// Large face headers (Actors' models)
-				for(int face_id = 0; face_id < header.n_faces; face_id++)
+				for(int face_id = 0; face_id < obj.nface; face_id++)
 				{
-					var face = (FacePSX)(object)faces[face_id];
-					var normal = face.normal;
+					var face = faces[face_id];
+					var normal = face.normal.Value;
 
 					var unknownIndex = normal.PAD;
 
@@ -156,9 +158,11 @@ namespace ArgonautReverse.PSX
 			else
 			{
 				// Small face headers (Subchunks' models)
-				for(int face_id = 0; face_id < header.n_faces; face_id++)
+				for(int face_id = 0; face_id < obj.nface; face_id++)
 				{
-					var face = (TFacePSX)(object)faces[face_id];
+					var face = faces[face_id];
+
+					//TODO: Handle potential normals
 
 					if((face.texture.flags & 0x0800) != 0)
 					{
@@ -181,8 +185,8 @@ namespace ArgonautReverse.PSX
 
 			return new Model3DDataPSX
 			(
-				header,
-				is_world_model_3d,
+				obj,
+				track,
 				vertices,
 				normals,
 				quads,
@@ -327,29 +331,29 @@ namespace ArgonautReverse.PSX
 		}
 	}
 
-	public sealed class Object3DDataPSX
+	public sealed class ObjectDataPSX
 	{
-		public Model3DHeaderPSX_Object Header { get; }
-		public Model3DDataPSX Data { get; }
+		public ObjectPSX Object{get;}
+		public Model3DDataPSX Data{get;}
 
-		private Object3DDataPSX(Model3DHeaderPSX_Object header, Model3DDataPSX data)
+		private ObjectDataPSX(ObjectPSX obj, Model3DDataPSX data)
 		{
-			Header = header;
+			Object = obj;
 			Data = data;
 		}
 
-		public static Object3DDataPSX Parse(WadReader data_in)
+		public static ObjectDataPSX Parse(WadReader data_in)
 		{
-			var header = Model3DHeaderPSX_Object.Parse(data_in);
-			var data = Model3DDataPSX.Parse(data_in, header, header.Object, is_world_model_3d: false);
-			return new Object3DDataPSX(header, data);
+			var obj = ObjectPSX.Parse(data_in);
+			var data = Model3DDataPSX.Parse(data_in, obj, track: false);
+			return new ObjectDataPSX(obj, data);
 		}
 
 		/// <summary>
 		/// Returns vertices and vertices normals of this model after application of an animation frame's
 		/// rotation & translation information. The model is **not** modified.
 		/// </summary>
-		public Object3DDataPSX Animate(AnimationDataPSX animation, int frame_id = 0)
+		public ObjectDataPSX Animate(AnimationDataPSX animation, int frame_id = 0)
 		{
 			if(Data.n_vertices_groups != animation.n_vertices_groups)
 			{
@@ -367,7 +371,7 @@ namespace ArgonautReverse.PSX
 			}
 			var newData = new Model3DDataPSX
 			(
-				Data.header,
+				Data.obj,
 				Data.is_world_model_3d,
 				vertices,
 				normals,
@@ -377,25 +381,25 @@ namespace ArgonautReverse.PSX
 				Data.faces_texture_ids,
 				Data.n_vertices_groups
 			);
-			return new Object3DDataPSX(Header, newData);
+			return new ObjectDataPSX(Object, newData);
 		}
 	}
 
-	public sealed class LevelGeom3DDataPSX
+	public sealed class TObjectDataPSX
 	{
-		public Model3DHeaderPSX_Track Header { get; }
-		public Model3DDataPSX Data { get; }
+		public TObjectPSX Object{get;}
+		public Model3DDataPSX Data{get;}
 
-		private LevelGeom3DDataPSX(Model3DHeaderPSX_Track header, Model3DDataPSX data)
+		private TObjectDataPSX(TObjectPSX obj, Model3DDataPSX data)
 		{
-			Header = header;
+			Object = obj;
 			Data = data;
 		}
 
-		public static LevelGeom3DDataPSX Parse(WadReader data_in, Model3DHeaderPSX_Track header)
+		public static TObjectDataPSX Parse(WadReader data_in, TObjectPSX obj)
 		{
-			var data = Model3DDataPSX.Parse(data_in, header, header.TrackObject, is_world_model_3d: true);
-			return new LevelGeom3DDataPSX(header, data);
+			var data = Model3DDataPSX.Parse(data_in, obj, track: true);
+			return new TObjectDataPSX(obj, data);
 		}
 	}
 }

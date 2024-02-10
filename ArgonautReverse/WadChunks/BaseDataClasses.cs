@@ -1,4 +1,5 @@
 using ArgonautReverse.Engine;
+using ArgonautReverse.Files;
 using ArgonautReverse.IO;
 
 namespace ArgonautReverse.WadChunks
@@ -31,6 +32,8 @@ namespace ArgonautReverse.WadChunks
 				Data = data;
 			}
 		}
+
+		public virtual void PostParseSetup(WADFile wadFile){}
 
 		public virtual void Serialize(WadWriter data_out)
 		{

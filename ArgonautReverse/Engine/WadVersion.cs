@@ -1,4 +1,6 @@
-﻿namespace ArgonautReverse.Engine
+﻿using ArgonautReverse.Universal;
+
+namespace ArgonautReverse.Engine
 {
 	public abstract class WadVersion
 	{
@@ -18,5 +20,7 @@
 		public bool Is(WadVersion version) => this == version;
 		public bool Is(params WadVersion[] versions) => versions.Contains(this);
 		#endregion
+
+		public abstract InstructionOpcode MapOpcode(int value);
 	}
 }

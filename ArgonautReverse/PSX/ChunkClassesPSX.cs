@@ -10,10 +10,10 @@ namespace ArgonautReverse.PSX
 
 	public sealed class SubChunkPSX
 	{
-		public readonly LevelGeom3DDataPSX model_3d_data;
+		public readonly TObjectDataPSX model_3d_data;
 		public readonly int height;
 		public readonly ChunkRotationPSX rotation;
-		public SubChunkPSX(LevelGeom3DDataPSX model_3d_data, int height, ChunkRotationPSX rotation)
+		public SubChunkPSX(TObjectDataPSX model_3d_data, int height, ChunkRotationPSX rotation)
 		{
 			this.model_3d_data = model_3d_data;
 			this.height = height;
@@ -40,13 +40,13 @@ namespace ArgonautReverse.PSX
 	public sealed class ChunksMatrixPSX
 	{
 		public readonly IReadOnlyList<ChunkHolderPSX> ChunkHolders;
-		public readonly IReadOnlyList<LevelGeom3DDataPSX> chunks_models;
+		public readonly IReadOnlyList<TObjectDataPSX> chunks_models;
 		public readonly int n_rows;
 		public readonly int n_columns;
 		public readonly bool has_zone_ids;
 		public readonly ZonePSX max_zone_id;
 
-		public ChunksMatrixPSX(IReadOnlyList<ChunkHolderPSX> chunks_holders, IReadOnlyList<LevelGeom3DDataPSX> chunks_models, int n_rows, int n_columns, bool has_zone_ids)
+		public ChunksMatrixPSX(IReadOnlyList<ChunkHolderPSX> chunks_holders, IReadOnlyList<TObjectDataPSX> chunks_models, int n_rows, int n_columns, bool has_zone_ids)
 		{
 			ChunkHolders = chunks_holders;
 

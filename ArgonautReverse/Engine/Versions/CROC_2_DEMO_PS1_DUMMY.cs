@@ -1,4 +1,6 @@
-﻿namespace ArgonautReverse.Engine.Versions
+﻿using ArgonautReverse.Universal;
+
+namespace ArgonautReverse.Engine.Versions
 {
 	//Croc 2 PS1 US Demo's DUMMY.DAT
 	//The files in here were almost certainly built prior to the rest of the demo
@@ -46,6 +48,155 @@
 				{
 					wadVersions.Add(wadName, this);
 				}
+			}
+
+			public override InstructionOpcode MapOpcode(int value)
+			{
+				if(value <= (int)InstructionOpcode.Spawn)
+				{
+					return (InstructionOpcode)value;
+				}
+				return value switch
+				{
+					//Same values
+					10 => InstructionOpcode.Number,
+					20 => InstructionOpcode.LessThan,
+					22 => InstructionOpcode.SetModel,
+					27 => InstructionOpcode.Shadow,
+					29 => InstructionOpcode.ShadowType,
+					68 => InstructionOpcode.AnimPlay,
+					73 => InstructionOpcode.CollRadius,
+					77 => InstructionOpcode.CollPoints,
+					78 => InstructionOpcode.CollSetPoint,
+					79 => InstructionOpcode.CreateTrigger,
+					85 => InstructionOpcode.Wait,
+					86 => InstructionOpcode.Hold,
+
+					88 => InstructionOpcode.Remove,
+
+					94 => InstructionOpcode.Spawn,
+					95 => throw new NotImplementedException("Unknown OpCode 1"),
+					96 => InstructionOpcode.SpawnFrom,
+					#region Fuxxy Zone 1
+
+					//4 additional values somewhere in here
+
+					//Needs opcodes for known instructions:
+					//Link (Unimplmented)
+					//Unlink (Unimplmented)
+
+					#endregion
+
+					104 => InstructionOpcode.SoundShift,//Partical guess by location. Inputs match and no adjacent do.
+					105 => InstructionOpcode.SoundStop,//Guessed by location
+
+					117 => InstructionOpcode.CollisionOn,
+					118 => InstructionOpcode.CollisionOff,//Guessed by location
+
+					124 => InstructionOpcode.Int,//Guessed by location
+					125 => InstructionOpcode.Sin,//Guessed by location
+					126 => InstructionOpcode.Cos,
+					127 => InstructionOpcode.Not,//Guessed by location
+
+					130 => InstructionOpcode.Address,
+					
+					132 => InstructionOpcode.JsrImm,
+					133 => InstructionOpcode.Return,
+					134 => InstructionOpcode.Beq,//Guessed by location
+					135 => InstructionOpcode.Bne,//Guessed by location
+					136 => InstructionOpcode.BeqImm,
+					
+					138 => InstructionOpcode.JumpImm,
+					139 => InstructionOpcode.EndStrat,
+					140 => InstructionOpcode.IsPlayer,
+					141 => InstructionOpcode.And,//Guessed by location
+					142 => InstructionOpcode.Or,//Guessed by location
+					143 => InstructionOpcode.Index_Jump,
+					144 => InstructionOpcode.BitwiseAnd,//Partical Guess but seems right
+					145 => InstructionOpcode.Ext_Local,//Guessed by location
+					146 => InstructionOpcode.Ext_LocalAddress,//Guessed by location
+
+					149 => InstructionOpcode.ObjectJump,//Partical Guess but seems right
+					150 => InstructionOpcode.Ext_AlienVar,//Guessed by location
+
+					152 => InstructionOpcode.NotEqual,//Rough Guess
+					153 => InstructionOpcode.ShiftLeft,//Fits with expected inputs but can't comfirm
+					154 => InstructionOpcode.ShiftRight,//Fits with expected inputs but can't comfirm
+
+					#region Fuzzy Zone 2
+
+					//7 additional values somewhere in here
+					
+
+
+					//There is a bunch of animation stuff around it where it is used and it takes in a fixed point type which matches.
+					162 => InstructionOpcode.AnimAdvance,//This is an extremely rough guess.
+
+
+					#endregion
+					163 => InstructionOpcode.GreaterEqual,//Matches in areas
+					164 => InstructionOpcode.LessEqual,//Guessed by location and almost matches patterns in areas
+					165 => InstructionOpcode.Rnd,//Fits but can't confirm
+					166 => InstructionOpcode.Blink,
+					167 => InstructionOpcode.LoseHeart,//Guessed by location
+					168 => InstructionOpcode.ResetToCheckPoint,
+					169 => InstructionOpcode.ForceCollision,
+					
+					171 => InstructionOpcode.PlayerAttack,
+					172 => InstructionOpcode.Rumble,//Guessed by location
+					
+					174 => InstructionOpcode.SuspendIfTooFar,//Guessed by location
+					175 => InstructionOpcode.CollisionBone,
+					176 => InstructionOpcode.UseBone,//Guessed by location
+					177 => InstructionOpcode.IsCamera,//Guessed by location
+					178 => InstructionOpcode.LookAtMe,
+					
+					186 => InstructionOpcode.GainCrystal,//Guessed by location
+					187 => InstructionOpcode.Cutscene,//Guessed by location
+
+					189 => InstructionOpcode.DebugName,
+					190 => InstructionOpcode.PlayerDistanceCheck,//Guessed by location
+					191 => InstructionOpcode.SoundPlay1,//Guessed by location
+
+					193 => InstructionOpcode.SoundAddress,
+					194 => InstructionOpcode.OnGround,
+					195 => InstructionOpcode.ObjectFallSlow,//Guessed by location
+					196 => InstructionOpcode.Player_AlienVar,//Guessed by location
+					197 => InstructionOpcode.Player_AlienVarAddress,//Guessed by location
+					198 => InstructionOpcode.CollisionOffset,
+					199 => InstructionOpcode.Abs,//Guessed by location
+					200 => InstructionOpcode.Pickup,//Guessed by location
+					201 => InstructionOpcode.Min,//Guessed by location
+					202 => InstructionOpcode.Max,//Guessed by location, inputs fit
+					203 => InstructionOpcode.SpawnParticle,
+					204 => InstructionOpcode.Sgn,
+					205 => InstructionOpcode.SpawnAfter,
+
+					208 => InstructionOpcode.Target_AlienVar,//Guessed by location
+
+					215 => InstructionOpcode.RunAt60,//Guessed by location
+					216 => InstructionOpcode.MoveForwardq,//Guessed by location
+					217 => InstructionOpcode.MoveBackwardq,//Guessed by location
+
+					219 => InstructionOpcode.SoundPlay2,//Guessed by location
+					220 => InstructionOpcode.SoundPlay2ASS,//Guessed by location
+					221 => InstructionOpcode.SetWP,//Guessed by location
+					222 => InstructionOpcode.ResetWP,//Guessed by location
+					223 => InstructionOpcode.SoundVolume,//Guessed by location
+					224 => InstructionOpcode.Push,//Guessed by location
+					225 => InstructionOpcode.String,
+
+					#region Unknown Zone (Guessed using spacing above)
+					226 => InstructionOpcode.SetBossHearts,//Showed up in same place as IsBoss
+					227 => InstructionOpcode.LoseBossHeart,//Showed up in same place as IsBoss
+
+					229 => InstructionOpcode.Smin,//Guessed by location
+					230 => InstructionOpcode.IsBoss,//Guessed by location
+					#endregion
+
+					//>=# and <=# => (InstructionOpcode)(value-13),//stDebugName to stString
+					_ => throw new NotImplementedException()
+				};
 			}
 
 			//Version used in: 00BD7800, 01864000

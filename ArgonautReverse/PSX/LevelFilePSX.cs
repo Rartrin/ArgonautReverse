@@ -7,24 +7,27 @@ namespace ArgonautReverse.PSX
 	{
 		public readonly ChunksMatrixPSX chunks_matrix;
 
-		public LevelFilePSX(ChunksMatrixPSX chunks_matrix)
+		public readonly MapPSX map;
+
+		public LevelFilePSX(ChunksMatrixPSX chunks_matrix, MapPSX map)
 		{
 			this.chunks_matrix = chunks_matrix;
+			this.map = map;
 		}
 
 		public static LevelFilePSX Parse(WadReader data_in, WadFlagPSX wadFlag)
 		{
 			//Track Objects
 			var n_chunk_models = data_in.Read<int>();
-			var _chunk_model_headers = new Model3DHeaderPSX_Track[n_chunk_models];
+			var _chunk_model_headers = new TObjectPSX[n_chunk_models];
 			for(int i = 0; i < n_chunk_models; i++)
 			{
-				_chunk_model_headers[i] = Model3DHeaderPSX_Track.Parse(data_in);
+				_chunk_model_headers[i] = TObjectPSX.Parse(data_in);
 			}
-			var chunk_models = new LevelGeom3DDataPSX[n_chunk_models];
+			var chunk_models = new TObjectDataPSX[n_chunk_models];
 			for(int i = 0; i < n_chunk_models; i++)
 			{
-				chunk_models[i] = LevelGeom3DDataPSX.Parse(data_in, _chunk_model_headers[i]);
+				chunk_models[i] = TObjectDataPSX.Parse(data_in, _chunk_model_headers[i]);
 			}
 
 			uint localPoolSize = 8;
@@ -161,7 +164,8 @@ namespace ArgonautReverse.PSX
 						(int)map.MapZ,
 						(int)map.MapX,
 						map.ZoneData is not null
-					)
+					),
+					map
 				);
 			}
 			else
@@ -175,7 +179,8 @@ namespace ArgonautReverse.PSX
 						0,
 						0,
 						false
-					)
+					),
+					map
 				);
 			}
 		}

@@ -2,55 +2,55 @@
 
 namespace ArgonautReverse.PC
 {
-	public sealed class STPC_Struct2:IReadable<STPC_Struct2>
+	public sealed class Cutscene:IReadable<Cutscene>
 	{
-		public readonly int unknown0;
-		//public readonly int arraySize;
-		public readonly IReadOnlyList<STPC_Struct3> array;
-		public readonly IReadOnlyList<StratObject2PC> structPtr0;
+		public readonly string FileExtension;//char[4]
+		//public readonly int ObjCount;
+		public readonly IReadOnlyList<CutsceneInfoPC> InfoList;
+		public readonly IReadOnlyList<StratObject2PC> ObjList;
 
-		public STPC_Struct2(int unknown0, IReadOnlyList<STPC_Struct3> array, IReadOnlyList<StratObject2PC> structPtr0)
+		public Cutscene(string fileExtension, IReadOnlyList<CutsceneInfoPC> infoList, IReadOnlyList<StratObject2PC> objList)
 		{
-			this.unknown0 = unknown0;
+			this.FileExtension = fileExtension;
 			//this.arraySize = arraySize;
-			if(array.Count != structPtr0.Count)
+			if(infoList.Count != objList.Count)
 			{
 				throw new Exception();
 			}
-			this.array = array;
-			this.structPtr0 = structPtr0;
+			this.InfoList = infoList;
+			this.ObjList = objList;
 		}
 
-		public static STPC_Struct2 Parse(WadReader reader)
+		public static Cutscene Parse(WadReader reader)
 		{
-			var unknown0 = reader.Read<int>();
-			var arraySize = reader.Read<int>();
-			reader.AssertRead<uint>(0);//array placeholder
-			reader.AssertRead<uint>(0);//structPtr0 placeholder
+			var fileExtension = reader.ReadString(4);
+			var objCount = reader.Read<int>();
+			reader.AssertRead<uint>(0);//InfoList placeholder
+			reader.AssertRead<uint>(0);//ObjList placeholder
 
-			var array = reader.ReadArray<STPC_Struct3>(arraySize);
-			var structPtr0 = reader.ReadArrayMultipass<StratObject2PC>(arraySize);
+			var infoList = reader.ReadArray<CutsceneInfoPC>(objCount);
+			var objList = reader.ReadArrayMultipass<StratObject2PC>(objCount);
 
-			return new STPC_Struct2(unknown0, array, structPtr0);
+			return new Cutscene(fileExtension, infoList, objList);
 		}
 	}
 
-	public sealed class STPC_Struct3:IReadable<STPC_Struct3>
+	public sealed class CutsceneInfoPC:IReadable<CutsceneInfoPC>
 	{
-		public readonly int field0;
-		public readonly int field1;
+		public readonly int MorphCount;
+		public readonly int BoneCount;
 
-		public STPC_Struct3(int field0, int field1)
+		public CutsceneInfoPC(int morphCount, int boneCount)
 		{
-			this.field0 = field0;
-			this.field1 = field1;
+			this.MorphCount = morphCount;
+			this.BoneCount = boneCount;
 		}
 
-		public static STPC_Struct3 Parse(WadReader reader)
+		public static CutsceneInfoPC Parse(WadReader reader)
 		{
-			var field0 = reader.Read<int>();
-			var field1 = reader.Read<int>();
-			return new STPC_Struct3(field0, field1);
+			var morphCount = reader.Read<int>();
+			var boneCount = reader.Read<int>();
+			return new CutsceneInfoPC(morphCount, boneCount);
 		}
 	}
 }

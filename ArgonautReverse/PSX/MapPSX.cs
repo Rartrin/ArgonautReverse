@@ -377,7 +377,7 @@ namespace ArgonautReverse.PSX
 			return map;
 		}
 
-		public static MapPSX Parse(WadReader data_in, WadFlagPSX wadFlag, LevelGeom3DDataPSX[] chunk_models)
+		public static MapPSX Parse(WadReader data_in, WadFlagPSX wadFlag, TObjectDataPSX[] chunk_models)
 		{
 			//Params are stored before the map
 			var mapParamCount = data_in.Read<int>();
@@ -622,7 +622,7 @@ namespace ArgonautReverse.PSX
 					for(int j = 0; j < map.NumberOfPieces; j++)
 					{
 						var trackObj = chunk_models[map.Pieces[j]];
-						preMap[i][j].lface = data_in.ReadArray<PolyAllPSX>(trackObj.Header.n_faces);
+						preMap[i][j].lface = data_in.ReadArray<PolyAllPSX>(trackObj.Object.nface);
 					}
 				}
 				map.pre_map = preMap;

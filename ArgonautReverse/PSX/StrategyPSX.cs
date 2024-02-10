@@ -24,7 +24,7 @@ namespace ArgonautReverse.PSX
 		public POS Pos;
 
 		public int AddrOffset;
-		public nuint Addr;
+		public ActorDataPSX Script;
 
 		//public uint NumberParameters;
 		public IReadOnlyList<int> ParamBlock;
@@ -51,6 +51,7 @@ namespace ArgonautReverse.PSX
 			mapStrat.Pos = reader.Read<POS>();
 
 			//TODO: Setup Addr
+			//This offset is from the start of the data chunk
 			mapStrat.AddrOffset = reader.Read<int>();
 
 			var numberParameters = reader.Read<uint>();

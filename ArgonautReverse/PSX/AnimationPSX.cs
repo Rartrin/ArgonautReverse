@@ -133,6 +133,18 @@ namespace ArgonautReverse.PSX
 				animation.KeyframeCount = 0;
 			}
 
+			if(animation.FrameCount > 500 || animation.FrameCount == 0)
+			{
+				if(reader.Configuration.IgnoreWarnings)
+				{
+					AnimationsWarning.Warn(animation.FrameCount);
+				}
+				else
+				{
+					throw new AnimationsWarning(reader.AbsolutePosition, animation.FrameCount);
+				}
+			}
+
 			return animation;
 		}
 

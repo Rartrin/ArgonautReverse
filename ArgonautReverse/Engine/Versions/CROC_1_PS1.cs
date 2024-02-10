@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using ArgonautReverse.IO;
+using ArgonautReverse.Universal;
 
 namespace ArgonautReverse.Engine.Versions
 {
@@ -33,6 +34,8 @@ namespace ArgonautReverse.Engine.Versions
 			
 			public override bool NEW_COLLISION => throw new NotSupportedException();
 			public override bool KEYFRAME_STUFF => throw new NotSupportedException();
+
+			public override InstructionOpcode MapOpcode(int value) => throw new NotImplementedException();
 		}
 
 		private sealed class CROC_1_PS1_DirFormat:DirFormat

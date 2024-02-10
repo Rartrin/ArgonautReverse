@@ -7,13 +7,13 @@ namespace ArgonautReverse.OpenStratEngine.Chunks
 	{
 		Unknown			= 0,
 		Wadflags		= ('F' << 24) + ('L' << 16) + ('A' << 8) + 'G',
-		//Fonts
-		//Objects
+		Fonts			= ('F' << 24) + ('O' << 16) + ('N' << 8) + 'T',
+		Objects			= ('O' << 24) + ('B' << 16) + ('J' << 8) + ' ',
 		Animations		= ('A' << 24) + ('N' << 16) + ('I' << 8) + 'M',
 		//Cutscenes
 		//Heads
 		//Actors
-		//Track Objects
+		TrackObjects	= ('T' << 24) + ('O' << 16) + ('B' << 8) + 'J',
 		//
 		Waypoints		= ('W' << 24) + ('Y' << 16) + ('P' << 8) + 'T',
 	}

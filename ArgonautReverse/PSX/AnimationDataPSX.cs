@@ -16,22 +16,8 @@ namespace ArgonautReverse.PSX
 			Frames = frames;
 		}
 
-		public static unsafe AnimationDataPSX Parse(WadReader reader)
+		public static unsafe AnimationDataPSX Parse(AnimationPSX animation)
 		{
-			var animation = reader.ReadArrayWithoutMultipass<AnimationPSX>(1)[0];
-
-			if(animation.FrameCount > 500 || animation.FrameCount == 0)
-			{
-				if(reader.Configuration.IgnoreWarnings)
-				{
-					AnimationsWarning.Warn(animation.FrameCount);
-				}
-				else
-				{
-					throw new AnimationsWarning(reader.AbsolutePosition, animation.FrameCount);
-				}
-			}
-
 			IReadOnlyList<int> frameIndexes;
 			Matrix4x4[][] frames;
 			if(animation.KeyframeCount==0)

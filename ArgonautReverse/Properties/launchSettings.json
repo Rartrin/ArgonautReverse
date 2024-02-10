@@ -21,7 +21,7 @@
     },
     "Export DUMMY - Actors": {
       "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --psx-dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --export-actors \"GameFiles/DUMMY/Actors\""
+      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --psx-dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --export-actors \"GameFiles/DUMMY\""
     },
     "Export DUMMY - Levels+Models+Textures": {
       "commandName": "Project",

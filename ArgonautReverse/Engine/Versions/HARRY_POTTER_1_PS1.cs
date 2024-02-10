@@ -1,4 +1,6 @@
-﻿namespace ArgonautReverse.Engine.Versions
+﻿using ArgonautReverse.Universal;
+
+namespace ArgonautReverse.Engine.Versions
 {
 	public static class HARRY_POTTER_1_PS1
 	{
@@ -28,6 +30,8 @@
 			
 			public override bool NEW_COLLISION => true;
 			public override bool KEYFRAME_STUFF => true;
+
+			public override InstructionOpcode MapOpcode(int value) => throw new NotImplementedException();
 		}
 	}
 }

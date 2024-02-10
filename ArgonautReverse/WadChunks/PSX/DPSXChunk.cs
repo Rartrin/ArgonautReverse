@@ -1,11 +1,12 @@
 using ArgonautReverse.Engine;
 using ArgonautReverse.Engine.Versions;
+using ArgonautReverse.Files;
 using ArgonautReverse.IO;
 using ArgonautReverse.PSX;
 
 namespace ArgonautReverse.WadChunks.PSX
 {
-    public sealed class DPSXChunkInfo:BaseWADChunkInfo<DPSXChunk>
+	public sealed class DPSXChunkInfo:BaseWADChunkInfo<DPSXChunk>
 	{
 		public static readonly DPSXChunkInfo Instance = new DPSXChunkInfo();
 		public override ChunkType ChunkType => ChunkType.ID_PSX_DATA;
@@ -41,17 +42,18 @@ namespace ArgonautReverse.WadChunks.PSX
 			}
 
 			var n_models_3d = data_in.Read<int>();
-			var models_3d = new Object3DDataPSX[n_models_3d];
+			var models_3d = new ObjectDataPSX[n_models_3d];
 			for(int i = 0; i < n_models_3d; i++)
 			{
-				models_3d[i] = Object3DDataPSX.Parse(data_in);
+				models_3d[i] = ObjectDataPSX.Parse(data_in);
 			}
 
 			var n_animations = data_in.Read<int>();
-			var animations = new AnimationDataPSX[n_animations];
+			var animations = data_in.ReadArrayWithoutMultipass<AnimationPSX>(n_animations);
+			var animationData = new AnimationDataPSX[n_animations];
 			for(int i = 0; i < n_animations; i++)
 			{
-				animations[i] = AnimationDataPSX.Parse(data_in);
+				animationData[i] = AnimationDataPSX.Parse(animations[i]);
 			}
 
 			if((wadFlag & WadFlagPSX.WF_HASCUTSCENES) != 0)//if(data_in.Version==CROC_2_PS1.Instance || data_in.Version==CROC_2_DEMO_PS1.Instance)
@@ -81,23 +83,79 @@ namespace ArgonautReverse.WadChunks.PSX
 			{
 				data_in.AssertEndOfChunk(ChunkType);
 			}
-			return new DPSXChunk(models_3d, animations, actors, level_file, data_in.GetAllWadData());
+			return new DPSXChunk(models_3d, animationData, actors, level_file, data_in.GetAllWadData());
 		}
 	}
 
 	public sealed class DPSXChunk:BaseWadChunk
 	{
-		public readonly IReadOnlyList<Object3DDataPSX> models_3d;
+		public readonly IReadOnlyList<ObjectDataPSX> models_3d;
 		public readonly IReadOnlyList<AnimationDataPSX> animations;
 		public readonly IReadOnlyList<ActorDataPSX> actors;
 		public readonly LevelFilePSX level_file;
 
-		public DPSXChunk(Object3DDataPSX[] models_3d, AnimationDataPSX[] animations, ActorDataPSX[] actors, LevelFilePSX level_file, byte[] fallback_data = null) : base(DPSXChunkInfo.Instance, fallback_data)
+		public DPSXChunk(ObjectDataPSX[] models_3d, AnimationDataPSX[] animations, ActorDataPSX[] actors, LevelFilePSX level_file, byte[] fallback_data = null) : base(DPSXChunkInfo.Instance, fallback_data)
 		{
 			this.models_3d = models_3d;
 			this.animations = animations;
 			this.actors = actors;
 			this.level_file = level_file;
+		}
+
+		public override void PostParseSetup(WADFile wadFile)
+		{
+			var wadFilePSX = (WadFilePSX)wadFile;
+
+			//Setup strat scripts
+			if(level_file.map==null)
+			{
+				Utils.Assert(actors.Count == 0);
+				return;
+			}
+			foreach(var strat in level_file.map.Strats)
+			{
+				strat.Script = GetScript(strat.AddrOffset);
+			}
+
+			//TODO: Validate this theory
+			//In theory, some strats entry points may be within others, so we need to loop over multiple times
+			bool processedStrats = true;
+			while(processedStrats)
+			{
+				processedStrats = false;
+				foreach(var script in actors)
+				{
+					if(script.ProcessScript(wadFilePSX))
+					{
+						processedStrats = true;
+					}
+				}
+			}
+			for(int i=0; i<actors.Count; i++)
+			{
+				var script = actors[i];
+				if(script.EntryPointAddrs.Count == 0)
+				{
+					Console.WriteLine($"Script {i} missing entrypoint");
+				}
+			}
+		}
+
+		public ActorDataPSX GetScript(int rawEntryPoint)
+		{
+			foreach(var curScript in actors)
+			{
+				if(curScript.DataChunkAddress<=rawEntryPoint && rawEntryPoint<curScript.DataChunkAddress+curScript.DataChunkLength)
+				{
+					var entryPoint = rawEntryPoint-curScript.DataChunkAddress;
+					if(!curScript.EntryPointAddrs.Contains(entryPoint))
+					{
+						curScript.EntryPointAddrs.Add(entryPoint);
+					}
+					return curScript;
+				}
+			}
+			throw new Exception("Entry point outside of known scripts");
 		}
 	}
 }

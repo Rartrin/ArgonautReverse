@@ -1,8 +1,9 @@
 ﻿using ArgonautReverse.IO;
+using ArgonautReverse.OpenStratEngine;
 
 namespace ArgonautReverse.PSX
 {
-	public sealed class FontPSX
+	public sealed class FontPSX:IConvertibleOSE<FontOSE>
 	{
 		public ushort Texture{get;}
 		public ushort BaseLine{get;}
@@ -25,5 +26,13 @@ namespace ArgonautReverse.PSX
 			var height = parser.Read<ushort>();
 			return new FontPSX(texture, baseLine, width, height);
 		}
+
+		FontOSE IConvertibleOSE<FontOSE>.ToOSE() => new FontOSE
+		(
+			textureId:Texture,
+			charOffsetY:BaseLine,
+			charWidth:Width,
+			charHeight:Height
+		);
 	}
 }

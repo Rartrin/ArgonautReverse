@@ -1,4 +1,7 @@
-﻿namespace ArgonautReverse.Engine.Versions
+﻿using ArgonautReverse.Engine.Mappings;
+using ArgonautReverse.Universal;
+
+namespace ArgonautReverse.Engine.Versions
 {
 	//Croc 2 PS1 US Demo
 	public static class CROC_2_DEMO_PS1
@@ -29,6 +32,8 @@
 			
 			public override bool NEW_COLLISION => false;
 			public override bool KEYFRAME_STUFF => false;
+
+			public override InstructionOpcode MapOpcode(int value) => MapperCroc2.OpcodeMapper(value);
 		}
 	}
 }

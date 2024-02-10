@@ -184,28 +184,10 @@ namespace ArgonautReverse.PSX
 		}
 	}
 
-	public unsafe struct FacePSX:IReadable<FacePSX>
+	public unsafe struct FacePSX:IReadable<FacePSX,bool>
 	{
-		public SVECTOR normal;/* face normal for flat polys + face count */
-
-		//TODO: These may be in a different order
-		public fixed ushort vertex[4];/* vertex indices */
-
-		public TVectorPSX texture;
-
-		public static FacePSX Parse(WadReader reader)
-		{
-			var face = new FacePSX();
-			face.normal = reader.Read(SVECTOR.ParseWithImportantPadding);
-			reader.ReadData(face.vertex, 4);
-			reader.Read(out face.texture);
-			return face;
-		}
-	}
-
-	public unsafe struct TFacePSX:IReadable<TFacePSX>
-	{
-		//Normal field existed in the dummy but was removed in all later version
+		//Normal field on non-track objects.
+		//Track object only have this in the dummy and was removed in all later versions.
 		public SVECTOR? normal;/* face normal for flat polys + face count */
 
 		//TODO: These may be in a different order
@@ -213,26 +195,31 @@ namespace ArgonautReverse.PSX
 
 		public TVectorPSX texture;
 
-		public static TFacePSX Parse(WadReader reader)
+		public static FacePSX Parse(WadReader reader, bool track)
 		{
-			var face = new TFacePSX();
-			if(reader.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
+			FacePSX face;
+			if(!track || (reader.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion))
 			{
 				face.normal = reader.Read(SVECTOR.ParseWithImportantPadding);
 			}
+			else
+			{
+				face.normal = null;
+			}
 			reader.ReadData(face.vertex, 4);
-			reader.Read(out face.texture);
+			face.texture = reader.Read<TVectorPSX>();
 			return face;
 		}
 	}
-	public abstract class BaseObjectPSX<FaceType> where FaceType : IReadable<FaceType>
+
+	public abstract class BaseObjectPSX
 	{
 		public IReadOnlyList<SVECTOR> bbox;//[9];	/* bounding box */
-		public uint nvert;                          /* number of vertices */
+		public int nvert;                          /* number of vertices */
 		public IReadOnlyList<SVECTOR> lvert;        /* list of vertices */
 		public IReadOnlyList<SVECTOR> lnorm;        /* list of normals */
-		public uint nface;                          /* number of faces */
-		public IReadOnlyList<FaceType> lface;       /* list of faces */
+		public int nface;                          /* number of faces */
+		public IReadOnlyList<FacePSX> lface;       /* list of faces */
 		public ushort nfloor;                       /* number of floor collision faces */
 		public ushort nceil;                        /* number of ceiling collision faces */
 		#region NEW_COLLISION
@@ -244,14 +231,11 @@ namespace ArgonautReverse.PSX
 		protected void BaseParse(WadReader reader)
 		{
 			bbox = reader.ReadArray<SVECTOR>(9);
-			nvert = reader.Read<uint>();
-			var lvertPlaceholder = reader.Read<int>();
-			if(lvertPlaceholder != 0) { throw new Exception(); }
-			var lnormPlaceholder = reader.Read<int>();
-			if(lnormPlaceholder != 0) { throw new Exception(); }
-			nface = reader.Read<uint>();
-			var lfacePlaceholder = reader.Read<int>();
-			if(lfacePlaceholder != 0) { throw new Exception(); }
+			nvert = reader.Read<int>();
+			reader.AssertRead<uint>(0);//lvert placeholder
+			reader.AssertRead<uint>(0);//lnorm placeholder
+			nface = reader.Read<int>();
+			reader.AssertRead<uint>(0);//lface placeholder
 			nfloor = reader.Read<ushort>();
 			nceil = reader.Read<ushort>();
 
@@ -259,11 +243,11 @@ namespace ArgonautReverse.PSX
 			{
 				if(reader.Configuration.IgnoreWarnings)
 				{
-					Models3DWarning.Warn((int)nvert, (int)nface);
+					Models3DWarning.Warn(nvert, nface);
 				}
 				else
 				{
-					throw new Models3DWarning(reader.AbsolutePosition, (int)nvert, (int)nface);
+					throw new Models3DWarning(reader.AbsolutePosition, nvert, nface);
 				}
 			}
 
@@ -283,18 +267,18 @@ namespace ArgonautReverse.PSX
 
 		public void ParseSetupData(WadReader reader, bool track)
 		{
-			lvert = reader.ReadArray(SVECTOR.ParseWithImportantPadding, (int)nvert);
+			lvert = reader.ReadArray(SVECTOR.ParseWithImportantPadding, nvert);
 
 			if(!track || (reader.ReadVersion != HARRY_POTTER_1_PS1.WadVersion && reader.ReadVersion != HARRY_POTTER_2_PS1.WadVersion))
 			{
-				lnorm = reader.ReadArray(SVECTOR.ParseWithImportantPadding, (int)nvert);
+				lnorm = reader.ReadArray(SVECTOR.ParseWithImportantPadding, nvert);
 			}
 			else
 			{
 				lnorm = null;
 			}
 
-			lface = reader.ReadArray<FaceType>((int)nface);
+			lface = reader.ReadArray<FacePSX,bool>(track, nface);
 
 			int ncoll = nfloor + nceil;
 			if(reader.ReadVersion.NEW_COLLISION)
@@ -305,7 +289,7 @@ namespace ArgonautReverse.PSX
 		}
 	}
 
-	public sealed class ObjectPSX:BaseObjectPSX<FacePSX>, IReadable<ObjectPSX>
+	public sealed class ObjectPSX:BaseObjectPSX, IReadable<ObjectPSX>
 	{
 		public static ObjectPSX Parse(WadReader reader)
 		{
@@ -315,7 +299,7 @@ namespace ArgonautReverse.PSX
 		}
 	}
 
-	public sealed class TObjectPSX:BaseObjectPSX<TFacePSX>, IReadable<TObjectPSX>
+	public sealed class TObjectPSX:BaseObjectPSX, IReadable<TObjectPSX>
 	{
 		public static TObjectPSX Parse(WadReader reader)
 		{
