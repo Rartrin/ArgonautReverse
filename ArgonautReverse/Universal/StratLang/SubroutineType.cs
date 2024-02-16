@@ -1,4 +1,4 @@
-﻿namespace ArgonautReverse.PSX.StratLang
+﻿namespace ArgonautReverse.Universal.StratLang
 {
 	public enum SubroutineType
 	{

@@ -1,8 +1,8 @@
-﻿using ArgonautReverse.Universal;
+﻿using ArgonautReverse.Universal.StratLang;
 
 namespace ArgonautReverse.Engine.Versions
 {
-	public static class HARRY_POTTER_2_PS1
+    public static class HARRY_POTTER_2_PS1
 	{
 		public static DatVersion DatVersion => HARRY_POTTER_2_PS1_Dat.Instance;
 		public static WadVersion WadVersion => HARRY_POTTER_2_PS1_Wad.Instance;

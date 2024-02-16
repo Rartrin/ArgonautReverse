@@ -1,12 +1,12 @@
 ﻿using System.Text;
 using ArgonautReverse.Engine.Mappings;
 using ArgonautReverse.IO;
-using ArgonautReverse.Universal;
+using ArgonautReverse.Universal.StratLang;
 
 namespace ArgonautReverse.Engine.Versions
 {
-	//Croc 2 PS1 NA Release
-	public static class CROC_2_PS1
+    //Croc 2 PS1 NA Release
+    public static class CROC_2_PS1
 	{
 		public static DatVersion DatVersion => CROC_2_PS1_Dat.Instance;
 		public static WadVersion WadVersion => CROC_2_PS1_Wad.Instance;

@@ -10,7 +10,7 @@ using ArgonautReverse.WadChunks.PSX;
 
 namespace ArgonautReverse.Files
 {
-    public enum WadFileType:int
+	public enum WadFileType:int
 	{
 		WAD_TYPE_INVALID = -1,
 		WAD_TYPE_LEVEL = 0,

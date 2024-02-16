@@ -1,8 +1,8 @@
-﻿using ArgonautReverse.Universal;
+﻿using ArgonautReverse.Universal.StratLang;
 
 namespace ArgonautReverse.Engine
 {
-	public abstract class WadVersion
+    public abstract class WadVersion
 	{
 		/// <summary>A unique date for indicating a version</summary>
 		public abstract DateTime BuildDate{get;}

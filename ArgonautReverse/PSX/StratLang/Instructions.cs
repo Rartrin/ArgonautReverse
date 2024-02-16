@@ -1,5 +1,5 @@
 ﻿using System.Text;
-using ArgonautReverse.Universal;
+using ArgonautReverse.Universal.StratLang;
 
 namespace ArgonautReverse.PSX.StratLang
 {
@@ -122,7 +122,7 @@ namespace ArgonautReverse.PSX.StratLang
 
 		public override string ToAsmString(bool exportForParsing)
 		{
-			if(exportForParsing && Consumed)
+			if(/*exportForParsing && */Consumed)
 			{
 				return "";
 			}

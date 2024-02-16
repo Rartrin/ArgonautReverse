@@ -1,4 +1,4 @@
-﻿using ArgonautReverse.Universal;
+﻿using ArgonautReverse.Universal.StratLang;
 
 namespace ArgonautReverse.Engine.Mappings
 {

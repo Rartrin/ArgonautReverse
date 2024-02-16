@@ -1,4 +1,4 @@
-﻿namespace ArgonautReverse.Universal
+﻿namespace ArgonautReverse.Universal.StratLang
 {
 	public enum AlienVarID
 	{

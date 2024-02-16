@@ -1,6 +1,7 @@
 using ArgonautReverse.Files;
 using ArgonautReverse.IO;
 using ArgonautReverse.PSX.StratLang;
+using ArgonautReverse.Universal.StratLang;
 
 namespace ArgonautReverse.PSX
 {
