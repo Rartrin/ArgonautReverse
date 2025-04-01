@@ -1,5 +1,7 @@
 using System.Drawing.Imaging;
 using ArgonautReverse.Files;
+using ArgonautReverse.PC;
+using ArgonautReverse.PSX;
 using ArgonautReverse.WadChunks.PSX;
 
 namespace ArgonautReverse

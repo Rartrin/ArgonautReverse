@@ -1,6 +1,8 @@
-﻿namespace ArgonautReverse.PC
+﻿using ArgonautReverse.Universal;
+
+namespace ArgonautReverse.PC
 {
-    public sealed class LightPC 
+	public sealed class LightPC 
 	{
 		public Color4F LightColor;		/* Color of light */
 		public Vector3F WorldPosition;

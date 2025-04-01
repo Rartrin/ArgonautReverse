@@ -1,7 +1,6 @@
-﻿using System.Runtime.InteropServices;
-using ArgonautReverse.IO;
+﻿using ArgonautReverse.IO;
 
-namespace ArgonautReverse.PC
+namespace ArgonautReverse.Universal
 {
 	public struct Color3F
 	{
@@ -23,7 +22,6 @@ namespace ArgonautReverse.PC
 		}
 	}
 
-
 	public struct Color4F
 	{
 		public float value0;
@@ -33,10 +31,10 @@ namespace ArgonautReverse.PC
 
 		public Color4F()
 		{
-			this.value0 = 0;
-			this.value1 = 0;
-			this.value2 = 0;
-			this.alpha = 0;
+			value0 = 0;
+			value1 = 0;
+			value2 = 0;
+			alpha = 0;
 		}
 		public Color4F(float value0, float value1, float value2, float alpha)
 		{
@@ -52,70 +50,29 @@ namespace ArgonautReverse.PC
 		}
 	}
 
-	[StructLayout(LayoutKind.Explicit, Size = 4)]
-	public unsafe struct Color32:IReadable<Color32>
+	public struct ColorBGRA32:IReadable<ColorBGRA32>, IWritable
 	{
-		[FieldOffset(0)]public uint raw;
+		public byte B;
+		public byte G;
+		public byte R;
+		public byte A;
 
-		[FieldOffset(0)]public byte v0;
-		[FieldOffset(1)]public byte v1;
-		[FieldOffset(2)]public byte v2;
-		[FieldOffset(3)]public byte alpha;
-
-		public Color32(uint raw)
+		public ColorBGRA32(byte blue, byte green, byte red, byte alpha)
 		{
-			this.raw = raw;
-		}
-
-		public Color32(byte v0, byte v1, byte v2, byte alpha)
-		{
-			this.v0 = v0;
-			this.v1 = v1;
-			this.v2 = v2;
-			this.alpha = alpha;
-		}
-
-		public readonly uint GetD3DColor() => this.raw;
-
-		public static Color32 Parse(WadReader reader)
-		{
-			var raw = reader.Read<uint>();
-			return new Color32(raw);
-		}
-	}
-
-	public struct ColorBGRA32:IReadable<ColorBGRA32>
-	{
-		private Color32 color;
-
-		public ColorBGRA32(uint raw) => color.raw = raw;
-		public ColorBGRA32(byte b, byte g, byte r, byte a) => color = new Color32(b, g, r, a);
-
-		public byte R
-		{
-			readonly get => color.v2;
-			set => color.v2 = value;
-		}
-		public byte G
-		{
-			readonly get => color.v1;
-			set => color.v1 = value;
-		}
-		public byte B
-		{
-			readonly get => color.v0;
-			set => color.v0 = value;
-		}
-		public byte A
-		{
-			readonly get => color.alpha;
-			set => color.alpha = value;
+			B = blue;
+			G = green;
+			R = red;
+			A = alpha;
 		}
 
 		public static ColorBGRA32 Parse(WadReader reader)
 		{
-			var raw = reader.Read<uint>();
-			return new ColorBGRA32(raw);
+			return reader.ReadData<ColorBGRA32>();
+		}
+
+		public readonly void Write(WadWriter writer)
+		{
+			writer.WriteData(this);
 		}
 	}
 

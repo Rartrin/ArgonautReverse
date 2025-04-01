@@ -1,17 +1,11 @@
 ﻿using ArgonautReverse.Files;
 using ArgonautReverse.IO;
-using ArgonautReverse.WadChunks;
+using ArgonautReverse.Universal;
 using ArgonautReverse.WadChunks.PC;
 
 namespace ArgonautReverse.PC
 {
-    public enum DoorFlags0:uint
-	{
-		DOOR0_1 = 0x1,
-		DOOR0_2 = 0x2,
-	}
-
-	public enum DoorFlags1:uint
+	public enum DoorRotYPC:uint
 	{
 		DOOR_DOWN = 0x1,
 		DOOR_UP = 0x2,
@@ -22,11 +16,14 @@ namespace ArgonautReverse.PC
 	public sealed class DoorPC:IReadable<DoorPC>
 	{
 		public Vector3I Position;
+		/// <summary>
+		/// When ThisRotY has DOOR_LEVEL set, the X,Y,Z instead corresponse to Tribe, Level, Map.
+		/// </summary>
 		public Vector3I Goto;
 		public WadFileType LevelType;
 
-		public DoorFlags0 GotoRotY;
-		public DoorFlags1 ThisRotY;
+		public DoorRotYPC GotoRotY;
+		public DoorRotYPC ThisRotY;
 		public int Fade;
 
 		public int BackgroundOffset;
@@ -44,7 +41,7 @@ namespace ArgonautReverse.PC
 		public int rt_obj_from;
 		public int rt_obj_val;
 
-		public Color32 AmbientLight;
+		public ColorBGRA32 AmbientLight;
 		public ColorBGRA32 BackColor;
 		
 		public ushort EffectFlags;
@@ -58,8 +55,8 @@ namespace ArgonautReverse.PC
 			door.Position = reader.Read<Vector3I>();
 			door.Goto = reader.Read<Vector3I>();
 			door.LevelType = (WadFileType)reader.Read<int>();
-			door.GotoRotY = (DoorFlags0)reader.Read<uint>();
-			door.ThisRotY = (DoorFlags1)reader.Read<uint>();
+			door.GotoRotY = (DoorRotYPC)reader.Read<uint>();
+			door.ThisRotY = (DoorRotYPC)reader.Read<uint>();
 			door.Fade = reader.Read<int>();
 			door.BackgroundOffset = reader.Read<int>();
 			if(door.BackgroundOffset != 0)
@@ -79,7 +76,7 @@ namespace ArgonautReverse.PC
 			door.rt_val = reader.Read<int>();
 			door.rt_obj_from = reader.Read<int>();
 			door.rt_obj_val = reader.Read<int>();
-			door.AmbientLight = reader.Read<Color32>();
+			door.AmbientLight = reader.Read<ColorBGRA32>();
 			door.BackColor = reader.Read<ColorBGRA32>();
 			door.EffectFlags = reader.Read<ushort>();
 			door.ReverbType = reader.Read<ushort>();

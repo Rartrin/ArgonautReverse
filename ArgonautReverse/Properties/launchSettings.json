@@ -34,6 +34,14 @@
     "Export C2PC T1L1M001": {
       "commandName": "Project",
       "commandLineArgs": "--read-format \"Croc 2 PC\" --wad-files \"GameFiles/Croc2PC/T1L1M001.WAD\" --no-confirm"
+    },
+    "Export TENG - T1L7M003": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 PC\" --wad-files \"GameFiles/TengPC/t1l7m003.wad\" --no-confirm"
+    },
+    "Export JP DUMMY": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --psx-dirdat \"GameFiles/JPDEMO_DUMMY/Raw/JPDEMO_DUMMY.DAT\" --export-levels \"GameFiles/JPDEMO_DUMMY\" --export-actors \"GameFiles/JPDEMO_DUMMY\" --export-textures \"GameFiles/JPDEMO_DUMMY/Textures\" --export-models \"GameFiles/JPDEMO_DUMMY/Models\" --no-confirm"
     }
   }
 }

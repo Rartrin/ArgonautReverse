@@ -93,7 +93,7 @@ namespace ArgonautReverse.Files
 							break;
 						}
 
-						// WADs generally start with TPSbut can start with CWAD for compression
+						// WADs generally start with TPS but can start with CWAD for compression
 						var chunkType = (ChunkType)datData.Read<uint>();
 						string suffix;
 						if(chunkType == ChunkType.ID_PSX_CWAD || chunkType == ChunkType.ID_PSX_TEXT)

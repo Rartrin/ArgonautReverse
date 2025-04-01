@@ -77,15 +77,15 @@ namespace ArgonautReverse.PSX
 					return chunks_ids_list;
 				}
 
-				var _sub_chunks_height_0 = new Dictionary<int, (int _0, int _1)>();
+				var _sub_chunks_height_0 = new Dictionary<int, (int z, int x)>();
 
 				var _chunks_matrix = new IReadOnlyList<int>[map.MapXY];
-				for(int i = 0; i < map.MapZ; i++)
+				for(int z = 0; z < map.MapZ; z++)
 				{
-					for(int j = 0; j < map.MapX; j++)
+					for(int x = 0; x < map.MapX; x++)
 					{
-						var index = i * map.MapX + j;
-						var mapIndex = map.Grid[(int)index];
+						var index = z * map.MapX + x;
+						var mapIndex = map.Grid[z][x];
 						if(mapIndex == null)
 						{
 							_chunks_matrix[index] = null;
@@ -96,7 +96,7 @@ namespace ArgonautReverse.PSX
 							_chunks_matrix[index] = sub_chunk_ids;
 							foreach(var sub_chunk_id in sub_chunk_ids)
 							{
-								_sub_chunks_height_0.Add(sub_chunk_id, (i, j));
+								_sub_chunks_height_0.Add(sub_chunk_id, (z, x));
 							}
 						}
 					}
@@ -113,8 +113,8 @@ namespace ArgonautReverse.PSX
 					Utils.Assert(pos.rot.vz == 0);
 					Utils.Assert(pos.rot.pad == 0);
 
-					Utils.Assert(pos.trn.vx == 2048 + 4096 * _sub_chunks_height_0[i]._1);// Chunks are 4096-large, so +2048 for the chunk's center
-					Utils.Assert(pos.trn.vz == 2048 + 4096 * _sub_chunks_height_0[i]._0);
+					Utils.Assert(pos.trn.vx == 2048 + 4096 * _sub_chunks_height_0[i].x);// Chunks are 4096-large, so +2048 for the chunk's center
+					Utils.Assert(pos.trn.vz == 2048 + 4096 * _sub_chunks_height_0[i].z);
 					Utils.Assert(pos.trn.pad == 0);
 
 					_sub_chunks_rotation[i] = (ChunkRotationPSX)(pos.rot.vy >> 10);
@@ -124,14 +124,19 @@ namespace ArgonautReverse.PSX
 				var chunks_holders = new ChunkHolderPSX[map.MapXY];
 				for(int i = 0; i < map.MapXY; i++)
 				{
-					if(_chunks_matrix[i] is not null)
+					if(_chunks_matrix[i] is IReadOnlyList<int> sub_chunk_ids)
 					{
-						var sub_chunks = _chunks_matrix[i].Select(sub_chunk_id => new SubChunkPSX
-						(
-							chunk_models[map.Pieces[sub_chunk_id]],
-							_sub_chunks_height[sub_chunk_id],
-							_sub_chunks_rotation[sub_chunk_id]
-						)).ToList();
+						var sub_chunks = new SubChunkPSX[sub_chunk_ids.Count];
+						for(int s=0; s< sub_chunk_ids.Count; s++)
+						{
+							var sub_chunk_id = sub_chunk_ids[s];
+							sub_chunks[s] = new SubChunkPSX
+							(
+								chunk_models[map.Pieces[sub_chunk_id]],
+								_sub_chunks_height[sub_chunk_id],
+								_sub_chunks_rotation[sub_chunk_id]
+							);
+						}
 
 						if(data_in.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
 						{
@@ -161,8 +166,8 @@ namespace ArgonautReverse.PSX
 					(
 						chunks_holders,
 						chunk_models,
-						(int)map.MapZ,
-						(int)map.MapX,
+						map.MapZ,
+						map.MapX,
 						map.ZoneData is not null
 					),
 					map

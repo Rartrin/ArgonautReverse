@@ -1,9 +1,12 @@
-﻿using ArgonautReverse.IO;
+﻿using ArgonautReverse.Files;
+using ArgonautReverse.IO;
+using ArgonautReverse.OpenStratEngine;
 using ArgonautReverse.PSX.LibGTE;
+using ArgonautReverse.Universal;
 
 namespace ArgonautReverse.PSX
 {
-	public sealed class DoorPSX:IReadable<DoorPSX>
+	public sealed class DoorPSX:IReadable<DoorPSX>,IConvertibleOSE<DoorOSE>
 	{
 		public uint X, Y, Z;
 		public uint GotoX, GotoY, GotoZ, LevelType;
@@ -64,6 +67,49 @@ namespace ArgonautReverse.PSX
 			door.EffectFlags = parser.Read<ushort>();
 			door.ReverbType = parser.Read<ushort>();
 			door.MusicTrack = parser.Read<uint>();
+
+			return door;
+		}
+
+		public DoorOSE ToOSE()
+		{
+			var door = new DoorOSE();
+			door.Position = new Vector3I((int)X, (int)Y, (int)Z);
+			door.Goto = new Vector3I((int)GotoX, (int)GotoY, (int)GotoZ);
+			door.LevelType = (WadFileType)LevelType;
+			door.GotoRotY = (DoorRotOSE)GotoRotY;
+			door.ThisRotY = (DoorRotOSE)ThisRotY;
+			door.Fade = Fade;
+
+			//door.BackgroundObjectIndex = ;
+
+			door.BackgroundAddYRotation = BackgroundAddYRotation;
+			door.BackgroundHeightAdjust = BackgroundHeightAdjust;
+
+			door.DrawMode = DrawMode;
+			door.MoveForward = MoveForward;
+
+			door.rt_from = rt_from;
+			door.rt_val = rt_val;
+			door.rt_obj_from = rt_obj_from;
+			door.rt_obj_val = rt_obj_val;
+			door.AmbientLight = new ColorBGRA32
+			(
+				AmbientLight.R,
+				AmbientLight.G,
+				AmbientLight.B,
+				AmbientLight.CD
+			);
+			door.BackColor = new ColorBGRA32
+			(
+				AmbientLight.R,
+				AmbientLight.G,
+				AmbientLight.B,
+				AmbientLight.CD
+			);
+			door.EffectFlags = EffectFlags;
+			door.ReverbType = ReverbType;
+			door.MusicTrack = MusicTrack;
 
 			return door;
 		}

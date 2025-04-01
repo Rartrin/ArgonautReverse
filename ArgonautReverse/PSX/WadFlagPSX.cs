@@ -1,4 +1,6 @@
-﻿namespace ArgonautReverse.PSX
+﻿using ArgonautReverse.OpenStratEngine;
+
+namespace ArgonautReverse.PSX
 {
 	[Flags]
 	public enum WadFlagPSX:uint
@@ -30,5 +32,27 @@
 		WF_HASEXTRAINVENTORY = 1 << 24,
 		WF_HASFULLSETOFICONS = 1 << 25,
 		WF_HASSMALLHEADS = 1 << 26,
+	}
+
+	public static class WadFlagsPSXExtentions
+	{
+		private static readonly (WadFlagPSX psx,WadFlagsOSE ose)[] mapping =
+		{
+			(WadFlagPSX.WF_BACKGROUND, WadFlagsOSE.Background),
+
+			(WadFlagPSX.WF_PARTICLESIZE, WadFlagsOSE.ParticleSize),
+
+			(WadFlagPSX.WF_HASOTHERPIECES, WadFlagsOSE.HasOtherPieces),
+		};
+
+		public static WadFlagsOSE ToOSE(this WadFlagPSX that)
+		{
+			WadFlagsOSE ret = 0;
+			foreach((var psx, var ose) in mapping)
+			{
+				if((that & psx)!=0){ret |= ose;}
+			}
+			return ret;
+		}
 	}
 }

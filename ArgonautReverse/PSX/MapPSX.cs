@@ -1,6 +1,7 @@
 ﻿using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
 using ArgonautReverse.PSX.LibGTE;
+using ArgonautReverse.WadChunks.PSX;
 
 namespace ArgonautReverse.PSX
 {
@@ -209,8 +210,8 @@ namespace ArgonautReverse.PSX
 		//ushort EffectFlags;
 
 		public int MapXY;
-		public uint MapX;
-		public uint MapZ;
+		public int MapX;
+		public int MapZ;
 		public ushort NumberOfDoors;
 		public ushort? NumberOfOtherPieces;
 		public IReadOnlyList<DoorPSX> DoorList;
@@ -219,6 +220,7 @@ namespace ArgonautReverse.PSX
 		public IReadOnlyList<int> Params;
 
 		#region Pre Croc 2 Demo
+		//Moved to Door
 		public uint DrawMode;
 		#endregion
 
@@ -227,7 +229,7 @@ namespace ArgonautReverse.PSX
 		public nint not_used1;
 		public nint not_used2;
 		public IReadOnlyList<POS> Positions;
-		public IReadOnlyList<MapIndexPSX> Grid;//Refs to values in IndexGrid
+		public IReadOnlyList<IReadOnlyList<MapIndexPSX>> Grid;//Refs to values in IndexGrid
 		public IReadOnlyList<MapIndexPSX> IndexGrid;
 		public IReadOnlyList<ZonePSX> ZoneData;
 		public IReadOnlyList<uint> Pieces;
@@ -235,6 +237,7 @@ namespace ArgonautReverse.PSX
 		public IReadOnlyList<CVECTOR[]> LightTables;
 
 		#region Pre Croc 2 Demo
+		//Moved to Door
 		public int BackgroundAddr;//Offset to Background
 		public ObjectPSX Background;
 		public uint BackgroundAddYRotation;
@@ -289,8 +292,8 @@ namespace ArgonautReverse.PSX
 			}
 
 			map.MapXY = reader.Read<int>();
-			map.MapX = reader.Read<uint>();
-			map.MapZ = reader.Read<uint>();
+			map.MapX = reader.Read<int>();
+			map.MapZ = reader.Read<int>();
 			Utils.Assert(map.MapXY == map.MapX * map.MapZ);
 
 			ushort? n_lighting_headers;
@@ -386,22 +389,26 @@ namespace ArgonautReverse.PSX
 			var map = ParseStruct(data_in);
 			map.Params = mapParams;
 
-			var mapGridOffsets = data_in.ReadArray<int>(map.MapXY);
+			var mapGridOffsets = new int[map.MapZ][];
+			for(int z = 0; z < map.MapZ; z++)
+			{
+				mapGridOffsets[z] = data_in.ReadArray<int>(map.MapX);
+			}
 
 			map.IndexGrid = MapIndexPSX.ParseIndexGrid(map, data_in);
 
-			var mapGrid = new MapIndexPSX[map.MapXY];
-			for(int i = 0; i < map.MapXY; i++)
+			var mapGrid = new MapIndexPSX[map.MapXY][];
+			for(int z = 0; z < map.MapZ; z++)
 			{
-				var offset = mapGridOffsets[i];
-				if(offset == -1)
+				mapGrid[z] = new MapIndexPSX[map.MapX];
+				for(int x = 0; x < map.MapX; x++)
 				{
-					mapGrid[i] = null;
-				}
-				else
-				{
-					Utils.Assert(offset % MapIndexPSX.ByteSize == 0);
-					mapGrid[i] = map.IndexGrid[offset / MapIndexPSX.ByteSize];
+					var offset = mapGridOffsets[z][x];
+					if(offset != -1)
+					{
+						Utils.Assert(offset % MapIndexPSX.ByteSize == 0);
+						mapGrid[z][x] = map.IndexGrid[offset / MapIndexPSX.ByteSize];
+					}
 				}
 			}
 			map.Grid = mapGrid;
@@ -491,15 +498,11 @@ namespace ArgonautReverse.PSX
 				}
 			}
 
-
 			if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
 				//TODO: Unknown data
 				var unknownData = data_in.ReadArray<int>(20);
 			}
-
-
-
 
 			if((wadFlag & WadFlagPSX.WF_CAMERAPOINTS) != 0)
 			{
@@ -598,10 +601,6 @@ namespace ArgonautReverse.PSX
 				}
 			}
 
-			if(data_in.WadFile.Stem == "01507800")
-			{
-				//TODO: Remove test block
-			}
 			if((wadFlag & WadFlagPSX.WF_MAP_PRELIT) != 0)
 			{
 				var preMap = new PreLitPSX[2][];
@@ -632,46 +631,52 @@ namespace ArgonautReverse.PSX
 				//TODO: What is this and where does it go? (DUMMY related)
 				if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 				{
-					//data_in.SkipBytes(12);
+					//This always apears at the end
 					var unknownData = data_in.ReadArray<int>(3);
 				}
 			}
 
-			//var soundDataFlags = data_in.WadFile.SPSX?.spsx_flags ?? 0;
-			//if((soundDataFlags&SPSXFlags.HAS_AMBIENT_TRACKS)!=0)
-			//{
-			//	var totalSequenceByteLength = data_in.Read<int>();
-			//	map.SequenceCount = 0;
-			//	if((soundDataFlags&SPSXFlags.AMBIENTSEP)!=0)
-			//	{
-			//		map.SequenceCount = data_in.Read<int>();
-			//	}
-			//	map.RawSequenceData = data_in.ReadArray<byte>(totalSequenceByteLength);
-			//	//TODO: Parse sequence data
+			var soundDataFlags = data_in.WadFile.GetChunk(SPSXChunkInfo.Instance)?.spsx_flags ?? 0;
+			if((soundDataFlags&SPSXFlagsPSX.HAS_AMBIENT_TRACKS)!=0)
+			{
+				if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
+				{
+					//TODO: No data remaining
+				}
+				else
+				{
+					var totalSequenceByteLength = data_in.Read<int>();
+					map.SequenceCount = 0;
+					if((soundDataFlags&SPSXFlagsPSX.AMBIENTSEP)!=0)
+					{
+						map.SequenceCount = data_in.Read<int>();
+					}
+					map.RawSequenceData = data_in.ReadArray<byte>(totalSequenceByteLength);
+					//TODO: Parse sequence data
 
-			//	IReadOnlyList<ALAmbience> ambience = null;
-			//	if((soundDataFlags&SPSXFlags.AMBIENTSEP)!=0)
-			//	{
-			//		if((wadFlag&WadFlagPSX.WF_HASMULTIAMBIENT)!=0)
-			//		{
-			//			var ambienceCount = data_in.Read<int>();
-			//			ambience = data_in.ReadArray<ALAmbience>(ambienceCount);
-			//		}
-			//	}
-			//	else
-			//	{
-			//		if((wadFlag&WadFlagPSX.WF_HASMULTIAMBIENT)!=0)
-			//		{
-			//			var ambienceCount = data_in.Read<int>();
-			//			ambience = data_in.ReadArray<ALAmbience>(ambienceCount);
-			//		}
-			//	}
-			//	map.Ambiences = ambience;
-			//}
-			//else
-			//{
-
-			//}
+					IReadOnlyList<ALAmbiencePSX> ambience = null;
+					if((soundDataFlags&SPSXFlagsPSX.AMBIENTSEP)!=0)
+					{
+						if((wadFlag&WadFlagPSX.WF_HASMULTIAMBIENT)!=0)
+						{
+							var ambienceCount = data_in.Read<int>();
+							ambience = data_in.ReadArray<ALAmbiencePSX>(ambienceCount);
+						}
+					}
+					else
+					{
+						if((wadFlag&WadFlagPSX.WF_HASMULTIAMBIENT)!=0)
+						{
+							var ambienceCount = data_in.Read<int>();
+							ambience = data_in.ReadArray<ALAmbiencePSX>(ambienceCount);
+						}
+					}
+					map.Ambiences = ambience;
+				}
+			}
+			else
+			{
+			}
 
 			if((wadFlag & WadFlagPSX.WF_HASINVENTORY) != 0)
 			{

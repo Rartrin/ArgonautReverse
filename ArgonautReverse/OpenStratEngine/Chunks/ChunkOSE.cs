@@ -13,7 +13,12 @@ namespace ArgonautReverse.OpenStratEngine.Chunks
 		//Cutscenes
 		//Heads
 		//Actors
+
+		MapPieceData	= ('M' << 24) + ('P' << 16) + ('C' << 8) + 'E',
+
 		TrackObjects	= ('T' << 24) + ('O' << 16) + ('B' << 8) + 'J',
+		//
+		Doors			= ('D' << 24) + ('O' << 16) + ('O' << 8) + 'R',
 		//
 		Waypoints		= ('W' << 24) + ('Y' << 16) + ('P' << 8) + 'T',
 	}

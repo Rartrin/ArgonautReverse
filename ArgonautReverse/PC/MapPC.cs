@@ -4,22 +4,22 @@ using ArgonautReverse.WadChunks.PC;
 
 namespace ArgonautReverse.PC
 {
-    public sealed class MapPiecePC//WorldCellInfo
+	public sealed class MapPiecePC//WorldCellInfo
 	{
 		public Vector3F Pos;
+		public int RawRotY;//Value is 0-1 in 24bit (0 to 0xFF0). Also, the lowest nibble is ignored.
 		public float RotY;
 		public int CellIndex;
-		public int gapField5;
+		public bool bVisible = false;
 		public int gapField6;
-		public int field7;
+		public int field7 = 0;
 
-		public MapPiecePC(in Vector3F pos, float rotY, int n)
+		public MapPiecePC(in Vector3F pos, int rawRotY, float rotY, int n)
 		{
 			this.Pos = pos;
+			this.RawRotY = rawRotY;
 			this.RotY = Utils.Deg2Rad(rotY);
 			this.CellIndex = n;
-			this.gapField5 = (int)((uint)this.gapField5&0xFFFFFF00);
-			this.field7 = 0;
 		}
 	}
 
@@ -34,69 +34,71 @@ namespace ArgonautReverse.PC
 		}
 	}
 
-	public enum MapFlags : uint
+	[Flags]
+	public enum MapFlagsPC:uint
 	{
-		MAP_FLAG_2 = 0x2,
+		MAP_FLAG_REMOVED = 0x2,
 		MAP_FLAG_COLLECTED = 0x4,
 		MAP_FLAG_ACTIVATED = 0x8,
 	}
 
 	public sealed class MapStratPC:IReadable<MapStratPC,MapPC>
 	{
-		public Vector3I checkPointRotation;
-		public Vector3I checkPointPosition;
+		public RotPos3I RotPos;
+
 		public int instructionStreamOffset;
+		
 		//public int NumberParameters;
 		public IReadOnlyList<int> ParamBlock;
-		public int triggerIndex;
-		public int count0;
-		public SpawnFlags spawnFlags;
-		public int count1;
-		public WaypointPC alienFirst;
-		public WaypointPC alienLast;
-		public MapFlags flags;
+		public int LocalCount;
+		public int TriggerCount;
+		public CollisionTypePC Collision;
+		public int CollisionBoneCount;
+		public WaypointPC FirstWP;
+		public WaypointPC LastWP;
+		public MapFlagsPC flags;
 
 		public static MapStratPC Parse(WadReader reader, MapPC map)
 		{
 			var mapStrat = new MapStratPC();
 
-			var checkPointRotation = reader.Read<Vector3<ushort>>();
-			mapStrat.checkPointRotation.X = checkPointRotation.X;
-			mapStrat.checkPointRotation.Y = checkPointRotation.Y;
-			mapStrat.checkPointRotation.Z = checkPointRotation.Z;
+			var mapStratRotation = reader.Read<Vector3<ushort>>();
+			mapStrat.RotPos.Rotation.X = mapStratRotation.X;
+			mapStrat.RotPos.Rotation.Y = mapStratRotation.Y;
+			mapStrat.RotPos.Rotation.Z = mapStratRotation.Z;
 
-			mapStrat.checkPointPosition = reader.Read<Vector3I>();
+			mapStrat.RotPos.Position = reader.Read<Vector3I>();
 			mapStrat.instructionStreamOffset = reader.Read<int>();//Add to data.fileData to get the address of the instructionStream;
 
 			int numberParameters = reader.Read<int>();
 			int ptrOffset = reader.Read<int>();
 			if(ptrOffset == -1)
 			{
-					mapStrat.ParamBlock = null;
+				mapStrat.ParamBlock = null;
 			}
 			else
 			{
-					mapStrat.ParamBlock = new ArraySegment<int>((int[])map.Params, ptrOffset, numberParameters);
+				mapStrat.ParamBlock = new ArraySegment<int>((int[])map.Params, ptrOffset, numberParameters);
 			}
-			mapStrat.triggerIndex = reader.Read<int>();
-			mapStrat.count0 = reader.Read<int>();
-			mapStrat.spawnFlags = (SpawnFlags)reader.Read<uint>();
-			mapStrat.count1 = reader.Read<int>();
-			int alienFirstIndex = reader.Read<int>();
-			if(alienFirstIndex == -1)
+			mapStrat.LocalCount = reader.Read<int>();
+			mapStrat.TriggerCount = reader.Read<int>();
+			mapStrat.Collision = (CollisionTypePC)reader.Read<uint>();
+			mapStrat.CollisionBoneCount = reader.Read<int>();
+			int firstWaypointIndex = reader.Read<int>();
+			if(firstWaypointIndex == -1)
 			{
-					mapStrat.alienFirst = null;
+					mapStrat.FirstWP = null;
 			}
 			else
 			{
-				mapStrat.alienFirst = map.WaypointList[alienFirstIndex];
+				mapStrat.FirstWP = map.WaypointList[firstWaypointIndex];
 			}
-			if(alienFirstIndex >= map.WaypointList.Count)
+			if(firstWaypointIndex >= map.WaypointList.Count)
 			{
 				Console.WriteLine("Erruuughh...");
 			}
-			reader.AssertRead<uint>(0);//was an alienLast placeholder originally I think
-			mapStrat.flags = (MapFlags)reader.Read<uint>();
+			reader.AssertRead<uint>(0);//was a LastWP placeholder originally I think
+			mapStrat.flags = (MapFlagsPC)reader.Read<uint>();
 
 			return mapStrat;
 		}
@@ -202,7 +204,7 @@ namespace ArgonautReverse.PC
 		public IReadOnlyList<WaterLevelStructPC> WaterLevelArray;
 		public int WaterLevel;
 
-		public IReadOnlyList<IReadOnlyList<Color32>> ColorArray;
+		public IReadOnlyList<IReadOnlyList<ColorBGRA32>> ColorArray;
 
 		public int PolygonArraysCount;
 		public IReadOnlyList<PolygonArrayPC> PolygonArrays;
@@ -238,7 +240,7 @@ namespace ArgonautReverse.PC
 
 				// Conversion from 0.0-1.0 angle in fixed point 24bit to floating point degrees
 				//Aladdin uses n instead of cellIndex for last arg
-				var worldCellInfo = new MapPiecePC(chunkPos, ((rotY&0xFF0) * 360f) / 4096f, cellIndex);
+				var worldCellInfo = new MapPiecePC(chunkPos, rotY, ((rotY&0xFF0) * 360f) / 4096f, cellIndex);
 
 				bool hasOtherPiece = reader.Read<int>() switch
 				{
@@ -305,16 +307,16 @@ namespace ArgonautReverse.PC
 			{
 				map.TrackChangeData = Array.Empty<TrackChangePC>();
 			}
-			var colorArray = new Color32[map.NumPieces][];
+			var colorArray = new ColorBGRA32[map.NumPieces][];
 			var trackModels = reader.WadFile.GetChunk(TRAKChunkInfo.Instance).Models;
 			for(int cellIndex=0; cellIndex<map.NumPieces; cellIndex++)
 			{
 				var cellModel = trackModels[modelIndices[cellIndex]];
 				byte maxAlpha = 1;
-				colorArray[cellIndex] = reader.ReadArray<Color32>(cellModel.vertexCount);
+				colorArray[cellIndex] = reader.ReadArray<ColorBGRA32>(cellModel.vertexCount);
 				for(int vertIndex=0; vertIndex<cellModel.vertexCount; vertIndex++)
 				{
-					var curAlpha = colorArray[cellIndex][vertIndex].alpha;
+					var curAlpha = colorArray[cellIndex][vertIndex].A;
 					if(curAlpha > maxAlpha)
 					{
 						maxAlpha = curAlpha;
@@ -324,7 +326,7 @@ namespace ArgonautReverse.PC
 				{
 					Array.Resize(ref colorArray[cellIndex], cellModel.vertexCount * maxAlpha);
 
-					colorArray[cellIndex][0].alpha = maxAlpha;
+					colorArray[cellIndex][0].A = maxAlpha;
 					for(int alpha=1; alpha<maxAlpha; alpha++)
 					{
 						reader.ReadArray(colorArray[cellIndex].AsSpan(alpha * cellModel.vertexCount, cellModel.vertexCount));
@@ -342,22 +344,22 @@ namespace ArgonautReverse.PC
 					for(int vertIndex=0; vertIndex<pieceModel.vertexCount; vertIndex++)
 					{
 						ref var curColor = ref colorArray[cellIndex][buffer + vertIndex];
-						curColor = reader.Read<Color32>();
-						if(curColor.alpha > maxAlpha)
+						curColor = reader.Read<ColorBGRA32>();
+						if(curColor.A > maxAlpha)
 						{
-							maxAlpha = curColor.alpha;
+							maxAlpha = curColor.A;
 						}
 					}
 					if(maxAlpha > 1)
 					{
-						colorArray[cellIndex][buffer].alpha = maxAlpha;
+						colorArray[cellIndex][buffer].A = maxAlpha;
 					}
 					for(int alpha = 1; alpha<maxAlpha; alpha++)
 					{
 						for(int vertIndex=0; vertIndex<pieceModel.vertexCount; vertIndex++)
 						{
 							ref var curColor = ref colorArray[cellIndex][vertIndex + buffer + alpha * pieceModel.vertexCount];
-							curColor = reader.Read<Color32>();
+							curColor = reader.Read<ColorBGRA32>();
 						}
 					}
 					break;
@@ -378,19 +380,19 @@ namespace ArgonautReverse.PC
 			for(int mapIndex=0; mapIndex<mapStratCount; mapIndex++)
 			{
 				var mapStrat = mapStrats[mapIndex];
-				if(mapStrat.alienFirst != null)
+				if(mapStrat.FirstWP != null)
 				{
-					WaypointPC curAlien = mapStrat.alienFirst;
+					WaypointPC curAlien = mapStrat.FirstWP;
 					while(curAlien.Next!=null)
 					{
 						curAlien = curAlien.Next;
 					}
-					mapStrat.alienLast = curAlien;
+					mapStrat.LastWP = curAlien;
 				}
 			}
 			map.MapStrats = mapStrats;
 
-			if((wadFlags & WadFlagPC.WAD_FLAG_200000) != 0)
+			if((wadFlags & WadFlagPC.WAD_FLAG_CAMERAPOINTS) != 0)
 			{
 				map.PolygonArraysCount = reader.Read<int>();
 				map.PolygonArrays = reader.ReadArray<PolygonArrayPC,WadFlagPC>(wadFlags, map.PolygonArraysCount);
