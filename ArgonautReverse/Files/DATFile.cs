@@ -11,7 +11,7 @@ namespace ArgonautReverse.Files
 
 		public abstract string Suffix{get;}
 
-		public DATFile(string stem, byte[] data = null)
+		public DATFile(string stem, byte[] data)
 		{
 			this._data = data;
 
@@ -31,7 +31,7 @@ namespace ArgonautReverse.Files
 
 		public virtual void Serialize(WadWriter data_out)
 		{
-			data_out.WriteBytes(this._data);
+			data_out.WriteBytes(_data);
 		}
 	}
 }

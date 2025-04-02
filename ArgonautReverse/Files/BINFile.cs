@@ -1,9 +1,8 @@
 namespace ArgonautReverse.Files
 {
-	public sealed class BINFile:DATFile
+	public sealed class BINFile(string stem, byte[] data):DATFile(stem, data)
 	{
 		public override string Suffix => "BIN";
-		public BINFile(string stem, byte[] data) : base(stem, data){}
 
 		public override void PrintInfo(TextWriter output)
 		{

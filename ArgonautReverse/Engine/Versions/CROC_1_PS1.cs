@@ -23,7 +23,7 @@ namespace ArgonautReverse.Engine.Versions
 
 			public override WadVersion GetWadVersion(string wadName) => WadVersion;
 
-			public override IReadOnlyList<WadVersion> WadVersions{get;} = new[]{WadVersion};
+			public override IReadOnlyList<WadVersion> WadVersions => [WadVersion];
 		}
 
 		private sealed class CROC_1_PS1_Wad:WadVersion
@@ -50,7 +50,7 @@ namespace ArgonautReverse.Engine.Versions
 				name = reader.ReadString(12);
 				size = reader.Read<int>();
 				start = reader.Read<int>();
-				reader.AssertRead<int>(0);//padding
+				reader.AssertRead<uint>(0);//padding
 			}
 
 			public override void Pack(WadWriter writer, string name, int size, int start)
@@ -58,7 +58,7 @@ namespace ArgonautReverse.Engine.Versions
 				writer.WriteBytes(Encoding.ASCII.GetBytes(name.PadRight(12, '\0')));
 				writer.WriteInt32(size);
 				writer.WriteInt32(start);
-				writer.WriteInt32(0);//Padding
+				writer.WriteUInt32(0);//Padding
 			}
 		}
 	}

@@ -4,8 +4,8 @@ namespace ArgonautReverse.Files
 	{
 		public delegate DATFile DelCreateDatFile(Configuration conf, string stem, byte[] data);
 
-		private static readonly DATFileType[] fileTypes = new DATFileType[]
-		{
+		private static readonly DATFileType[] fileTypes =
+		[
 			new DATFileType
 			(
 				"BIN",
@@ -28,7 +28,7 @@ namespace ArgonautReverse.Files
 				(conf, stem, data) => WADFile.Create(conf.ReadVersion, conf.ReadVersion.GetWadVersion(stem), stem, data),
 				"FESOUND", "FETHUND"
 			)
-		};
+		];
 
 		public readonly DelCreateDatFile CreateDatFile;
 		public readonly string[] ExcludedStems;

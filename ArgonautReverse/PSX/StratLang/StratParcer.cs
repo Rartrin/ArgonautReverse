@@ -23,7 +23,7 @@ namespace ArgonautReverse.PSX.StratLang
 			data = script.data;
 		}
 
-		public Instruction ParseInstruction(InstructionAddress instrAddr, Instruction prev, Instruction jumpFrom)
+		public Instruction ParseInstruction(InstructionAddress instrAddr, Instruction? prev, Instruction? jumpFrom)
 		{
 			//Check if instruction was already processed
 			if(instructions.TryGetValue(instrAddr, out var ret))
@@ -49,7 +49,7 @@ namespace ArgonautReverse.PSX.StratLang
 			return ret;
 		}
 
-		public Instruction ParseStrat(InstructionAddress instrAddr, Instruction referenced, bool start)
+		public Instruction ParseStrat(InstructionAddress instrAddr, Instruction? referenced, bool start)
 		{
 			var retInstruction = ParseInstruction(instrAddr, null, null);
 			retInstruction.SubroutineType = SubroutineType.Strat;
@@ -124,10 +124,8 @@ namespace ArgonautReverse.PSX.StratLang
 			return retInstructions;
 		}
 
-		public void Write(string fileName, bool exportForParsing)
+		public void Write(StreamWriter output, bool exportForParsing)
 		{
-			using var output = new StreamWriter(fileName, false);
-
 			bool lastInstrMissing = false;
 
 			foreach(Instruction instr in this.instructions.OrderBy(e => e.Key).Select(e => e.Value))
@@ -191,7 +189,7 @@ namespace ArgonautReverse.PSX.StratLang
 			}
 		}
 
-		private static Instruction CreateInstruction(StratReader reader, Instruction prev)
+		private static Instruction CreateInstruction(StratReader reader, Instruction? prev)
 		{
 			var opcodeValue = reader.ReadInt();
 			var opcode = reader.WadFile.Version.MapOpcode(opcodeValue);

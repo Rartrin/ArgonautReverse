@@ -12,12 +12,12 @@ namespace ArgonautReverse.PSX.StratLang
 		public int PopCount;
 		public int PushCount;
 
-		//Whether or not this could potentially continue to the next instruction.
-		//Errors, returns, and unconditional jumps do not;
+		//False if this could potentially continue to the next instruction.
+		//Errors, returns, and unconditional jumps are terminal.
 		public bool Terminal = false;
 
-		public Instruction Prev;
-		public Instruction Next;
+		public Instruction? Prev;
+		public Instruction? Next;
 
 		//This points to the value AFTER the OpCode in the original instruction stream. In other words, this is only the operands.
 		public readonly InstructionAddress InstrAddr;
@@ -54,7 +54,7 @@ namespace ArgonautReverse.PSX.StratLang
 			{
 				if(Start)
 				{
-					return $"ExternalStrat_{(uint)InstrAddr:X8}";
+					return $"StratExternal_{(uint)InstrAddr:X8}";
 				}
 				return $"Strat_{(uint)InstrAddr:X8}";
 			}

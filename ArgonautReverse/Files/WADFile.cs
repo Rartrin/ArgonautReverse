@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using ArgonautReverse.Engine;
 using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
@@ -15,13 +16,13 @@ namespace ArgonautReverse.Files
 		WAD_TYPE_SECRET = 2,
 		WAD_TYPE_INTERFACE = 3,
 	}
-	public abstract class WADFile:DATFile
+	public abstract class WADFile(WadVersion version, string stem, byte[] data):DATFile(stem, data)
 	{
 		private readonly List<BaseWadChunk> chunks = new List<BaseWadChunk>();
 
 		public override string Suffix => "WAD";
 
-		public WadVersion Version{get;}
+		public WadVersion Version => version;
 
 		public static WADFile Create(DatVersion datVerion, WadVersion wadVersion, string stem, byte[] data) => datVerion.Platform switch
 		{
@@ -30,12 +31,7 @@ namespace ArgonautReverse.Files
 			_ => throw new NotImplementedException($"Platform not implemented: {datVerion.Platform}"),
 		};
 
-		public WADFile(WadVersion version, string stem, byte[] data):base(stem, data)
-		{
-			Version = version;
-		}
-		
-		public abstract bool TryGetChunkInfo(ChunkType chunkType, out BaseWADChunkInfo info);
+		public abstract bool TryGetChunkInfo(ChunkType chunkType, [MaybeNullWhen(false)]out BaseWADChunkInfo info);
 		
 		public abstract void AddChunk(BaseWadChunk chunk);
 
@@ -59,7 +55,8 @@ namespace ArgonautReverse.Files
 		{
 			var chunkLocations = new List<ChunkLocation>();
 			
-			var wadDataLength = reader.Read<int>();
+			//This should be the length of the WAD's data but it is wrong in some cases so can't rely on it.
+			_ = reader.Read<int>();
 
 			ChunkType prevChunk = ChunkType.Unknown;
 			ChunkType chunkType;
@@ -74,7 +71,8 @@ namespace ArgonautReverse.Files
 					//TODO: Any better way to handle MAP size programatically?
 					if(prevChunk == ChunkType.ID_PC_MAP)
 					{
-						reader.Position -= 8;
+						reader.Position -= 4;//Unread the chunkType
+						reader.Position -= 4;//Move back 4 bytes.
 						chunkType = (ChunkType)reader.Read<uint>();
 						if(!Enum.IsDefined(chunkType))
 						{
@@ -178,5 +176,7 @@ namespace ArgonautReverse.Files
 			data_out.WriteInt32(wad_size);
 			data_out.Position += end_offset;
 		}
+
+		public abstract void ExportWadAssets(ProgramArgs args, Configuration conf);
 	}
 }

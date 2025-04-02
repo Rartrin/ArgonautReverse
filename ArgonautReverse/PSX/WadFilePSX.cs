@@ -116,7 +116,7 @@ namespace ArgonautReverse.PSX
 			{
 				mtl_file.WriteLine($"newmtl mtl1\nmap_Kd {wad_filename}.PNG");
 			}
-			this.TPSX.TextureFile.to_colorized_texture().Save(Path.Join(folder_path, (wad_filename + ".PNG")), System.Drawing.Imaging.ImageFormat.Png);
+			this.TPSX.TextureFile.to_colorized_texture().Save(Path.Join(folder_path, wad_filename + ".PNG"), System.Drawing.Imaging.ImageFormat.Png);
 		}
 		/// <summary>
 		/// Tries to find one compatible animation for each model in the WAD, animates it to make it clean
@@ -168,7 +168,7 @@ namespace ArgonautReverse.PSX
 			{
 				var model_3d = this.DPSX.models_3d[i];
 				var obj_filename = $"{wad_filename}_{i}";
-				using(var obj_file = new System.IO.StreamWriter(Path.Join(folder_path, (obj_filename + ".OBJ")), false, Encoding.ASCII))
+				using(var obj_file = new StreamWriter(Path.Join(folder_path, obj_filename + ".OBJ"), false, Encoding.ASCII))
 				{
 					if(model_3d.Data.n_vertices_groups == 1)
 					{
@@ -197,7 +197,7 @@ namespace ArgonautReverse.PSX
 		public void export_model_3d(int model_id, string folder_path, string filename)
 		{
 			this._prepare_obj_export(folder_path, filename);
-			using(var obj_file = new System.IO.StreamWriter(Path.Join(folder_path, (filename + ".OBJ")), false, Encoding.ASCII))
+			using(var obj_file = new StreamWriter(Path.Join(folder_path, filename + ".OBJ"), false, Encoding.ASCII))
 			{
 				var obj = new StringWriter();
 				this.models_3d[model_id].Data.ToSingleObj(obj, filename, this.textures, filename);
@@ -276,44 +276,41 @@ namespace ArgonautReverse.PSX
 			}
 
 			this._prepare_obj_export(folder_path, wad_filename);
-			using(var obj_file = new System.IO.StreamWriter(Path.Join(folder_path, (wad_filename + ".OBJ")), false, Encoding.ASCII))
+			var obj = new StringWriter();
+			obj.WriteLine(string.Format(Model3DDataPSX.mtl_header, wad_filename));
+			int vio = 0;
+			int sub_chunk_id = 0;
+			foreach(var texture in this.textures)
 			{
-				var obj = new StringWriter();
-				obj.WriteLine(string.Format(Model3DDataPSX.mtl_header, wad_filename));
-				int vio = 0;
-				int sub_chunk_id = 0;
-				foreach(var texture in this.textures)
+				foreach(var coord in texture.output_coords)
 				{
-					foreach(var coord in texture.output_coords)
-					{
-						obj.WriteLine($"vt {coord.X / 1024.0} {(1024 - coord.Y) / 1024.0}");
-					}
+					obj.WriteLine($"vt {coord.X / 1024.0} {(1024 - coord.Y) / 1024.0}");
 				}
-				for(int i=0; i<this.DPSX.level_file.chunks_matrix.ChunkHolders.Count; i++)
-				{
-					var chunk_holder = this.DPSX.level_file.chunks_matrix.ChunkHolders[i];
-					if(chunk_holder!=null)
-					{
-						var (x, z) = this.DPSX.level_file.chunks_matrix.x_z_coords(i);
-						foreach(var chunk in chunk_holder.Subchunks)
-						{
-							var cm = chunk.model_3d_data.Data;
-							cm.ToBatchObj(
-								obj,
-								$"{wad_filename}_{sub_chunk_id}",
-								x,
-								chunk.height,
-								z,
-								chunk.rotation,
-								vio
-							);
-							vio += cm.n_vertices;
-							sub_chunk_id += 1;
-						}
-					}
-				}
-				obj_file.Write(obj.ToString());
 			}
+			for(int i=0; i<this.DPSX.level_file.chunks_matrix.ChunkHolders.Count; i++)
+			{
+				var chunk_holder = this.DPSX.level_file.chunks_matrix.ChunkHolders[i];
+				if(chunk_holder!=null)
+				{
+					var (x, z) = this.DPSX.level_file.chunks_matrix.x_z_coords(i);
+					foreach(var chunk in chunk_holder.Subchunks)
+					{
+						var cm = chunk.model_3d_data.Data;
+						cm.ToBatchObj(
+							obj,
+							$"{wad_filename}_{sub_chunk_id}",
+							x,
+							chunk.height,
+							z,
+							chunk.rotation,
+							vio
+						);
+						vio += cm.n_vertices;
+						sub_chunk_id += 1;
+					}
+				}
+			}
+			File.WriteAllText(Path.Join(folder_path, wad_filename + ".OBJ"), obj.ToString(), Encoding.ASCII);
 		}
 
 		public void ExportActors(string folder_path, string wad_filename)
@@ -321,8 +318,128 @@ namespace ArgonautReverse.PSX
 			for(int i=0; i<this.n_scripts; i++)
 			{
 				var script = this.actors[i];
-				script.Write(Path.Join(folder_path, $"{wad_filename}_{i}.strat_asm"));
+				var baseFilePath = Path.Join(folder_path, $"{wad_filename}_{i}");
+				try
+				{
+					using var output = new StreamWriter($"{baseFilePath}.strat_asm", false);
+					script.Write(output, true);
+				}
+				catch(Exception e)
+				{
+					Console.WriteLine($"Failed to export ASM {baseFilePath}:");
+					Console.WriteLine(e.ToString());
+					continue;
+				}
+
+				Universal.StratLang.Decompiler.Parser parser;
+				try
+				{
+					var lines = File.ReadAllLines($"{baseFilePath}.strat_asm");
+
+					parser = new();
+					var start = parser.ParseAndSetupInstructions(lines);
+				}
+				catch(Exception e)
+				{
+					Console.WriteLine($"Failed to analyze stack {baseFilePath}:");
+					Console.WriteLine(e.ToString());
+					continue;
+				}
+
+				Universal.StratLang.Decompiler.StackAnalyzer stackAnalyzer;
+				try
+				{
+					stackAnalyzer = new();
+					stackAnalyzer.Analyze(parser.GetSubroutines());
+				}
+				catch(Exception e)
+				{
+					Console.WriteLine($"Failed to analyze stack {baseFilePath}:");
+					Console.WriteLine(e.ToString());
+					continue;
+				}
+				var stackOutputLines = new List<string>();
+				stackAnalyzer.Write(stackOutputLines);
+
+				File.WriteAllLines($"{baseFilePath}.stack.strat", stackOutputLines);
+
+
+				Universal.StratLang.Decompiler.FlowAnalyzer flowAnalyzer;
+				try
+				{
+					flowAnalyzer = new();
+					flowAnalyzer.Analyze(stackAnalyzer.Subroutines);
+				}
+				catch(Exception e)
+				{
+					Console.WriteLine($"Failed to analyze flow {baseFilePath}:");
+					Console.WriteLine(e.ToString());
+					continue;
+				}
+				var flowWriter = new Universal.StratLang.Decompiler.Writer();
+				flowAnalyzer.Write(flowWriter);
+
+				File.WriteAllLines($"{baseFilePath}.flow.strat", flowWriter.GetLines());
 			}
+		}
+
+		private void ExportDPSX(ProgramArgs args, Configuration conf)
+		{
+			if(!DPSXChunkInfo.Instance.SupportedWadVersions.Intersect(conf.ReadVersion.WadVersions).Any()){return;}
+
+			if(args.ExportActors is string exportActors)
+			{
+				var wad_actors_folder_path = Path.Join(exportActors, Stem);
+				ExportAssets.CreateExportDirectory(wad_actors_folder_path);
+				ExportActors(wad_actors_folder_path, Stem);
+			}
+			if(args.ExportModels is string exportModels)
+			{
+				var wad_models_3d_folder_path = Path.Join(exportModels, Stem);
+				ExportAssets.CreateExportDirectory(wad_models_3d_folder_path);
+				export_experimental_models(wad_models_3d_folder_path, Stem);
+			}
+			if(args.ExportLevels is string exportLevels)
+			{
+				var wad_level_folder_path = Path.Join(exportLevels, Stem);
+				ExportAssets.CreateExportDirectory(wad_level_folder_path);
+				export_level(wad_level_folder_path, Stem);
+			}
+		}
+
+		private void ExportSPSX(ProgramArgs args, Configuration conf)
+		{
+			if(!SPSXChunkInfo.Instance.SupportedWadVersions.Intersect(conf.ReadVersion.WadVersions).Any()){return;}
+
+			if(args.ExportAudio is string exportAudio)
+			{
+				var wad_audio_export_folder_path = Path.Join(exportAudio, Stem);
+				ExportAssets.CreateExportDirectory(wad_audio_export_folder_path);
+				export_audio_to_wav(wad_audio_export_folder_path, Stem);
+			}
+			if(args.UnpackAudio is string unpackAudio)
+			{
+				var wad_audio_unpack_folder_path = Path.Join(unpackAudio, Stem);
+				ExportAssets.CreateExportDirectory(wad_audio_unpack_folder_path);
+				export_audio_to_vag(wad_audio_unpack_folder_path, Stem);
+			}
+		}
+
+		private void ExportTPSX(ProgramArgs args, Configuration conf)
+		{
+			if(!TPSXChunkInfo.Instance.SupportedWadVersions.Intersect(conf.ReadVersion.WadVersions).Any()){return;}
+
+			if(args.ExportTextures is string exportTextures)
+			{
+				TPSX.TextureFile.to_colorized_texture().Save(Path.Join(exportTextures, $"{Stem}.PNG"), System.Drawing.Imaging.ImageFormat.Png);
+			}
+		}
+
+		public override void ExportWadAssets(ProgramArgs args, Configuration conf)
+		{
+			ExportTPSX(args, conf);
+			ExportSPSX(args, conf);
+			ExportDPSX(args, conf);
 		}
 	}
 }

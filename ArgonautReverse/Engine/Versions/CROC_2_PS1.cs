@@ -23,7 +23,7 @@ namespace ArgonautReverse.Engine.Versions
 
 			public override WadVersion GetWadVersion(string wadName) => WadVersion;
 
-			public override IReadOnlyList<WadVersion> WadVersions{get;} = new[]{WadVersion};
+			public override IReadOnlyList<WadVersion> WadVersions{get;} = [WadVersion];
 		}
 
 		private sealed class CROC_2_PS1_Wad:WadVersion

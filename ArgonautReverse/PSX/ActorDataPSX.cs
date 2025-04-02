@@ -72,11 +72,11 @@ namespace ArgonautReverse.PSX
 			}
 		}
 
-		public void Write(string path)
+		public void Write(System.IO.StreamWriter output, bool exportForParsing = false)
 		{
 			if(Failed){return;}
 
-			parser?.Write(path, false);
+			parser?.Write(output, exportForParsing);
 		}
 	}
 }

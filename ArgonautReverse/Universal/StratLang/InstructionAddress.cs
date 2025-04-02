@@ -1,4 +1,4 @@
 ﻿namespace ArgonautReverse.Universal.StratLang
 {
-	public enum InstructionAddress:int { }
+	public enum InstructionAddress:int;
 }

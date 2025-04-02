@@ -10,9 +10,9 @@
 	{
 		public abstract string Title{get;}
 
-		public abstract string FilenameDAT{get;}
-		public abstract string FilenameDIR{get;}
-		public abstract DirFormat DirFormat{get;}
+		public abstract string? FilenameDAT{get;}
+		public abstract string? FilenameDIR{get;}
+		public abstract DirFormat? DirFormat{get;}
 
 		public abstract Platform Platform{get;}
 

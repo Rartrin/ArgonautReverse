@@ -1,10 +1,8 @@
 namespace ArgonautReverse.Files
 {
-	public sealed class DEMFile:DATFile
+	public sealed class DEMFile(string stem, byte[] data):DATFile(stem, data)
 	{
 		public override string Suffix => "DEM";
-
-		public DEMFile(string stem, byte[] data) : base(stem, data){}
 
 		public override void PrintInfo(TextWriter output)
 		{

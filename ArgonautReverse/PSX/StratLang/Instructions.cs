@@ -3,20 +3,11 @@ using ArgonautReverse.Universal.StratLang;
 
 namespace ArgonautReverse.PSX.StratLang
 {
-	public abstract unsafe class BaseInstruction:Instruction
-	{
-		public BaseInstruction(int opCount,int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):base(address, opcode, opCount, popCount, pushCount)
-		{
-		}
-	}
+	public abstract unsafe class BaseInstruction(int opCount,int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):Instruction(address, opcode, opCount, popCount, pushCount);
 
-	public unsafe class BasicInstruction:BaseInstruction
+	/// <summary>Non-terminal instruction that without any extra operands that can pop and push any number of args.</summary>
+	public unsafe class BasicInstruction(int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(0, popCount, pushCount, address, opcode)
 	{
-		//Non-terminal instruction that without any extra operands that can pop and push any number of args.
-		public BasicInstruction(int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):base(0, popCount, pushCount, address, opcode)
-		{
-		}
-
 		public override string ToAsmString(bool exportForParsing) => OpCode.ToString();
 	}
 
@@ -45,7 +36,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class AddressInstruction:BaseInstruction
+	public unsafe class AddressInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
 	{
 		//It appears that stAddress is used in:
 		// - Loading animation data
@@ -64,8 +55,6 @@ namespace ArgonautReverse.PSX.StratLang
 
 		//Pulled into another instruction
 		public bool Consumed = false;
-
-		public AddressInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 0, 1, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -147,11 +136,9 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class BinocsInstruction:BaseInstruction
+	public unsafe class BinocsInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		public int State;
-
-		public BinocsInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 0, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -164,11 +151,9 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class BlinkInstruction:BaseInstruction
+	public unsafe class BlinkInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 1, 0, address, opcode)
 	{
 		public int Count;
-
-		public BlinkInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 1, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -181,12 +166,10 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class BranchInstruction:BaseInstruction
+	public unsafe class BranchInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 1, 0, address, opcode)
 	{
 		public InstructionAddress ConditionalDestPtr;
 		public Instruction ConditionalDest;
-
-		public BranchInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 1, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -206,12 +189,10 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class CollisionFlagInstruction:BaseInstruction
+	public unsafe class CollisionFlagInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		//TODO: Check enum values
 		public uint CollisionType;
-
-		public CollisionFlagInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 0, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -222,17 +203,15 @@ namespace ArgonautReverse.PSX.StratLang
 		{
 			return OpCode switch
 			{
-				InstructionOpcode.CollisionOn => $"collision on {CollisionType}",
-				InstructionOpcode.CollisionOff => $"collision off {CollisionType}",
+				InstructionOpcode.CollisionOn => $"CollisionOn {CollisionType}",
+				InstructionOpcode.CollisionOff => $"CollisionOff {CollisionType}",
 				_ => throw new NotSupportedException("Unsupported opcode"),
 			};
 		}
 	}
 
-	public unsafe class CommandErrorInstruction:BaseInstruction
+	public unsafe class CommandErrorInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(0, 0, 0, address, opcode)
 	{
-		public CommandErrorInstruction(InstructionAddress address, InstructionOpcode opcode):base(0, 0, 0, address, opcode){}
-
 		public override void Parse(StratReader reader)
 		{
 			Terminal = true;
@@ -244,11 +223,9 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class CreditInstruction:BaseInstruction
+	public unsafe class CreditInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		public int Operand;
-
-		public CreditInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 0, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -261,11 +238,9 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class CwgInstruction:BaseInstruction
+	public unsafe class CwgInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		public int Value;
-
-		public CwgInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 0, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -278,12 +253,10 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class DialogSayInstruction:BaseInstruction
+	public unsafe class DialogSayInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		public int StringId;
 		public string EnglishString;
-
-		public DialogSayInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 0, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -298,11 +271,9 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class DialogSetInstruction:BaseInstruction
+	public unsafe class DialogSetInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		public int Operand;
-
-		public DialogSetInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 0, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -316,11 +287,9 @@ namespace ArgonautReverse.PSX.StratLang
 	}
 
 
-	public unsafe class DebugNameInstruction:BaseInstruction
+	public unsafe class DebugNameInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(2, 0, 0, address, opcode)
 	{
 		public string Name;
-
-		public DebugNameInstruction(InstructionAddress address, InstructionOpcode opcode):base(2, 0, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -339,11 +308,9 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class EndStratInstruction:BaseInstruction
+	public unsafe class EndStratInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(0, 0, 0, address, opcode)
 	{
 		//Deletes strat
-
-		public EndStratInstruction(InstructionAddress address, InstructionOpcode opcode):base(0, 0, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -356,12 +323,10 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class FlagInstruction:BaseInstruction
+	public unsafe class FlagInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		//Operand
 		public bool NewState;
-
-		public FlagInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 0, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -380,11 +345,9 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class FadeSetUnknownInstruction:BaseInstruction
+	public unsafe class FadeSetUnknownInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		public int Value;
-
-		public FadeSetUnknownInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 0, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -397,7 +360,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class IndexJumpInstruction:BaseInstruction
+	public unsafe class IndexJumpInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 1, 0, address, opcode)
 	{
 		public int CaseCount;
 		public int[] CaseComparands;
@@ -406,8 +369,6 @@ namespace ArgonautReverse.PSX.StratLang
 
 		//Special: Switch
 		//Has extra data
-
-		public IndexJumpInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 1, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -460,12 +421,10 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class ItemCountInstruction:BaseInstruction
+	public unsafe class ItemCountInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
 	{
 		//TODO: Check enum values
 		public int Item;
-
-		public ItemCountInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 0, 1, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -478,14 +437,12 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class ItemChangeInstruction:BaseInstruction
+	public unsafe class ItemChangeInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		//Give/take item from inventory
 
 		//TODO: Check enum values
 		public int Item;
-
-		public ItemChangeInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 0, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -498,12 +455,10 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class JumpInstruction:BaseInstruction
+	public unsafe class JumpInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		public InstructionAddress DestinationPtr;
 		public Instruction Destination;
-
-		public JumpInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 0, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -522,15 +477,13 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class JumpSubroutineInstruction:BaseInstruction
+	public unsafe class JumpSubroutineInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		//Technically pushes a value but we aren't counting it because it's popped outside the subroutine.
 		//Special: Function call
 
 		public InstructionAddress ProcPtr;
 		public Instruction Proc;
-
-		public JumpSubroutineInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 0, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -548,11 +501,9 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class NumberInstruction:BaseInstruction
+	public unsafe class NumberInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
 	{
 		public int Value;
-
-		public NumberInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 0, 1, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -565,11 +516,9 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class PrintInstruction:BaseInstruction
+	public unsafe class PrintInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(-1, 0, 0, address, opcode)
 	{
 		public IReadOnlyList<(InstructionOpcode type, object value,bool negate)> Elements;
-
-		public PrintInstruction(InstructionAddress address, InstructionOpcode opcode):base(-1, 0, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -704,9 +653,13 @@ namespace ArgonautReverse.PSX.StratLang
 						stream.Append("camera@").Append(((AlienVarID)value).GetCommandString());
 						break;
 					}
+					//TODO: Modify String Opcode mapping for DUMMY
 					case InstructionOpcode.String or (InstructionOpcode)225://225 is for DUMMY
 					{
-						stream.Append('\"').Append((string)value).Append('\"');
+						var str = (string)value;
+						//TODO: Sanitize strings
+						str = str.Replace("\n", "\\n");
+						stream.Append('\"').Append(str).Append('\"');
 						break;
 					}
 					default:
@@ -719,13 +672,11 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class ReturnInstruction:BaseInstruction
+	public unsafe class ReturnInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(0, 0, 0, address, opcode)
 	{
 		//Technically pop a values but we aren't counting it because it is pushed outisde the subroutine.
 	
 		//Special: Function Return
-
-		public ReturnInstruction(InstructionAddress address, InstructionOpcode opcode):base(0, 0, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -738,11 +689,9 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class SoundAddressInstruction:BaseInstruction
+	public unsafe class SoundAddressInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
 	{
 		public int Value;
-
-		public SoundAddressInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 0, 1, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -755,7 +704,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class SpawnInstruction:BaseInstruction
+	public unsafe class SpawnInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(5, 1, 0, address, opcode)
 	{
 		public int LocalVarsToPop;
 		public int LocalCount;
@@ -767,7 +716,7 @@ namespace ArgonautReverse.PSX.StratLang
 		public InstructionAddress SpawnStratProcAddr;
 		public Instruction SpawnStratProc;
 
-		public SpawnInstruction(InstructionAddress address, InstructionOpcode opcode):base(5, 1, 0, address, opcode){}
+
 
 		public override void Parse(StratReader reader)
 		{
@@ -777,14 +726,14 @@ namespace ArgonautReverse.PSX.StratLang
 			CollisionSize = reader.ReadInt();
 			CollisionBoneCount = reader.ReadInt();
 			
-			var address = (AddressInstruction)Prev;
+			var address = (AddressInstruction)Prev!;
 			address.Consumed = true;
 			(SpawnStratProcScript, SpawnStratProcAddr) = address.GetStratProcAddr(reader);
 		}
 
 		public override void Setup(StratParser parser)
 		{
-			if(this.JumpsFrom.Count != 0 || Prev.OpCode != InstructionOpcode.Address)
+			if(this.JumpsFrom.Count != 0 || Prev!.OpCode != InstructionOpcode.Address)
 			{
 				throw new Exception("Unsupported spawn instruction");
 			}
@@ -793,12 +742,12 @@ namespace ArgonautReverse.PSX.StratLang
 
 		public override string ToAsmString(bool exportForParsing)
 		{
-			return $"{OpCode} {((AddressInstruction)Prev).DataOffset:X8} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount}";
+			return $"{OpCode} {((AddressInstruction)Prev!).DataOffset:X8} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount}";
 			//return $"{OpCode} {SpawnStratProc.SubroutineName()} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount}";
 		}
 	}
 
-	public unsafe class SpawnFromInstruction:BaseInstruction
+	public unsafe class SpawnFromInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(6, 1, 0, address, opcode)
 	{
 		public int LocalVarsToPop;
 		public int LocalCount;
@@ -811,8 +760,6 @@ namespace ArgonautReverse.PSX.StratLang
 		public ActorDataPSX SpawnStratProcScript;
 		public InstructionAddress SpawnStratProcAddr;
 		public Instruction SpawnStratProc;
-	
-		public SpawnFromInstruction(InstructionAddress address, InstructionOpcode opcode):base(6, 1, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -824,14 +771,14 @@ namespace ArgonautReverse.PSX.StratLang
 
 			BoneToSpawnFrom = reader.ReadInt();
 
-			var address = (AddressInstruction)Prev;
+			var address = (AddressInstruction)Prev!;
 			address.Consumed = true;
 			(SpawnStratProcScript, SpawnStratProcAddr) = address.GetStratProcAddr(reader);
 		}
 
 		public override void Setup(StratParser parser)
 		{
-			if(this.JumpsFrom.Count != 0 || Prev.OpCode != InstructionOpcode.Address)
+			if(this.JumpsFrom.Count != 0 || Prev!.OpCode != InstructionOpcode.Address)
 			{
 				throw new Exception("Unsupported spawn instruction");
 			}
@@ -840,7 +787,7 @@ namespace ArgonautReverse.PSX.StratLang
 
 		public override string ToAsmString(bool exportForParsing)
 		{
-			return $"{OpCode} {((AddressInstruction)Prev).DataOffset:X8} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount} {BoneToSpawnFrom}";
+			return $"{OpCode} {((AddressInstruction)Prev!).DataOffset:X8} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount} {BoneToSpawnFrom}";
 			//return $"{OpCode} {SpawnStratProc.SubroutineName()} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount} {BoneToSpawnFrom}";
 		}
 	}
@@ -870,7 +817,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class TriggerCreateInstruction:BaseInstruction
+	public unsafe class TriggerCreateInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(2, 0, 0, address, opcode)
 	{
 		//Special: Extra data
 
@@ -881,7 +828,6 @@ namespace ArgonautReverse.PSX.StratLang
 		public InstructionAddress StreamPtr;
 		public Instruction Stream;
 
-		public TriggerCreateInstruction(InstructionAddress address, InstructionOpcode opcode):base(2, 0, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -906,12 +852,10 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class TriggerUpdateInstruction:BaseInstruction
+	public unsafe class TriggerUpdateInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		public int TriggerIndex;
 		public Instruction TriggerProc;
-
-		public TriggerUpdateInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 0, 0, address, opcode){}
 
 		public override void Parse(StratReader reader)
 		{
@@ -930,7 +874,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class VarInstruction:BaseInstruction
+	public unsafe class VarInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
 	{
 		public enum SourceStrat
 		{
@@ -955,8 +899,6 @@ namespace ArgonautReverse.PSX.StratLang
 
 		//TODO: Check enum values for Alien vars
 		public int VarId;
-
-		public VarInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 0, 1, address, opcode){}
 
 		public void ParseSpecifics(SourceStrat source, VarType type, bool getAddress)
 		{

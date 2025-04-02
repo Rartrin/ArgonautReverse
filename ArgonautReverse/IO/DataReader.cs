@@ -1,6 +1,6 @@
 ﻿namespace ArgonautReverse.IO
 {
-	public class DataReader:BaseReader
+	public class DataReader(byte[] data, int offset, int length):BaseReader
 	{
 		public override int Position{get;set;} = 0;
 
@@ -13,18 +13,11 @@
 				Position = value - Offset;
 			}
 		}
-		public override int Length{get;}
+		public override int Length{get;} = length;
 
-		public int Offset{get;}
+		public int Offset{get;} = offset;
 
-		public readonly byte[] Data;
-
-		public DataReader(byte[] data, int offset, int length)
-		{
-			Data = data;
-			Offset = offset;
-			Length = length;
-		}
+		public readonly byte[] Data = data;
 
 		protected override void ReadRawData(Span<byte> data)
 		{

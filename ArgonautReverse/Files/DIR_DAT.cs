@@ -21,7 +21,7 @@ namespace ArgonautReverse.Files
 			Files = files;
 		}
 
-		private static void FindDirDatFiles(string inputPath, Configuration conf, out string dirPath, out string datPath)
+		private static void FindDirDatFiles(string inputPath, Configuration conf, out string? dirPath, out string datPath)
 		{
 			if(Directory.Exists(inputPath))
 			{
@@ -34,7 +34,7 @@ namespace ArgonautReverse.Files
 				{
 					dirPath = null;
 				}
-				datPath = Path.Combine(inputPath, conf.ReadVersion.FilenameDAT);
+				datPath = Path.Combine(inputPath, conf.ReadVersion.FilenameDAT!);
 			}
 			else if(File.Exists(inputPath))
 			{
@@ -75,7 +75,7 @@ namespace ArgonautReverse.Files
 					var fileCount = dirData.Read<int>();
 					for(int i = 0; i < fileCount; i++)
 					{
-						conf.ReadVersion.DirFormat.Unpack(dirData, out var name, out var size, out var start);
+						conf.ReadVersion.DirFormat!.Unpack(dirData, out var name, out var size, out var start);
 						datData.Position = start;
 						files.Add(ParseDatFile(conf, name.Trim('\0'), datData.ReadArray<byte>(size)));
 					}
@@ -176,7 +176,7 @@ namespace ArgonautReverse.Files
 				file.Serialize(datOutput);
 				var size = datOutput.Position - start;
 				Utils.PadOut2048Bytes(datOutput);
-				conf.WriteVersion.DirFormat.Pack(dirOutput, file.Name, size, start);
+				conf.WriteVersion.DirFormat!.Pack(dirOutput, file.Name, size, start);
 			}
 		}
 	}

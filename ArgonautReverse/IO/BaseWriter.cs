@@ -20,7 +20,7 @@ namespace ArgonautReverse.IO
 		public void WriteUInt16(ushort value) => Write(value);
 		public void WriteUInt32(uint value) => Write(value);
 
-		public void WriteBytes(byte[] bytes) => WriteArray<byte>(bytes);
+		public void WriteBytes(byte[] bytes) => WriteArray(bytes);
 
 		public unsafe void Write<T>(in T value) where T : unmanaged, IBinaryNumber<T>
 		{

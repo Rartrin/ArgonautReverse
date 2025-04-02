@@ -328,5 +328,9 @@
 		CameraFunction_47F040 = 320,//BASIC_INSTRUCTION(0,0)
 		CameraFunction_47F0C0 = 321,//BASIC_INSTRUCTION(0,0)
 		CameraFunction_47F490 = 322,//BASIC_INSTRUCTION(0,0)
+
+
+		//Special opcodes for analysis
+		SPECIAL_ANALYSIS_CODES = 0x10000,
 	}
 }

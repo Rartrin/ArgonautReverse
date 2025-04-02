@@ -70,8 +70,8 @@ namespace ArgonautReverse.Files
 		public static readonly ImageType WIZ = new ImageType(2080, (64, 64), 16);
 		public static readonly ImageType WIZPAGE = new ImageType(2080, (128, 32), 16);
 
-		public static ImageType[] lookup = new ImageType[]
-		{
+		public static ImageType[] lookup =
+		[
 			LOAD,
 			STORY,
 			TEXT,
@@ -94,16 +94,14 @@ namespace ArgonautReverse.Files
 			GRADE,
 			WIZ,
 			WIZPAGE,
-		};
+		];
 	}
 
-	public sealed class IMGFile:DATFile
+	public sealed class IMGFile(string stem, byte[] data):DATFile(stem, data)
 	{
 		public override string Suffix => "IMG";
 
 		public IReadOnlyList<Bitmap> Images{get;private set;}
-
-		public IMGFile(string stem, byte[] data):base(stem, data){}
 
 		public override void PrintInfo(TextWriter output)
 		{
@@ -133,7 +131,7 @@ namespace ArgonautReverse.Files
 			}
 			else
 			{
-				images_data = new ArraySegment<byte>[1]{this._data};
+				images_data = [this._data];
 			}
 
 			var images = new List<Bitmap>();

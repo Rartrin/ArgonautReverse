@@ -7,7 +7,7 @@ namespace ArgonautReverse.Engine.Versions
 	public static class CROC_2_DEMO_PS1_DUMMY
 	{
 		public static DatVersion DatVersion => CROC_2_DEMO_PS1_DUMMY_Dat.Instance;
-		public static DirFormat DirFormat => null;
+		public static DirFormat? DirFormat => null;
 
 		public static WadVersion WadVersion_Early => CROC_2_DEMO_PS1_DUMMY_Wad.Instance_Early;
 		public static WadVersion WadVersion_Latest => CROC_2_DEMO_PS1_DUMMY_Wad.Instance_Latest;
@@ -18,8 +18,8 @@ namespace ArgonautReverse.Engine.Versions
 
 			public override string Title => "Croc 2 Demo PS1 (Dummy)";
 			public override string FilenameDAT => "DUMMY.DAT";
-			public override string FilenameDIR => null;
-			public override DirFormat DirFormat => null;
+			public override string? FilenameDIR => null;
+			public override DirFormat? DirFormat => null;
 
 			public override WadVersion GetWadVersion(string wadName) => CROC_2_DEMO_PS1_DUMMY_Wad.wadVersions.GetValueOrDefault(wadName, WadVersion_Latest);
 
@@ -28,7 +28,7 @@ namespace ArgonautReverse.Engine.Versions
 
 		private sealed class CROC_2_DEMO_PS1_DUMMY_Wad:WadVersion
 		{
-			public static readonly Dictionary<string,WadVersion> wadVersions = new Dictionary<string, WadVersion>();
+			public static readonly Dictionary<string,WadVersion> wadVersions = new Dictionary<string,WadVersion>();
 
 			public override DateTime BuildDate{get;}
 			
@@ -77,7 +77,7 @@ namespace ArgonautReverse.Engine.Versions
 					94 => InstructionOpcode.Spawn,
 					95 => throw new NotImplementedException("Unknown OpCode 1"),
 					96 => InstructionOpcode.SpawnFrom,
-					#region Fuxxy Zone 1
+					#region Fuzzy Zone 1
 
 					//4 additional values somewhere in here
 

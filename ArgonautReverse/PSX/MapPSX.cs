@@ -444,7 +444,6 @@ namespace ArgonautReverse.PSX
 				//TODO: Original exporter has LightTuple as 16 bits
 				//Aladdin has it as 32 bits.
 
-
 				map.LightTuples = new LightTuplePSX[map.MapXY];
 				for(int i = 0; i < map.MapXY; i++)
 				{
@@ -479,7 +478,14 @@ namespace ArgonautReverse.PSX
 			}
 			map.Strats = strats;
 
-			if((wadFlag & WadFlagPSX.WF_NOMATPOS) == 0)//Notice, this is if the flag is NOT on
+			if((wadFlag & WadFlagPSX.WF_NOMATPOS) != 0)
+			{
+				if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
+				{
+					//Getting here means that DUMMY definitely supports the WF_NOMATPOS flag
+				}
+			}
+			else
 			{
 				if(data_in.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
 				{
@@ -490,13 +496,7 @@ namespace ArgonautReverse.PSX
 				var matpos = data_in.ReadArray<MATRIX>(map.NumberOfPieces);
 				var matdraw = data_in.ReadArray<MATRIX>(map.NumberOfPieces);
 			}
-			else
-			{
-				if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
-				{
-					//Getting here means that DUMMY definitely supports the WF_NOMATPOS flag
-				}
-			}
+			
 
 			if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
@@ -517,7 +517,7 @@ namespace ArgonautReverse.PSX
 					throw new Exception("Unsure if DUMMY version supports this");
 				}
 
-				map.TrackChangeData = data_in.ReadArray<TrackChangePSX>(map.NumberOfOtherPieces.Value);
+				map.TrackChangeData = data_in.ReadArray<TrackChangePSX>(map.NumberOfOtherPieces!.Value);
 			}
 
 			if(data_in.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
@@ -555,7 +555,7 @@ namespace ArgonautReverse.PSX
 						//TODO: This appears to be in the wrong order compared to any of my versions
 
 						var sub_chunks_n_lighting = data_in.ReadArray<uint>(map.NumberOfPieces);
-						var sub_chunks_n_add_lighting = data_in.ReadArray<uint>(map.NumberOfOtherPieces.Value);
+						var sub_chunks_n_add_lighting = data_in.ReadArray<uint>(map.NumberOfOtherPieces!.Value);
 
 
 						for(int model_id = 0; model_id < map.NumberOfPieces; model_id++)

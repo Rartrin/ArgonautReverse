@@ -1,13 +1,9 @@
 ﻿
 namespace ArgonautReverse.Files
 {
-	public sealed class UnknownFile:DATFile
+	public sealed class UnknownFile(string stem, string suffix, byte[] data):DATFile(stem, data)
 	{
-		public override string Suffix{get;}
-		public UnknownFile(string stem, string suffix, byte[] data) : base(stem, data)
-		{
-			Suffix = suffix;
-		}
+		public override string Suffix => suffix;
 
 		public override void PrintInfo(TextWriter output)
 		{

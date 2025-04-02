@@ -306,7 +306,7 @@ namespace ArgonautReverse.PSX
 		}
 
 		/// <summary>Creates a standalone Wavefront OBJ 3D model.</summary>
-		public void ToSingleObj(TextWriter obj, string obj_filename, IEnumerable<TextureDataPSX> textures, string mtl_filename = null)
+		public void ToSingleObj(TextWriter obj, string obj_filename, IEnumerable<TextureDataPSX> textures, string? mtl_filename = null)
 		{
 			obj.WriteLine(string.Format(mtl_header, mtl_filename ?? obj_filename));//The format coming in looks for the variable mtl_filename
 

@@ -16,8 +16,8 @@ namespace ArgonautReverse
 			IgnoreWarnings = ignoreWarnings;
 		}
 
-		public static readonly DatVersion[] SUPPORTED_GAMES = new DatVersion[]
-		{
+		public static readonly DatVersion[] SUPPORTED_GAMES =
+		[
 			CROC_1_PS1.DatVersion,
 			CROC_2_PS1.DatVersion,
 			CROC_2_DEMO_PS1.DatVersion,
@@ -25,22 +25,22 @@ namespace ArgonautReverse
 			HARRY_POTTER_1_PS1.DatVersion,
 			HARRY_POTTER_2_PS1.DatVersion,
 			Croc2_PC.DatVersion,
-		};
+		];
 
 		//Croc 1 parsing is not supported, but it can be sliced
-		public static readonly DatVersion[] PSX_PARSABLE_GAMES = new DatVersion[]
-		{
+		public static readonly DatVersion[] PSX_PARSABLE_GAMES =
+		[
 			CROC_2_PS1.DatVersion,
 			CROC_2_DEMO_PS1.DatVersion,
 			CROC_2_DEMO_PS1_DUMMY.DatVersion,
 			HARRY_POTTER_1_PS1.DatVersion,
 			HARRY_POTTER_2_PS1.DatVersion,
-		};
+		];
 
-		public static readonly DatVersion[] PC_PARSABLE_GAMES = new DatVersion[]
-		{
+		public static readonly DatVersion[] PC_PARSABLE_GAMES =
+		[
 			Croc2_PC.DatVersion,
-		};
+		];
 
 		public static readonly DatVersion[] ALL_PARSABLE_GAMES = PSX_PARSABLE_GAMES.Concat(PC_PARSABLE_GAMES).ToArray();
 
