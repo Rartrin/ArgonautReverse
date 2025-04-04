@@ -3,20 +3,20 @@ using ArgonautReverse.Universal.StratLang;
 
 namespace ArgonautReverse.PSX.StratLang
 {
-	public abstract unsafe class BaseInstruction(int opCount,int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):AsmInstruction(address, opcode, opCount, popCount, pushCount);
+	public abstract class BaseInstruction(int opCount,int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):AsmInstruction(address, opcode, opCount, popCount, pushCount);
 
 	/// <summary>Non-terminal instruction that without any extra operands that can pop and push any number of args.</summary>
-	public unsafe class BasicInstruction(int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(0, popCount, pushCount, address, opcode)
+	public class BasicInstruction(int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(0, popCount, pushCount, address, opcode)
 	{
 		public override string ToAsmString(bool exportForParsing) => OpCode.ToString();
 	}
 
-	public unsafe class UnimplementedInstruction:BaseInstruction
+	public sealed class UnimplementedInstruction:BaseInstruction
 	{
 		public UnimplementedInstruction(int opCount,int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):base(opCount, popCount, pushCount, address, opcode)
 		{
 		}
-		
+
 		public override string ToAsmString(bool exportForParsing)
 		{
 			return $"{OpCode} $ UNIMPLEMENTED";
@@ -24,19 +24,19 @@ namespace ArgonautReverse.PSX.StratLang
 	};
 
 	//Unimplemented but also used in game
-	public unsafe class UsedUnimplementedInstruction:BaseInstruction
+	public sealed class UsedUnimplementedInstruction:BaseInstruction
 	{
 		public UsedUnimplementedInstruction(int opCount,int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):base(opCount, popCount, pushCount, address, opcode)
 		{
 		}
-		
+
 		public override string ToAsmString(bool exportForParsing)
 		{
 			return $"{OpCode} $ USED UNIMPLEMENTED";
 		}
 	}
 
-	public unsafe class AddressInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
+	public sealed class AddressInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
 	{
 		//It appears that stAddress is used in:
 		// - Loading animation data
@@ -109,6 +109,8 @@ namespace ArgonautReverse.PSX.StratLang
 			return (script, (InstructionAddress)(DataOffset - script.DataChunkAddress));
 		}
 
+		public override bool Export => !Consumed;
+
 		public override string ToAsmString(bool exportForParsing)
 		{
 			if(/*exportForParsing && */Consumed)
@@ -136,7 +138,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class BinocsInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class BinocsInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		public int State;
 
@@ -151,7 +153,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class BlinkInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 1, 0, address, opcode)
+	public sealed class BlinkInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 1, 0, address, opcode)
 	{
 		public int Count;
 
@@ -166,7 +168,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class BranchInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 1, 0, address, opcode)
+	public sealed class BranchInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 1, 0, address, opcode)
 	{
 		public InstructionAddress ConditionalDestPtr;
 		public AsmInstruction ConditionalDest;
@@ -189,7 +191,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class CollisionFlagInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class CollisionFlagInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		//TODO: Check enum values
 		public uint CollisionType;
@@ -210,7 +212,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class CommandErrorInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(0, 0, 0, address, opcode)
+	public sealed class CommandErrorInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(0, 0, 0, address, opcode)
 	{
 		public override void Parse(StratReader reader)
 		{
@@ -223,7 +225,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class CreditInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class CreditInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		public int Operand;
 
@@ -238,7 +240,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class CwgInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class CwgInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		public int Value;
 
@@ -253,7 +255,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class DialogSayInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class DialogSayInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		public int StringId;
 		public string EnglishString;
@@ -261,17 +263,19 @@ namespace ArgonautReverse.PSX.StratLang
 		public override void Parse(StratReader reader)
 		{
 			StringId = reader.ReadInt();
+
+			//TODO: LanguageString
 			//EnglishString = Wad.currentWadPtr.LanguageStrings[StringId][0];
+			EnglishString = $"STRING_ID:{StringId}";
 		}
 
 		public override string ToAsmString(bool exportForParsing)
 		{
-			return $"{OpCode} {StringId}";
-			//return $"{OpCode} {StringId} $ \"{EnglishString}\"";
+			return $"{OpCode} \"{EnglishString}\"";
 		}
 	}
 
-	public unsafe class DialogSetInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class DialogSetInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		public int Operand;
 
@@ -287,7 +291,7 @@ namespace ArgonautReverse.PSX.StratLang
 	}
 
 
-	public unsafe class DebugNameInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(2, 0, 0, address, opcode)
+	public sealed class DebugNameInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(2, 0, 0, address, opcode)
 	{
 		public string Name;
 
@@ -308,7 +312,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class EndStratInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(0, 0, 0, address, opcode)
+	public sealed class EndStratInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(0, 0, 0, address, opcode)
 	{
 		//Deletes strat
 
@@ -323,7 +327,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class FlagInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class FlagInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		//Operand
 		public bool NewState;
@@ -345,7 +349,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class FadeSetUnknownInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class FadeSetUnknownInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		public int Value;
 
@@ -360,7 +364,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class IndexJumpInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 1, 0, address, opcode)
+	public sealed class IndexJumpInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 1, 0, address, opcode)
 	{
 		public int CaseCount;
 		public int[] CaseComparands;
@@ -420,7 +424,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class ItemCountInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
+	public sealed class ItemCountInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
 	{
 		//TODO: Check enum values
 		public int Item;
@@ -436,7 +440,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class ItemChangeInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class ItemChangeInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		//Give/take item from inventory
 
@@ -454,7 +458,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class JumpInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class JumpInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		public InstructionAddress DestinationPtr;
 		public AsmInstruction Destination;
@@ -476,7 +480,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class JumpSubroutineInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class JumpSubroutineInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		//Technically pushes a value but we aren't counting it because it's popped outside the subroutine.
 		//Special: Function call
@@ -500,7 +504,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class NumberInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
+	public sealed class NumberInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
 	{
 		public int Value;
 
@@ -515,7 +519,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class PrintInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(-1, 0, 0, address, opcode)
+	public sealed class PrintInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(-1, 0, 0, address, opcode)
 	{
 		public IReadOnlyList<(InstructionOpcode type, object value,bool negate)> Elements;
 
@@ -671,7 +675,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class ReturnInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(0, 0, 0, address, opcode)
+	public sealed class ReturnInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(0, 0, 0, address, opcode)
 	{
 		//Technically pop a values but we aren't counting it because it is pushed outisde the subroutine.
 	
@@ -688,7 +692,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class SoundAddressInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
+	public sealed class SoundAddressInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
 	{
 		public int Value;
 
@@ -716,7 +720,7 @@ namespace ArgonautReverse.PSX.StratLang
 		public AsmInstruction SpawnStratProc;
 	}
 
-	public unsafe class SpawnInstruction(InstructionAddress address, InstructionOpcode opcode):BaseSpawnInstruction(5, address, opcode)
+	public class SpawnInstruction(InstructionAddress address, InstructionOpcode opcode):BaseSpawnInstruction(5, address, opcode)
 	{
 		public override void Parse(StratReader reader)
 		{
@@ -747,9 +751,9 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed unsafe class SpawnAfterInstruction(InstructionAddress address, InstructionOpcode opcode):SpawnInstruction(address,opcode);
+	public sealed class SpawnAfterInstruction(InstructionAddress address, InstructionOpcode opcode):SpawnInstruction(address,opcode);
 
-	public unsafe class SpawnFromInstruction(InstructionAddress address, InstructionOpcode opcode):BaseSpawnInstruction(6, address, opcode)
+	public sealed class SpawnFromInstruction(InstructionAddress address, InstructionOpcode opcode):BaseSpawnInstruction(6, address, opcode)
 	{
 		public int BoneToSpawnFrom;
 
@@ -784,7 +788,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class StackCompareInstruction:BaseInstruction
+	public sealed class StackCompareInstruction:BaseInstruction
 	{
 		//This is never used in Croc 2. It isn't in the Aladdin's ASL compiler either.
 
@@ -809,7 +813,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class TriggerCreateInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(2, 0, 0, address, opcode)
+	public sealed class TriggerCreateInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(2, 0, 0, address, opcode)
 	{
 		//Special: Extra data
 
@@ -819,7 +823,6 @@ namespace ArgonautReverse.PSX.StratLang
 		public int Arg;
 		public InstructionAddress StreamPtr;
 		public AsmInstruction Stream;
-
 
 		public override void Parse(StratReader reader)
 		{
@@ -844,7 +847,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class TriggerUpdateInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class TriggerUpdateInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		public int TriggerIndex;
 		public AsmInstruction TriggerProc;
@@ -866,7 +869,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class VarInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
+	public sealed class VarInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
 	{
 		public enum SourceStrat
 		{
@@ -892,98 +895,41 @@ namespace ArgonautReverse.PSX.StratLang
 		//TODO: Check enum values for Alien vars
 		public int VarId;
 
-		public void ParseSpecifics(SourceStrat source, VarType type, bool getAddress)
-		{
-			this.Source = source;
-			this.Type = type;
-			this.GetAddress = getAddress;
-		}
-
 		public override void Parse(StratReader reader)
 		{
 			VarId = reader.ReadInt();
-
-			switch(OpCode)
+			(Source, Type, GetAddress) = OpCode switch
 			{
-				case InstructionOpcode.Local:
-					ParseSpecifics(SourceStrat.This, VarType.Local, false);
-					break;
-				case InstructionOpcode.Global:
-					ParseSpecifics(SourceStrat.This, VarType.Global, false);
-					break;
-				case InstructionOpcode.WorldGlobal:
-					ParseSpecifics(SourceStrat.This, VarType.WorldGlobal, false);
-					break;
-				case InstructionOpcode.AlienVar:
-					ParseSpecifics(SourceStrat.This, VarType.Alien, false);
-					break;
-				case InstructionOpcode.LocalAddress:
-					ParseSpecifics(SourceStrat.This, VarType.Local, true);
-					break;
-				case InstructionOpcode.GlobalAddress:
-					ParseSpecifics(SourceStrat.This, VarType.Global, true);
-					break;
-				case InstructionOpcode.WorldGlobalAddress:
-					ParseSpecifics(SourceStrat.This, VarType.WorldGlobal, true);
-					break;
-				case InstructionOpcode.AlienVarAddress:
-					ParseSpecifics(SourceStrat.This, VarType.Alien, true);
-					break;
-				case InstructionOpcode.Ext_Local:
-					ParseSpecifics(SourceStrat.Parent, VarType.Local, false);
-					break;
-				case InstructionOpcode.Ext_LocalAddress:
-					ParseSpecifics(SourceStrat.Parent, VarType.Local, true);
-					break;
-				//case InstructionOpcode.Ext_Global:break;
-				//case InstructionOpcode.Ext_GlobalAddress:break;
-				case InstructionOpcode.Ext_AlienVar:
-					ParseSpecifics(SourceStrat.Parent, VarType.Alien, false);
-					break;
-				case InstructionOpcode.Ext_AlienVarAddress:
-					ParseSpecifics(SourceStrat.Parent, VarType.Alien, true);
-					break;
-				case InstructionOpcode.Player_AlienVar:
-					ParseSpecifics(SourceStrat.Player, VarType.Alien, false);
-					break;
-				case InstructionOpcode.Player_AlienVarAddress:
-					ParseSpecifics(SourceStrat.Player, VarType.Alien, true);
-					break;
-				case InstructionOpcode.Camera_AlienVar:
-					ParseSpecifics(SourceStrat.Camera, VarType.Alien, false);
-					break;
-				case InstructionOpcode.Camera_AlienVarAddress:
-					ParseSpecifics(SourceStrat.Camera, VarType.Alien, true);
-					break;
-				case InstructionOpcode.Target_AlienVar:
-					ParseSpecifics(SourceStrat.Target, VarType.Alien, false);
-					break;
-				case InstructionOpcode.Target_AlienVarAddress:
-					ParseSpecifics(SourceStrat.Target, VarType.Alien, true);
-					break;
-				//case InstructionOpcode.Collide_AlienVar:break;
-				//case InstructionOpcode.Collide_AlienVarAddress:break;
-				case InstructionOpcode.Target2_AlienVar:
-					ParseSpecifics(SourceStrat.Target2, VarType.Alien, false);
-					break;
-				case InstructionOpcode.Target2_AlienVarAddress:
-					ParseSpecifics(SourceStrat.Target2, VarType.Alien, true);
-					break;
-				case InstructionOpcode.Boss_AlienVar:
-					ParseSpecifics(SourceStrat.Boss, VarType.Alien, false);
-					break;
-				case InstructionOpcode.Boss_AlienVarAddress:
-					ParseSpecifics(SourceStrat.Boss, VarType.Alien, true);
-					break;
-				case InstructionOpcode.Dialog_AlienVar:
-					ParseSpecifics(SourceStrat.Dialog, VarType.Alien, false);
-					break;
-				case InstructionOpcode.Dialog_AlienVarAddress:
-					ParseSpecifics(SourceStrat.Dialog, VarType.Alien, true);
-					break;
-				default:
-					throw new Exception("Unimplemented VarInstruction OpCode");
-			}
+				InstructionOpcode.Local => (SourceStrat.This, VarType.Local, false),
+				InstructionOpcode.Global => (SourceStrat.This, VarType.Global, false),
+				InstructionOpcode.WorldGlobal => (SourceStrat.This, VarType.WorldGlobal, false),
+				InstructionOpcode.AlienVar => (SourceStrat.This, VarType.Alien, false),
+				InstructionOpcode.LocalAddress => (SourceStrat.This, VarType.Local, true),
+				InstructionOpcode.GlobalAddress => (SourceStrat.This, VarType.Global, true),
+				InstructionOpcode.WorldGlobalAddress => (SourceStrat.This, VarType.WorldGlobal, true),
+				InstructionOpcode.AlienVarAddress => (SourceStrat.This, VarType.Alien, true),
+				InstructionOpcode.Ext_Local => (SourceStrat.Parent, VarType.Local, false),
+				InstructionOpcode.Ext_LocalAddress => (SourceStrat.Parent, VarType.Local, true),
+				//InstructionOpcode.Ext_Global
+				//InstructionOpcode.Ext_GlobalAddress
+				InstructionOpcode.Ext_AlienVar => (SourceStrat.Parent, VarType.Alien, false),
+				InstructionOpcode.Ext_AlienVarAddress => (SourceStrat.Parent, VarType.Alien, true),
+				InstructionOpcode.Player_AlienVar => (SourceStrat.Player, VarType.Alien, false),
+				InstructionOpcode.Player_AlienVarAddress => (SourceStrat.Player, VarType.Alien, true),
+				InstructionOpcode.Camera_AlienVar => (SourceStrat.Camera, VarType.Alien, false),
+				InstructionOpcode.Camera_AlienVarAddress => (SourceStrat.Camera, VarType.Alien, true),
+				InstructionOpcode.Target_AlienVar => (SourceStrat.Target, VarType.Alien, false),
+				InstructionOpcode.Target_AlienVarAddress => (SourceStrat.Target, VarType.Alien, true),
+				//InstructionOpcode.Collide_AlienVar
+				//InstructionOpcode.Collide_AlienVarAddress
+				InstructionOpcode.Target2_AlienVar => (SourceStrat.Target2, VarType.Alien, false),
+				InstructionOpcode.Target2_AlienVarAddress => (SourceStrat.Target2, VarType.Alien, true),
+				InstructionOpcode.Boss_AlienVar => (SourceStrat.Boss, VarType.Alien, false),
+				InstructionOpcode.Boss_AlienVarAddress => (SourceStrat.Boss, VarType.Alien, true),
+				InstructionOpcode.Dialog_AlienVar => (SourceStrat.Dialog, VarType.Alien, false),
+				InstructionOpcode.Dialog_AlienVarAddress => (SourceStrat.Dialog, VarType.Alien, true),
+				_ => throw new Exception("Unimplemented VarInstruction OpCode")
+			};
 		}
 
 		public override string ToAsmString(bool exportForParsing)

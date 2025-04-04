@@ -324,14 +324,14 @@ namespace ArgonautReverse.PSX
 				AsmParser parser;
 				try
 				{
-					var lines = script.parser.GetInstructions();
+					var lines = script.parser!.GetInstructions();
 
 					parser = new();
 					var start = parser.ParseAndSetupInstructions(lines);
 				}
 				catch(Exception e)
 				{
-					Console.WriteLine($"Failed to analyze stack {baseFilePath}:");
+					Console.WriteLine($"Failed to setup asm parser {baseFilePath}:");
 					Console.WriteLine(e.Message);
 					return;
 				}

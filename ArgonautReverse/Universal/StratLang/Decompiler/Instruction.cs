@@ -36,24 +36,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public SubroutineType SubroutineType = SubroutineType.None;
 
-		public virtual void Create(string rawInstruction, AsmInstruction label, AsmInstruction operation)
+		public virtual void Create(AsmInstruction label, AsmInstruction operation)
 		{
 			RawLabel = label;
 			RawOperation = operation;
-
-			int endOfInst = rawInstruction.IndexOf(' ');
-
-			//Space should use uses exclusively as arg separators
-			//EXCEPT for DebugName and PrintInstructions where that can be located in strings.
-			//Should be easy for DebugName to just join the args back together for it with spaces.
-			if(endOfInst >= 0)
-			{
-				RawArgs = rawInstruction.Substring(endOfInst + 1).Split(' ');
-			}
-			else
-			{
-				RawArgs = [];
-			}
 
 			if(label.SubroutineType != SubroutineType.None)
 			{

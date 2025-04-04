@@ -32,6 +32,8 @@ namespace ArgonautReverse.PSX.StratLang
 		public readonly List<AsmInstruction> ReferencedFrom = new List<AsmInstruction>();//Strat, Trigger
 		public SubroutineType SubroutineType = SubroutineType.None;
 
+		public virtual bool Export => true;
+
 		//private:
 		//std::string label;
 		//public:

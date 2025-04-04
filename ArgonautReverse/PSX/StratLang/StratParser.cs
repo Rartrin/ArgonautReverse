@@ -190,9 +190,9 @@ namespace ArgonautReverse.PSX.StratLang
 			}
 		}
 
-		public IReadOnlyList<(string textInstruction,AsmInstruction label,AsmInstruction operation)> GetInstructions()
+		public IReadOnlyList<(AsmInstruction label,AsmInstruction operation)> GetInstructions()
 		{
-			var ret = new List<(string textInstruction,AsmInstruction label,AsmInstruction operation)>();
+			var ret = new List<(AsmInstruction label,AsmInstruction operation)>();
 
 			bool lastInstrMissing = false;
 
@@ -216,13 +216,15 @@ namespace ArgonautReverse.PSX.StratLang
 					label = instr;
 				}
 
-				var instrStr = instr.ToAsmString(true);
-				if(instrStr.Length != 0)
+				if(instr.Export)
 				{
-					var text = $"{label!.SubroutineName()}:{label.GetLabel()}:{instrStr}";
-					ret.Add((text, label, instr));
+					ret.Add((label!, instr));
+					lastInstrMissing = false;
 				}
-				lastInstrMissing = instrStr.Length == 0;
+				else
+				{
+					lastInstrMissing = true;
+				}
 			}
 			return ret;
 		}

@@ -15,10 +15,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		private readonly Queue<Instruction> NeedsSetup = new();
 
-		public Instruction CreateInstruction(string rawInstr, AsmInstruction psxLabel, AsmInstruction psxOperation)
+		public Instruction CreateInstruction(AsmInstruction psxLabel, AsmInstruction psxOperation)
 		{
 			var instr = InstructionLookup.CreateInstruction(psxOperation.OpCode);
-			instr.Create(rawInstr, psxLabel, psxOperation);
+			instr.Create(psxLabel, psxOperation);
 			PsxInstructions.Add(psxLabel, instr);
 
 			if(instr.SubroutineType != SubroutineType.None)
@@ -111,7 +111,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			instruction.SetupDone = true;
 		}
 
-		public Instruction ParseAndSetupInstructions(IReadOnlyList<(string textInstruction,AsmInstruction label,AsmInstruction operation)> lines)
+		public Instruction ParseAndSetupInstructions(IReadOnlyList<(AsmInstruction label,AsmInstruction operation)> lines)
 		{
 			Instructions = CreateInstructions(lines);
 
@@ -126,20 +126,16 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			return Instructions.First(i => i.Start);
 		}
 
-		private Instruction[] CreateInstructions(IReadOnlyList<(string textInstruction,AsmInstruction label,AsmInstruction operation)> lines)
+		private Instruction[] CreateInstructions(IReadOnlyList<(AsmInstruction label,AsmInstruction operation)> lines)
 		{
 			int lineNumber = 0;
 
 			var instructions = new List<Instruction>(lines.Count);
 			for(int i=0; i<lines.Count; i++)
 			{
-				(var text, var label, var operation) = lines[i];
-				if(string.IsNullOrWhiteSpace(text))
-				{
-					throw new Exception();
-				}
+				(var label, var operation) = lines[i];
 
-				var instr = CreateInstruction(text, label, operation);
+				var instr = CreateInstruction(label, operation);
 				instr.Index = lineNumber;
 				instructions.Add(instr);
 				lineNumber++;

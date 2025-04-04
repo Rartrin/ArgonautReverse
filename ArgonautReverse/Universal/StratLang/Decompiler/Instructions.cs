@@ -321,8 +321,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		{
 			base.Setup(parser);
 
-			var psxBranchInstr = GetAsmInstruction<PSX.StratLang.BranchInstruction>();
-			ConditionalDest = parser.GetInstruction(psxBranchInstr.ConditionalDest, null, this);
+			var branchAsmInstr = GetAsmInstruction<PSX.StratLang.BranchInstruction>();
+			ConditionalDest = parser.GetInstruction(branchAsmInstr.ConditionalDest, null, this);
 		}
 
 		public override void Analyze(StackAnalyzer stack)
@@ -342,16 +342,14 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 	public abstract class DialogSayInstruction:SimpleNoStackInstruction
 	{
-		public int StringId;
 		public string EnglishString;
 
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			StringId = int.Parse(RawArgs[0]);
-			//Index 1 is $
-			//Removes quotes surrounding string too
-			EnglishString = string.Join(' ', RawArgs, 2, RawArgs.Length-2)[1..^2];
+			var dialogSayAsmInstr = GetAsmInstruction<PSX.StratLang.DialogSayInstruction>();
+
+			EnglishString = dialogSayAsmInstr.EnglishString;
 		}
 	}
 
@@ -362,8 +360,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var operand = int.Parse(RawArgs[0]);
-			State = operand switch
+			var dialogSetAsmInstr = GetAsmInstruction<PSX.StratLang.DialogSetInstruction>();
+
+			State = dialogSetAsmInstr.Operand switch
 			{
 				0 => false,
 				1 => true,
@@ -391,12 +390,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			NewState = RawArgs[0] switch
-			{
-				"on" => true,
-				"off" => false,
-				_ => throw new Exception("Unknown state type")
-			};
+			var flagAsmInstr = GetAsmInstruction<PSX.StratLang.FlagInstruction>();
+
+			NewState = flagAsmInstr.NewState;
 		}
 
 		public override string ToStatement() => NewState ? $"{Flag} on" : $"{Flag} off";
@@ -415,7 +411,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			Item = int.Parse(RawArgs[0]);
+			var itemChangeAsmInstr = GetAsmInstruction<PSX.StratLang.ItemChangeInstruction>();
+
+			Item = itemChangeAsmInstr.Item;
 		}
 
 		public override string ToStatement() => Change switch
@@ -437,8 +435,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var psxJumpInstr = GetAsmInstruction<PSX.StratLang.JumpInstruction>();
-			Destination = parser.GetInstruction(psxJumpInstr.Destination, null, this);
+			var jumpAsmInstr = GetAsmInstruction<PSX.StratLang.JumpInstruction>();
+			Destination = parser.GetInstruction(jumpAsmInstr.Destination, null, this);
 		}
 
 		public override void Analyze(StackAnalyzer stack)
@@ -465,8 +463,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var psxJumpSubroutine = GetAsmInstruction<PSX.StratLang.JumpSubroutineInstruction>();
-			Proc = parser.GetProc(psxJumpSubroutine.Proc, this);
+			var jumpSubroutineAsmInstr = GetAsmInstruction<PSX.StratLang.JumpSubroutineInstruction>();
+			Proc = parser.GetProc(jumpSubroutineAsmInstr.Proc, this);
 		}
 	}
 
@@ -484,8 +482,85 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
+			var printAsmInstr = GetAsmInstruction<PSX.StratLang.PrintInstruction>();
 			//TODO: Handle PrintInstruction string args with spaces
-			Data = string.Join(' ', RawArgs);
+			Data = GetPrintString(printAsmInstr);
+		}
+
+		public static string GetPrintString(PSX.StratLang.PrintInstruction printAsmInstr)
+		{
+			var parts = new List<string>();
+			foreach((var type,var value,var negate) in printAsmInstr.Elements)
+			{
+				string part;
+				switch(type)
+				{
+					//TODO: Modify Opcode mappings for DUMMY
+
+					case InstructionOpcode.Local:
+					{
+						int localValue = (int)value;
+						part = $"Local_{localValue}";
+						break;
+					}
+					case InstructionOpcode.Global:
+					{
+						int globalValue = (int)value;
+						part = $"{globalValue>>12 : X5}.{globalValue&0xFFF : X3}";//"%05x.%03x"
+						break;
+					}
+					case InstructionOpcode.WorldGlobal:
+					{
+						int worldGlobalValue = (int)value;
+						part = $"WorldGlobal_{worldGlobalValue}";
+						break;
+					}
+					case InstructionOpcode.AlienVar:
+					{
+						part = $"this@{((AlienVarID)value).GetCommandString()}";
+						break;
+					}
+					case InstructionOpcode.Number:
+					{
+						int number = (int)value;
+						part = $"{number>>12 : X5}.{number&0xFFF : X3}";//"%05x.%03x"
+						break;
+					}
+					case InstructionOpcode.Ext_AlienVar:
+					{
+						part = $"parent@{((AlienVarID)value).GetCommandString()}";
+						break;
+					}
+					case InstructionOpcode.Player_AlienVar:
+					{
+						part = $"player@{((AlienVarID)value).GetCommandString()}";
+						break;
+					}
+					case InstructionOpcode.Camera_AlienVar:
+					{
+						part = $"camera@{((AlienVarID)value).GetCommandString()}";
+						break;
+					}
+					case InstructionOpcode.String or (InstructionOpcode)225://225 is for DUMMY
+					{
+						var str = (string)value;
+						//TODO: More string sanitization
+						str = str.Replace("\n", "\\n");
+						part = $"\"{str}\"";
+						break;
+					}
+					default:
+					{
+						throw new Exception("Invalid print type");
+					}
+				}
+				if(negate)
+				{
+					part = '-' + part;
+				}
+				parts.Add(part);
+			}
+			return string.Join(';', parts);
 		}
 	}
 
@@ -506,15 +581,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		{
 			base.Setup(parser);
 
-			var psxSpawnInstruction = GetAsmInstruction<PSX.StratLang.SpawnInstruction>();
+			var spawnAsmInstr = GetAsmInstruction<PSX.StratLang.SpawnInstruction>();
 			
-			SpawnStratProc = parser.GetStrat(psxSpawnInstruction.SpawnStratProc, this);
+			SpawnStratProc = parser.GetStrat(spawnAsmInstr.SpawnStratProc, this);
 
-			LocalVarsToPop = psxSpawnInstruction.LocalVarsToPop;
-			LocalCount = psxSpawnInstruction.LocalCount;
-			TriggerCount = psxSpawnInstruction.TriggerCount;
-			CollisionSize = psxSpawnInstruction.CollisionSize;
-			CollisionBoneCount = psxSpawnInstruction.CollisionBoneCount;
+			LocalVarsToPop = spawnAsmInstr.LocalVarsToPop;
+			LocalCount = spawnAsmInstr.LocalCount;
+			TriggerCount = spawnAsmInstr.TriggerCount;
+			CollisionSize = spawnAsmInstr.CollisionSize;
+			CollisionBoneCount = spawnAsmInstr.CollisionBoneCount;
 		}
 	}
 
@@ -525,8 +600,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var psxTriggerUpdateInstr = GetAsmInstruction<PSX.StratLang.TriggerUpdateInstruction>();
-			TriggerProc = parser.GetTrigger(psxTriggerUpdateInstr.TriggerProc, this);
+			var triggerUpdateAsmInstr = GetAsmInstruction<PSX.StratLang.TriggerUpdateInstruction>();
+			TriggerProc = parser.GetTrigger(triggerUpdateAsmInstr.TriggerProc, this);
 		}
 	}
 
@@ -556,7 +631,17 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			ID = RawArgs[0];
+			var varAsmInstr = GetAsmInstruction<PSX.StratLang.VarInstruction>();
+			var varId = varAsmInstr.VarId;
+
+			ID = Type switch
+			{
+				VarType.Local => "Local_" + varId,
+				VarType.Global => "Global_" + varId,
+				VarType.WorldGlobal => "WorldGlobal_" + varId,
+				VarType.Alien => ((AlienVarID)varId).GetCommandString(),
+				_ => throw new Exception("VarInstruction Unknown VarType"),
+			};
 		}
 
 		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown)
@@ -673,7 +758,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			Value = int.Parse(RawArgs[0]);
+			var numberAsmInstr = GetAsmInstruction<PSX.StratLang.NumberInstruction>();
+
+			Value = numberAsmInstr.Value;
 		}
 
 		//TODO: We will want to move away from this
@@ -1208,8 +1295,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var psxTriggerCreateInstr = GetAsmInstruction<PSX.StratLang.TriggerCreateInstruction>();
-			Type = psxTriggerCreateInstr.Type switch
+			var triggerCreateAsmInstr = GetAsmInstruction<PSX.StratLang.TriggerCreateInstruction>();
+			Type = triggerCreateAsmInstr.Type switch
 			{
 				PSX.TriggerTypePSX.None => 0,
 				PSX.TriggerTypePSX.Every => TriggerType.Every,
@@ -1223,8 +1310,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 				PSX.TriggerTypePSX.WhenHitWall => TriggerType.WhenHitWall,
 				_ => throw new Exception()
 			};
-			Arg = psxTriggerCreateInstr.Arg;
-			TriggerProc = parser.GetTrigger(psxTriggerCreateInstr.Stream, this);
+			Arg = triggerCreateAsmInstr.Arg;
+			TriggerProc = parser.GetTrigger(triggerCreateAsmInstr.Stream, this);
 		}
 
 		public override string ToStatement()
@@ -1317,8 +1404,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		{
 			base.Setup(parser);
 
-			var psxSpawnFromInstruction = GetAsmInstruction<PSX.StratLang.SpawnFromInstruction>();
-			BoneToSpawnFrom = psxSpawnFromInstruction.BoneToSpawnFrom;
+			var spawnFromAsmInstr = GetAsmInstruction<PSX.StratLang.SpawnFromInstruction>();
+			BoneToSpawnFrom = spawnFromAsmInstr.BoneToSpawnFrom;
 		}
 
 		public override string ToStatement() => $"SpawnFrom {SpawnStratProc.AsmSubroutineName}, {LocalVarsToPop}, {LocalCount}, {TriggerCount}, {CollisionSize}, {CollisionBoneCount}, {BoneToSpawnFrom}";
@@ -1405,7 +1492,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			CollisionFlag = uint.Parse(RawArgs[0]);
+			var collisionFlagAsmInstr = GetAsmInstruction<PSX.StratLang.CollisionFlagInstruction>();
+			CollisionFlag = collisionFlagAsmInstr.CollisionType;
 		}
 
 		public override string ToStatement() => $"collision {(newState ? "on" : "off")} {CollisionFlag}";
@@ -1508,15 +1596,17 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			if(RawArgs[0] == "animload")
+			var addressAsmInstr = GetAsmInstruction<PSX.StratLang.AddressInstruction>();
+
+			if(addressAsmInstr.IsAnimLoad)
 			{
 				IsAnimLoad = true;
-				AnimationIndex = int.Parse(RawArgs[1].Substring(5));//Anim_#
+				AnimationIndex = addressAsmInstr.AnimationIndex;
 			}
-			else if(RawArgs[0] == "DataOffset")
+			else if(addressAsmInstr.IsDataLoad)
 			{
 				IsDataLoad = true;
-				DataOffset = int.Parse(RawArgs[1]);
+				DataOffset = addressAsmInstr.DataOffset;
 			}
 			else
 			{
@@ -1662,13 +1752,13 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var psxIndexJumpInstr = GetAsmInstruction<PSX.StratLang.IndexJumpInstruction>();
+			var indexJumpAsmInstr = GetAsmInstruction<PSX.StratLang.IndexJumpInstruction>();
 
 			var cases = new List<(List<int> comparands, Instruction destination)>();
-			for(int i=0; i<psxIndexJumpInstr.CaseCount; i++)
+			for(int i=0; i<indexJumpAsmInstr.CaseCount; i++)
 			{
-				var comparand = psxIndexJumpInstr.CaseComparands[i];
-				var destination = parser.GetInstruction(psxIndexJumpInstr.CaseDestinations[i], null, this);
+				var comparand = indexJumpAsmInstr.CaseComparands[i];
+				var destination = parser.GetInstruction(indexJumpAsmInstr.CaseDestinations[i], null, this);
 				if(cases.Count>0 && destination == cases[^1].destination)
 				{
 					cases[^1].comparands.Add(comparand);
@@ -1846,7 +1936,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			Count = int.Parse(RawArgs[0]);
+			var blinkAsmInstr = GetAsmInstruction<PSX.StratLang.BlinkInstruction>();
+
+			Count = blinkAsmInstr.Count;
 		}
 
 		public override string ToStatement() => $"blink {string.Join(", ", Bones.Select(b => b.ToFxString()))}";
@@ -1978,7 +2070,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			Item = int.Parse(RawArgs[0]);
+			var inventoryAsmInstr = GetAsmInstruction<PSX.StratLang.ItemCountInstruction>();
+
+			Item = inventoryAsmInstr.Item;
 		}
 
 		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"inventory({Item})";
@@ -1992,7 +2086,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			Name = string.Join(' ', RawArgs);
+			var debugNameAsmInstr = GetAsmInstruction<PSX.StratLang.DebugNameInstruction>();
+
+			Name = debugNameAsmInstr.Name;
 		}
 
 		public override string ToStatement() => $"DebugName \"{Name}\"";
@@ -2029,7 +2125,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			Value = int.Parse(RawArgs[0]);
+			var soundAddrAsmInstr = GetAsmInstruction<PSX.StratLang.SoundAddressInstruction>();
+
+			Value = soundAddrAsmInstr.Value;
 		}
 
 		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"SoundAddress {Value}";
@@ -2334,7 +2432,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	[Opcode(InstructionOpcode.TopSay)]
 	public sealed class TopSayInstruction:DialogSayInstruction
 	{
-		public override string ToStatement() => $"TopSay {StringId} $ {EnglishString}";
+		public override string ToStatement() => $"TopSay \"{EnglishString}\"";
 	}
 
 	[Opcode(InstructionOpcode.Boss_AlienVar)]
@@ -2398,7 +2496,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	[Opcode(InstructionOpcode.BottomSay)]
 	public sealed class BottomSayInstruction:DialogSayInstruction
 	{
-		public override string ToStatement() => $"BottomSay {StringId} $ {EnglishString}";
+		public override string ToStatement() => $"BottomSay \"{EnglishString}\"";
 	}
 
 	[Opcode(InstructionOpcode.BottomHead)]
@@ -2562,19 +2660,14 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var state = int.Parse(RawArgs[0]);
-			if(state == 1)
+			var binocsAsmInstr = GetAsmInstruction<PSX.StratLang.BinocsInstruction>();
+
+			State = binocsAsmInstr.State switch
 			{
-				State = true;
-			}
-			else if(state == 0)
-			{
-				State = false;
-			}
-			else
-			{
-				throw new Exception();
-			}
+				1 => true,
+				0 => false,
+				_ => throw new Exception("Invalid binoc state")
+			};
 		}
 
 		public override string ToStatement() =>  State ? "Binocs on" : "Binocs off";
@@ -2864,7 +2957,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			Operand = int.Parse(RawArgs[0]);
+			var creditAsmInstr = GetAsmInstruction<PSX.StratLang.CreditInstruction>();
+
+			Operand = creditAsmInstr.Operand;
 		}
 
 		public override string ToStatement() => $"Credit {Operand}";
@@ -2887,7 +2982,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			Value = int.Parse(RawArgs[0]);
+			var cwgAsmInstr = GetAsmInstruction<PSX.StratLang.CwgInstruction>();
+
+			Value = cwgAsmInstr.Value;
 		}
 
 		public override string ToStatement() => $"Cwg {Value}";
@@ -2901,7 +2998,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			Value = int.Parse(RawArgs[0]);
+			var fadeSetUnknownAsmInstr = GetAsmInstruction<PSX.StratLang.FadeSetUnknownInstruction>();
+			Value = fadeSetUnknownAsmInstr.Value;
 		}
 
 		public override string ToStatement() => $"FadeFunction_47E960 {Value}";
