@@ -13,9 +13,9 @@ namespace ArgonautReverse.PSX
 
 		public readonly List<int> EntryPointAddrs = new List<int>();
 
-		public IReadOnlyList<Instruction> EntryPoints;
+		public IReadOnlyList<AsmInstruction> EntryPoints;
 
-		private StratParser parser;
+		public StratParser? parser;
 
 		public bool Failed = false;
 
@@ -55,7 +55,7 @@ namespace ArgonautReverse.PSX
 				var stratParser = new StratParser(wadFile, this);
 
 				//This needs to be a list in case new stuff gets added while iterating.
-				var entryPoints = new List<Instruction>();
+				var entryPoints = new List<AsmInstruction>();
 				for(int i=0; i<EntryPointAddrs.Count; i++)
 				{
 					entryPoints.Add(stratParser.ParseAndSetup((InstructionAddress)EntryPointAddrs[i]));
@@ -72,11 +72,33 @@ namespace ArgonautReverse.PSX
 			}
 		}
 
-		public void Write(System.IO.StreamWriter output, bool exportForParsing = false)
+		public bool Write(TextWriter output, bool exportForParsing = false)
 		{
-			if(Failed){return;}
+			if(Failed || parser == null){return false;}
 
-			parser?.Write(output, exportForParsing);
+			parser.Write(output, exportForParsing);
+			return true;
+		}
+
+		public void ExportAsm(string baseFilePath)
+		{
+			try
+			{
+				var output = new StringWriter();
+				if(!Write(output, true))
+				{
+					Console.WriteLine($"Failed or no script to export {baseFilePath}:");
+					return;
+				}
+				using var file = File.CreateText($"{baseFilePath}.asm.strat");
+				file.Write(output.GetStringBuilder());
+			}
+			catch(Exception e)
+			{
+				Console.WriteLine($"Failed to export ASM {baseFilePath}:");
+				Console.WriteLine(e.Message);
+				return;
+			}
 		}
 	}
 }

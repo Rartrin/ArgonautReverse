@@ -721,17 +721,13 @@
 		}
 	}
 
-	public class LastCaseFlowData:CaseFlowData
+	public class LastCaseFlowData(IFlowStatement start, IFlowStatement end, IFlowStatement switchStatement, int caseIndex):CaseFlowData(start, end, switchStatement, caseIndex)
 	{
 		public override bool LabelEnd => true;
-
-		public LastCaseFlowData(IFlowStatement start, IFlowStatement end, IFlowStatement switchStatement, int caseIndex) : base(start, end, switchStatement, caseIndex){}
 	}
 
-	public sealed class DefaultCaseFlowData:LastCaseFlowData
+	public sealed class DefaultCaseFlowData(IFlowStatement start, IFlowStatement end, IFlowStatement switchStatement):LastCaseFlowData(start, end, switchStatement, -1)
 	{
-		public DefaultCaseFlowData(IFlowStatement start, IFlowStatement end, IFlowStatement switchStatement) : base(start, end, switchStatement, -1){}
-
 		public override void WriteStart(Writer writer, IFlowStatement start, FlowStatementType statementType)
 		{
 			writer.WriteLine("default");

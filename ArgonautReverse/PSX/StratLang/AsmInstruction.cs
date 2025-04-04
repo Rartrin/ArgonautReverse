@@ -2,7 +2,7 @@
 
 namespace ArgonautReverse.PSX.StratLang
 {
-	public abstract class Instruction
+	public abstract class AsmInstruction
 	{
 		public InstructionOpcode OpCode;
 
@@ -16,8 +16,8 @@ namespace ArgonautReverse.PSX.StratLang
 		//Errors, returns, and unconditional jumps are terminal.
 		public bool Terminal = false;
 
-		public Instruction? Prev;
-		public Instruction? Next;
+		public AsmInstruction? Prev;
+		public AsmInstruction? Next;
 
 		//This points to the value AFTER the OpCode in the original instruction stream. In other words, this is only the operands.
 		public readonly InstructionAddress InstrAddr;
@@ -25,11 +25,11 @@ namespace ArgonautReverse.PSX.StratLang
 		public bool Done = false;
 		public bool Start = false;
 
-		public readonly List<Instruction> JumpsFrom = new List<Instruction>();
+		public readonly List<AsmInstruction> JumpsFrom = new List<AsmInstruction>();
 
-		public readonly List<Instruction> CallsFrom = new List<Instruction>();//Proc
+		public readonly List<AsmInstruction> CallsFrom = new List<AsmInstruction>();//Proc
 
-		public readonly List<Instruction> ReferencedFrom = new List<Instruction>();//Strat, Trigger
+		public readonly List<AsmInstruction> ReferencedFrom = new List<AsmInstruction>();//Strat, Trigger
 		public SubroutineType SubroutineType = SubroutineType.None;
 
 		//private:
@@ -68,7 +68,7 @@ namespace ArgonautReverse.PSX.StratLang
 			}
 		}
 
-		public Instruction(InstructionAddress address, InstructionOpcode opcode, int operandCount,int popCount,int pushCount)
+		public AsmInstruction(InstructionAddress address, InstructionOpcode opcode, int operandCount,int popCount,int pushCount)
 		{
 			this.OpCode = opcode;
 			this.OperandCount = operandCount;
@@ -84,5 +84,10 @@ namespace ArgonautReverse.PSX.StratLang
 		public virtual void Setup(StratParser parser){}
 
 		public abstract string ToAsmString(bool exportForParsing);
+
+		public sealed override string ToString()
+		{
+			return $"{(uint)InstrAddr:X8} {base.ToString()}";
+		}
 	}
 }

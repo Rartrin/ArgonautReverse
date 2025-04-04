@@ -14,31 +14,20 @@ namespace ArgonautReverse.WadChunks
 		public abstract BaseWadChunk Parse(WadReader data_in);
 	}
 
-	public abstract class BaseWADChunkInfo<T>:BaseWADChunkInfo where T:BaseWadChunk
+	public abstract class BaseWADChunkInfo<T>:BaseWADChunkInfo where T:BaseWadChunk;
+
+	public abstract class BaseWadChunk(BaseWADChunkInfo info, byte[]? data = null)
 	{
-	}
+		public readonly BaseWADChunkInfo Info = info;
 
-	public abstract class BaseWadChunk
-	{
-		public readonly BaseWADChunkInfo Info;
-
-		public readonly byte[] Data;
-
-		public BaseWadChunk(BaseWADChunkInfo info, byte[] data = null)
-		{
-			Info = info;
-			if(data is not null)
-			{
-				Data = data;
-			}
-		}
+		public readonly byte[]? Data = data;
 
 		public virtual void PostParseSetup(WADFile wadFile){}
 
 		public virtual void Serialize(WadWriter data_out)
 		{
 			data_out.Write((uint)Info.ChunkType);
-			data_out.Write((uint)Data.Length);
+			data_out.Write((uint)Data!.Length);
 			data_out.WriteBytes(Data);
 		}
 		protected int SerializeHeader(WadWriter data_out)
@@ -62,19 +51,15 @@ namespace ArgonautReverse.WadChunks
 		}
 	}
 
-	public sealed class UnsupportedChunkInfo:BaseWADChunkInfo
+	public sealed class UnsupportedChunkInfo(BaseWADChunkInfo unsuppportedType):BaseWADChunkInfo
 	{
 		public override WadVersion[] SupportedWadVersions => Configuration.ALL_WADS;
 
 		public override string ChunkDescription => "(Unsupported for the game) " + UnsuppportedType.ChunkDescription;
 
-		public BaseWADChunkInfo UnsuppportedType { get; }
-		public override ChunkType ChunkType => UnsuppportedType.ChunkType;
+		public BaseWADChunkInfo UnsuppportedType{get;} = unsuppportedType;
 
-		public unsafe UnsupportedChunkInfo(BaseWADChunkInfo unsuppportedType)
-		{
-			UnsuppportedType = unsuppportedType;
-		}
+		public override ChunkType ChunkType => UnsuppportedType.ChunkType;
 
 		public override UnsupportedChunk Parse(WadReader reader)
 		{
@@ -83,23 +68,15 @@ namespace ArgonautReverse.WadChunks
 		}
 	}
 
-	public sealed class UnsupportedChunk:BaseWadChunk
-	{
-		public UnsupportedChunk(BaseWADChunkInfo info, byte[] data = null) : base(info, data) { }
-	}
+	public sealed class UnsupportedChunk(BaseWADChunkInfo info, byte[]? data = null):BaseWadChunk(info, data);
 
-	public sealed class UnknownChunkInfo:BaseWADChunkInfo
+	public sealed class UnknownChunkInfo(ChunkType chunkType):BaseWADChunkInfo
 	{
 		public override WadVersion[] SupportedWadVersions => Configuration.ALL_WADS;
 
 		public override string ChunkDescription => $"{ChunkType.GetRawName()} chunk";
 
-		public override ChunkType ChunkType { get; }
-
-		public unsafe UnknownChunkInfo(ChunkType chunkType)
-		{
-			ChunkType = chunkType;
-		}
+		public override ChunkType ChunkType{get;} = chunkType;
 
 		public override UnknownChunk Parse(WadReader reader)
 		{
@@ -108,8 +85,5 @@ namespace ArgonautReverse.WadChunks
 		}
 	}
 
-	public sealed class UnknownChunk:BaseWadChunk
-	{
-		public UnknownChunk(BaseWADChunkInfo info, byte[] data = null) : base(info, data) { }
-	}
+	public sealed class UnknownChunk(BaseWADChunkInfo info, byte[]? data = null):BaseWadChunk(info, data);
 }

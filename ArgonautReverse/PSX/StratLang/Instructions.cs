@@ -3,7 +3,7 @@ using ArgonautReverse.Universal.StratLang;
 
 namespace ArgonautReverse.PSX.StratLang
 {
-	public abstract unsafe class BaseInstruction(int opCount,int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):Instruction(address, opcode, opCount, popCount, pushCount);
+	public abstract unsafe class BaseInstruction(int opCount,int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):AsmInstruction(address, opcode, opCount, popCount, pushCount);
 
 	/// <summary>Non-terminal instruction that without any extra operands that can pop and push any number of args.</summary>
 	public unsafe class BasicInstruction(int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(0, popCount, pushCount, address, opcode)
@@ -169,7 +169,7 @@ namespace ArgonautReverse.PSX.StratLang
 	public unsafe class BranchInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 1, 0, address, opcode)
 	{
 		public InstructionAddress ConditionalDestPtr;
-		public Instruction ConditionalDest;
+		public AsmInstruction ConditionalDest;
 
 		public override void Parse(StratReader reader)
 		{
@@ -365,7 +365,7 @@ namespace ArgonautReverse.PSX.StratLang
 		public int CaseCount;
 		public int[] CaseComparands;
 		public InstructionAddress[] CaseDestinationPtrs;
-		public Instruction[] CaseDestinations;
+		public AsmInstruction[] CaseDestinations;
 
 		//Special: Switch
 		//Has extra data
@@ -385,10 +385,9 @@ namespace ArgonautReverse.PSX.StratLang
 			}
 		}
 
-
 		public override void Setup(StratParser parser)
 		{
-			CaseDestinations = new Instruction[CaseCount];
+			CaseDestinations = new AsmInstruction[CaseCount];
 
 			for(int i=0; i<CaseCount; i++)
 			{
@@ -458,7 +457,7 @@ namespace ArgonautReverse.PSX.StratLang
 	public unsafe class JumpInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		public InstructionAddress DestinationPtr;
-		public Instruction Destination;
+		public AsmInstruction Destination;
 
 		public override void Parse(StratReader reader)
 		{
@@ -483,7 +482,7 @@ namespace ArgonautReverse.PSX.StratLang
 		//Special: Function call
 
 		public InstructionAddress ProcPtr;
-		public Instruction Proc;
+		public AsmInstruction Proc;
 
 		public override void Parse(StratReader reader)
 		{
@@ -704,20 +703,21 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public unsafe class SpawnInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(5, 1, 0, address, opcode)
+	public abstract class BaseSpawnInstruction(int opCount, InstructionAddress address, InstructionOpcode opcode):AsmInstruction(address, opcode, opCount, 1, 0)
 	{
 		public int LocalVarsToPop;
 		public int LocalCount;
 		public int TriggerCount;
 		public int CollisionSize;
 		public int CollisionBoneCount;
-
+		
 		public ActorDataPSX SpawnStratProcScript;
 		public InstructionAddress SpawnStratProcAddr;
-		public Instruction SpawnStratProc;
+		public AsmInstruction SpawnStratProc;
+	}
 
-
-
+	public unsafe class SpawnInstruction(InstructionAddress address, InstructionOpcode opcode):BaseSpawnInstruction(5, address, opcode)
+	{
 		public override void Parse(StratReader reader)
 		{
 			LocalVarsToPop = reader.ReadInt();
@@ -737,29 +737,21 @@ namespace ArgonautReverse.PSX.StratLang
 			{
 				throw new Exception("Unsupported spawn instruction");
 			}
-			//SpawnStratProc = parser.ParseStrat(SpawnStratProcAddr, this, false);
+			SpawnStratProc = parser.ParseStrat(SpawnStratProcAddr, this, false);
 		}
 
 		public override string ToAsmString(bool exportForParsing)
 		{
-			return $"{OpCode} {((AddressInstruction)Prev!).DataOffset:X8} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount}";
-			//return $"{OpCode} {SpawnStratProc.SubroutineName()} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount}";
+			//return $"{OpCode} {((AddressInstruction)Prev!).DataOffset:X8} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount}";
+			return $"{OpCode} {SpawnStratProc.SubroutineName()} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount}";
 		}
 	}
 
-	public unsafe class SpawnFromInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(6, 1, 0, address, opcode)
+	public sealed unsafe class SpawnAfterInstruction(InstructionAddress address, InstructionOpcode opcode):SpawnInstruction(address,opcode);
+
+	public unsafe class SpawnFromInstruction(InstructionAddress address, InstructionOpcode opcode):BaseSpawnInstruction(6, address, opcode)
 	{
-		public int LocalVarsToPop;
-		public int LocalCount;
-		public int TriggerCount;
-		public int CollisionSize;
-		public int CollisionBoneCount;
-
 		public int BoneToSpawnFrom;
-
-		public ActorDataPSX SpawnStratProcScript;
-		public InstructionAddress SpawnStratProcAddr;
-		public Instruction SpawnStratProc;
 
 		public override void Parse(StratReader reader)
 		{
@@ -782,13 +774,13 @@ namespace ArgonautReverse.PSX.StratLang
 			{
 				throw new Exception("Unsupported spawn instruction");
 			}
-			//SpawnStratProc = parser.ParseStrat(SpawnStratProcAddr, this, false);
+			SpawnStratProc = parser.ParseStrat(SpawnStratProcAddr, this, false);
 		}
 
 		public override string ToAsmString(bool exportForParsing)
 		{
-			return $"{OpCode} {((AddressInstruction)Prev!).DataOffset:X8} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount} {BoneToSpawnFrom}";
-			//return $"{OpCode} {SpawnStratProc.SubroutineName()} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount} {BoneToSpawnFrom}";
+			//return $"{OpCode} {((AddressInstruction)Prev!).DataOffset:X8} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount} {BoneToSpawnFrom}";
+			return $"{OpCode} {SpawnStratProc.SubroutineName()} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount} {BoneToSpawnFrom}";
 		}
 	}
 
@@ -826,7 +818,7 @@ namespace ArgonautReverse.PSX.StratLang
 		public TriggerTypePSX Type;
 		public int Arg;
 		public InstructionAddress StreamPtr;
-		public Instruction Stream;
+		public AsmInstruction Stream;
 
 
 		public override void Parse(StratReader reader)
@@ -855,7 +847,7 @@ namespace ArgonautReverse.PSX.StratLang
 	public unsafe class TriggerUpdateInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
 	{
 		public int TriggerIndex;
-		public Instruction TriggerProc;
+		public AsmInstruction TriggerProc;
 
 		public override void Parse(StratReader reader)
 		{

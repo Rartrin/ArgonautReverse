@@ -56,9 +56,16 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 	public abstract class UnimplementedInstruction:Instruction
 	{
-		public UnimplementedInstruction()
+		public UnimplementedInstruction(bool fail = true)
 		{
-			throw new NotImplementedException("Instruction is not implmented in Croc 2");
+			if(fail)
+			{
+				throw new NotImplementedException("Instruction is not implmented in Croc 2");
+			}
+			else
+			{
+				Console.WriteLine($"Instruction {GetType()} is not implmented in Croc 2");
+			}
 		}
 
 		public override bool TryGetSubroutineName(out string subroutineName) => throw new NotImplementedException();
@@ -178,9 +185,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public virtual void Analyze(FlowAnalyzer flow){}
 	}
 
-	public abstract class SimplePureConsumeInstruction:PureConsumeInstruction
-	{
-	}
+	public abstract class SimplePureConsumeInstruction:PureConsumeInstruction;
 
 	public abstract class PureProducerInstruction:BaseOperandInstruction,IStackProducer
 	{
@@ -312,10 +317,12 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public override IStackStatement ControlStatement => this;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			ConditionalDest = parser.GetLabeledInstruction(RawArgs[0], null, this);
+
+			var psxBranchInstr = GetAsmInstruction<PSX.StratLang.BranchInstruction>();
+			ConditionalDest = parser.GetInstruction(psxBranchInstr.ConditionalDest, null, this);
 		}
 
 		public override void Analyze(StackAnalyzer stack)
@@ -338,7 +345,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public int StringId;
 		public string EnglishString;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
 			StringId = int.Parse(RawArgs[0]);
@@ -352,7 +359,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public bool State;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
 			var operand = int.Parse(RawArgs[0]);
@@ -381,7 +388,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			Flag = this.GetType().GetCustomAttribute<OpcodeAttribute>().Opcode.ToString();
 		}
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
 			NewState = RawArgs[0] switch
@@ -405,7 +412,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		//Operation
 		public abstract int Change{get;}
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
 			Item = int.Parse(RawArgs[0]);
@@ -427,10 +434,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public override IStackStatement ControlStatement => this;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			Destination = parser.GetLabeledInstruction(RawArgs[0], null, this);
+			var psxJumpInstr = GetAsmInstruction<PSX.StratLang.JumpInstruction>();
+			Destination = parser.GetInstruction(psxJumpInstr.Destination, null, this);
 		}
 
 		public override void Analyze(StackAnalyzer stack)
@@ -454,10 +462,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public Instruction Proc;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			Proc = parser.GetProc(RawArgs[0], this);
+			var psxJumpSubroutine = GetAsmInstruction<PSX.StratLang.JumpSubroutineInstruction>();
+			Proc = parser.GetProc(psxJumpSubroutine.Proc, this);
 		}
 	}
 
@@ -472,7 +481,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public string Data;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
 			//TODO: Handle PrintInstruction string args with spaces
@@ -493,17 +502,19 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public Instruction SpawnStratProc;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			
-			SpawnStratProc = parser.GetStrat(RawArgs[0], this);
 
-			LocalVarsToPop = int.Parse(RawArgs[1]);
-			LocalCount = int.Parse(RawArgs[2]);
-			TriggerCount = int.Parse(RawArgs[3]);
-			CollisionSize = int.Parse(RawArgs[4]);
-			CollisionBoneCount = int.Parse(RawArgs[5]);
+			var psxSpawnInstruction = GetAsmInstruction<PSX.StratLang.SpawnInstruction>();
+			
+			SpawnStratProc = parser.GetStrat(psxSpawnInstruction.SpawnStratProc, this);
+
+			LocalVarsToPop = psxSpawnInstruction.LocalVarsToPop;
+			LocalCount = psxSpawnInstruction.LocalCount;
+			TriggerCount = psxSpawnInstruction.TriggerCount;
+			CollisionSize = psxSpawnInstruction.CollisionSize;
+			CollisionBoneCount = psxSpawnInstruction.CollisionBoneCount;
 		}
 	}
 
@@ -511,10 +522,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public Instruction TriggerProc;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			TriggerProc = parser.GetTrigger(RawArgs[0],this);
+			var psxTriggerUpdateInstr = GetAsmInstruction<PSX.StratLang.TriggerUpdateInstruction>();
+			TriggerProc = parser.GetTrigger(psxTriggerUpdateInstr.TriggerProc, this);
 		}
 	}
 
@@ -541,7 +553,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		//Strat Lang didn't have pointers
 		public abstract bool GetAddress{get;}//false to get value of var, true to get address of var
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
 			ID = RawArgs[0];
@@ -658,7 +670,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public int Value;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
 			Value = int.Parse(RawArgs[0]);
@@ -840,8 +852,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Shadow)]
-	public sealed class ShadowInstruction:FlagInstruction
-	{}
+	public sealed class ShadowInstruction:FlagInstruction;
 
 	[Opcode(InstructionOpcode.ShadowSize)]
 	public sealed class ShadowSizeInstruction:SimplePureConsumeInstruction
@@ -1024,10 +1035,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.ReSetPos)]
-	public sealed class ReSetPosInstruction:SimpleNoStackInstruction{}
+	public sealed class ReSetPosInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.SetPos)]
-	public sealed class SetPosInstruction:SimpleNoStackInstruction{}
+	public sealed class SetPosInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Jump)]
 	public sealed class JumpInstruction:BaseJumpInstruction
@@ -1036,35 +1047,34 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.ObjectFall)]
-	public sealed class ObjectFallInstruction:SimpleNoStackInstruction{}
+	public sealed class ObjectFallInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Hang)]
-	public sealed class HangInstruction:FlagInstruction
-	{}
+	public sealed class HangInstruction:FlagInstruction;
 
 	[Opcode(InstructionOpcode.WPFirst)]
-	public sealed class WPFirstInstruction:SimpleNoStackInstruction{}
+	public sealed class WPFirstInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.WPLast)]
-	public sealed class WPLastInstruction:SimpleNoStackInstruction{}
+	public sealed class WPLastInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.WPNext)]
-	public sealed class WPNextInstruction:SimpleNoStackInstruction{}
+	public sealed class WPNextInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.WPPrev)]
-	public sealed class WPPrevInstruction:SimpleNoStackInstruction{}
+	public sealed class WPPrevInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.WPDel)]
-	public sealed class WPDelInstruction:UnimplementedInstruction{}
+	public sealed class WPDelInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.WPNew)]
-	public sealed class WPNewInstruction:UnimplementedInstruction{}
+	public sealed class WPNewInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.WPNearest)]
-	public sealed class WPNearestInstruction:SimpleNoStackInstruction{}
+	public sealed class WPNearestInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.WPFurthest)]
-	public sealed class WPFurthestInstruction:SimpleNoStackInstruction{}
+	public sealed class WPFurthestInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.WPTurnToX)]
 	public sealed class WPTurnToXInstruction:SimplePureConsumeInstruction
@@ -1107,13 +1117,13 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.AnimStop)]
-	public sealed class AnimStopInstruction:SimpleNoStackInstruction{}
+	public sealed class AnimStopInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.AnimClear)]
-	public sealed class AnimClearInstruction:SimpleNoStackInstruction{}
+	public sealed class AnimClearInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.AnimSetSpeed)]
-	public sealed class AnimSetSpeedInstruction:UnimplementedInstruction{}
+	public sealed class AnimSetSpeedInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.CollisionType)]
 	public sealed class CollisionTypeInstruction:SimplePureConsumeInstruction
@@ -1136,7 +1146,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.CollHeight)]
-	public sealed class CollisionHeightInstruction:UnimplementedInstruction{}
+	public sealed class CollisionHeightInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.CollExtent)]
 	public sealed class CollisionExtentInstruction:SimplePureConsumeInstruction
@@ -1149,7 +1159,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.CollView)]
-	public sealed class CollisionViewInstruction:UnimplementedInstruction{}
+	public sealed class CollisionViewInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.CollPoints)]
 	public sealed class CollisionPointsInstruction:SimplePureConsumeInstruction
@@ -1177,29 +1187,44 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	[Opcode(InstructionOpcode.CreateTrigger)]
 	public sealed class CreateTriggerInstruction:SimpleNoStackInstruction
 	{
+		[Flags]
 		public enum TriggerType
 		{
-			Every		= (1<<1),
-			WhenHit		= (1<<2),
-			EndFall		= (1<<3),
-			EndJump		= (1<<4),
-			In			= (1<<5),
-			Anim		= (1<<6),
-			WhenNear	= (1<<7),
-			WhenFar		= (1<<8),
-			WhenHitWall	= (1<<9),
+			Every		= 1<<1,
+			WhenHit		= 1<<2,
+			EndFall		= 1<<3,
+			EndJump		= 1<<4,
+			In			= 1<<5,
+			Anim		= 1<<6,
+			WhenNear	= 1<<7,
+			WhenFar		= 1<<8,
+			WhenHitWall	= 1<<9,
 		};
 
 		public TriggerType Type;
 		public int Arg;
 		public Instruction TriggerProc;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			Type = (TriggerType)int.Parse(RawArgs[0]);
-			Arg = int.Parse(RawArgs[1]);
-			TriggerProc = parser.GetTrigger(RawArgs[2], this);
+			var psxTriggerCreateInstr = GetAsmInstruction<PSX.StratLang.TriggerCreateInstruction>();
+			Type = psxTriggerCreateInstr.Type switch
+			{
+				PSX.TriggerTypePSX.None => 0,
+				PSX.TriggerTypePSX.Every => TriggerType.Every,
+				PSX.TriggerTypePSX.WhenHit => TriggerType.WhenHit,
+				PSX.TriggerTypePSX.EndFall => TriggerType.EndFall,
+				PSX.TriggerTypePSX.EndJump => TriggerType.EndJump,
+				PSX.TriggerTypePSX.In => TriggerType.In,
+				PSX.TriggerTypePSX.Anim => TriggerType.Anim,
+				PSX.TriggerTypePSX.WhenNear => TriggerType.WhenNear,
+				PSX.TriggerTypePSX.WhenFar => TriggerType.WhenFar,
+				PSX.TriggerTypePSX.WhenHitWall => TriggerType.WhenHitWall,
+				_ => throw new Exception()
+			};
+			Arg = psxTriggerCreateInstr.Arg;
+			TriggerProc = parser.GetTrigger(psxTriggerCreateInstr.Stream, this);
 		}
 
 		public override string ToStatement()
@@ -1226,10 +1251,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.HoldTriggers)]
-	public sealed class HoldTriggersInstruction:SimpleNoStackInstruction{}
+	public sealed class HoldTriggersInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.ReleaseTriggers)]
-	public sealed class ReleaseTriggersInstruction:SimpleNoStackInstruction{}
+	public sealed class ReleaseTriggersInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.HoldTrigger)]
 	public sealed class HoldTriggerInstruction:TriggerUpdateInstruction
@@ -1254,28 +1279,28 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Hold)]
-	public sealed class HoldInstruction:SimpleNoStackInstruction{}
+	public sealed class HoldInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Release)]
-	public sealed class ReleaseInstruction:UnimplementedInstruction{}
+	public sealed class ReleaseInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.Remove)]
-	public sealed class RemoveInstruction:SimpleNoStackInstruction{}
+	public sealed class RemoveInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.MapRemove)]
-	public sealed class MapRemoveInstruction:SimpleNoStackInstruction{}
+	public sealed class MapRemoveInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.MapAdd)]
-	public sealed class MapAddInstruction:UnimplementedInstruction{}
+	public sealed class MapAddInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.MapReplace)]
-	public sealed class MapReplaceInstruction:UnimplementedInstruction{}
+	public sealed class MapReplaceInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.Activated)]
-	public sealed class ActivatedInstruction:SimpleNoStackInstruction{}
+	public sealed class ActivatedInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Collected)]
-	public sealed class CollectedInstruction:SimpleNoStackInstruction{}
+	public sealed class CollectedInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Spawn)]
 	public sealed class SpawnInstruction:BaseSpawnInstruction
@@ -1288,20 +1313,22 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public int BoneToSpawnFrom;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			BoneToSpawnFrom = int.Parse(RawArgs[6]);
+
+			var psxSpawnFromInstruction = GetAsmInstruction<PSX.StratLang.SpawnFromInstruction>();
+			BoneToSpawnFrom = psxSpawnFromInstruction.BoneToSpawnFrom;
 		}
 
 		public override string ToStatement() => $"SpawnFrom {SpawnStratProc.AsmSubroutineName}, {LocalVarsToPop}, {LocalCount}, {TriggerCount}, {CollisionSize}, {CollisionBoneCount}, {BoneToSpawnFrom}";
 	}
 
 	[Opcode(InstructionOpcode.Link)]
-	public sealed class LinkInstruction:UnimplementedInstruction{}
+	public sealed class LinkInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.Unlink)]
-	public sealed class UnlinkInstruction:UnimplementedInstruction{}
+	public sealed class UnlinkInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.SoundShift)]
 	public sealed class SoundShiftInstruction:SimplePureConsumeInstruction
@@ -1335,10 +1362,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.MidiLoop)]
-	public sealed class MidiLoopInstruction:UnimplementedInstruction{}
+	public sealed class MidiLoopInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.MidiVolume)]
-	public sealed class MidiVolumeInstruction:UnimplementedInstruction{}
+	public sealed class MidiVolumeInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.CdFade)]
 	public sealed class CdFadeInstruction:SimplePureConsumeInstruction
@@ -1351,31 +1378,31 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.MidiStop)]
-	public sealed class MidiStopInstruction:UnimplementedInstruction{}
+	public sealed class MidiStopInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.MidiQueue)]
-	public sealed class MidiQueueInstruction:UnimplementedInstruction{}
+	public sealed class MidiQueueInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.IsLight)]
-	public sealed class IsLightInstruction:UnimplementedInstruction{}
+	public sealed class IsLightInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.LightCol)]
-	public sealed class LightColInstruction:UnimplementedInstruction{}
+	public sealed class LightColInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.LightFade)]
-	public sealed class LightFadeInstruction:UnimplementedInstruction{}
+	public sealed class LightFadeInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.LightAtten)]
-	public sealed class LightAttenInstruction:UnimplementedInstruction{}
+	public sealed class LightAttenInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.LightType)]
-	public sealed class LightTypeInstruction:UnimplementedInstruction{}
+	public sealed class LightTypeInstruction:UnimplementedInstruction;
 
 	public abstract class BaseCollisionInstruction(bool newState):SimpleNoStackInstruction
 	{
 		public uint CollisionFlag;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
 			CollisionFlag = uint.Parse(RawArgs[0]);
@@ -1391,7 +1418,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class CollisionOffInstruction():BaseCollisionInstruction(false);
 
 	[Opcode(InstructionOpcode.CollisionOffAll)]
-	public sealed class CollisionOffAllInstruction:SimpleNoStackInstruction{}
+	public sealed class CollisionOffAllInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.SoundPlay3)]
 	public sealed class SoundPlay3Instruction:SimplePureConsumeInstruction
@@ -1406,7 +1433,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.SoundPlay4)]
-	public sealed class SoundPlay4Instruction:UnimplementedInstruction{}
+	public sealed class SoundPlay4Instruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.SoundPlay3ASS)]
 	public sealed class SoundPlay3AssignmentInstruction:BaseExpressionInstruction
@@ -1421,7 +1448,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.SoundPlay4ASS)]
-	public sealed class SoundPlay4AssignmentInstruction:UnimplementedInstruction{}
+	public sealed class SoundPlay4AssignmentInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.Int)]
 	public sealed class IntInstruction:UnaryOperationInstruction
@@ -1478,7 +1505,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public bool IsAnimLoad;
 		public int AnimationIndex;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
 			if(RawArgs[0] == "animload")
@@ -1607,7 +1634,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.IsPlayer)]
-	public sealed class IsPlayerInstruction:SimpleNoStackInstruction{}
+	public sealed class IsPlayerInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.And)]
 	public sealed class AndInstruction:BinaryOperationInstruction
@@ -1632,15 +1659,16 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public override IStackStatement ControlStatement => this;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
+			var psxIndexJumpInstr = GetAsmInstruction<PSX.StratLang.IndexJumpInstruction>();
+
 			var cases = new List<(List<int> comparands, Instruction destination)>();
-			for(int i=0; i<RawArgs.Length; i++)
+			for(int i=0; i<psxIndexJumpInstr.CaseCount; i++)
 			{
-				var parts = RawArgs[i].Split(',',2);
-				var comparand = int.Parse(parts[0]);
-				var destination = parser.GetLabeledInstruction(parts[1], null, this);
+				var comparand = psxIndexJumpInstr.CaseComparands[i];
+				var destination = parser.GetInstruction(psxIndexJumpInstr.CaseDestinations[i], null, this);
 				if(cases.Count>0 && destination == cases[^1].destination)
 				{
 					cases[^1].comparands.Add(comparand);
@@ -1724,12 +1752,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Ext_Global)]
-	public sealed class Ext_GlobalInstruction:UnimplementedInstruction//VarInstruction
-	{}
+	public sealed class Ext_GlobalInstruction:UnimplementedInstruction;//VarInstruction
 
 	[Opcode(InstructionOpcode.Ext_GlobalAddress)]
-	public sealed class Ext_GlobalAddressInstruction:UnimplementedInstruction//VarInstruction
-	{}
+	public sealed class Ext_GlobalAddressInstruction:UnimplementedInstruction;//VarInstruction
 
 	[Opcode(InstructionOpcode.ObjectJump)]
 	public sealed class ObjectJumpInstruction:SimplePureConsumeInstruction
@@ -1817,7 +1843,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		//This is just the operands but in reverse
 		public IStackProducer[] Bones => Operands.Reverse().ToArray();
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
 			Count = int.Parse(RawArgs[0]);
@@ -1827,13 +1853,13 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.LoseHeart)]
-	public sealed class LoseHeartInstruction:SimpleNoStackInstruction{}
+	public sealed class LoseHeartInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.ResetToCheckPoint)]
-	public sealed class ResetToCheckPointInstruction:SimpleNoStackInstruction{}
+	public sealed class ResetToCheckPointInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.ForceCollision)]
-	public sealed class ForceCollisionInstruction:SimpleNoStackInstruction{}
+	public sealed class ForceCollisionInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.TurnFromPlayerY)]
 	public sealed class TurnFromPlayerYInstruction:SimplePureConsumeInstruction
@@ -1846,8 +1872,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.PlayerAttack)]
-	public sealed class PlayerAttackInstruction:FlagInstruction
-	{}
+	public sealed class PlayerAttackInstruction:FlagInstruction;
 
 	[Opcode(InstructionOpcode.Rumble)]
 	public sealed class RumbleInstruction:SimplePureConsumeInstruction
@@ -1871,8 +1896,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.SuspendIfTooFar)]
-	public sealed class SuspendIfTooFarInstruction:FlagInstruction
-	{}
+	public sealed class SuspendIfTooFarInstruction:FlagInstruction;
 
 	[Opcode(InstructionOpcode.CollisionBone)]
 	public sealed class CollisionBoneInstruction:SimplePureConsumeInstruction
@@ -1896,28 +1920,28 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.IsCamera)]
-	public sealed class IsCameraInstruction:SimpleNoStackInstruction{}
+	public sealed class IsCameraInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.LookAtMe)]
-	public sealed class LookAtMeInstruction:SimpleNoStackInstruction{}
+	public sealed class LookAtMeInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.LookAtMe2)]
-	public sealed class LookAtMe2Instruction:SimpleNoStackInstruction{}
+	public sealed class LookAtMe2Instruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.PushCamera)]
-	public sealed class PushCameraInstruction:SimpleNoStackInstruction{}
+	public sealed class PushCameraInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.PopCamera)]
-	public sealed class PopCameraInstruction:SimpleNoStackInstruction{}
+	public sealed class PopCameraInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.ResetCameraPos)]
-	public sealed class ResetCameraPosInstruction:SimpleNoStackInstruction{}
+	public sealed class ResetCameraPosInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.GainHeart)]
-	public sealed class GainHeartInstruction:SimpleNoStackInstruction{}
+	public sealed class GainHeartInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.GainHeartPot)]
-	public sealed class GainHeartPotInstruction:SimpleNoStackInstruction{}
+	public sealed class GainHeartPotInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.AddInv)]
 	public sealed class AddInvInstruction:ItemChangeInstruction
@@ -1951,7 +1975,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		//Item count
 		public int Item;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
 			Item = int.Parse(RawArgs[0]);
@@ -1965,7 +1989,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public string Name;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
 			Name = string.Join(' ', RawArgs);
@@ -1975,8 +1999,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.PlayerDistanceCheck)]
-	public sealed class PlayerDistanceCheckInstruction:FlagInstruction
-	{}
+	public sealed class PlayerDistanceCheckInstruction:FlagInstruction;
 
 	[Opcode(InstructionOpcode.SoundPlay1)]
 	public sealed class SoundPlay1Instruction:SimplePureConsumeInstruction
@@ -2003,7 +2026,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public int Value;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
 			Value = int.Parse(RawArgs[0]);
@@ -2013,11 +2036,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.OnGround)]
-	public sealed class OnGroundInstruction:FlagInstruction
-	{}
+	public sealed class OnGroundInstruction:FlagInstruction;
 
 	[Opcode(InstructionOpcode.ObjectFallSlow)]
-	public sealed class ObjectFallSlowInstruction:SimpleNoStackInstruction{}
+	public sealed class ObjectFallSlowInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Player_AlienVar)]
 	public sealed class Player_AlienVarInstruction:VarInstruction
@@ -2054,8 +2076,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Pickup)]
-	public sealed class PickupInstruction:FlagInstruction
-	{}
+	public sealed class PickupInstruction:FlagInstruction;
 
 	[Opcode(InstructionOpcode.Min)]
 	public sealed class MinInstruction:BinaryOperationInstruction
@@ -2187,12 +2208,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Collide_AlienVar)]
-	public sealed class Collide_AlienVarInstruction:UnimplementedInstruction//VarInstruction
-	{}
+	public sealed class Collide_AlienVarInstruction:UnimplementedInstruction;//VarInstruction
 
 	[Opcode(InstructionOpcode.Collide_AlienVarAddress)]
-	public sealed class Collide_AlienVarAddressInstruction:UnimplementedInstruction//VarInstruction
-	{}
+	public sealed class Collide_AlienVarAddressInstruction:UnimplementedInstruction;//VarInstruction
 
 	[Opcode(InstructionOpcode.Target2_AlienVar)]
 	public sealed class Target2_AlienVarInstruction:VarInstruction
@@ -2211,10 +2230,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.DontLookAtMe)]
-	public sealed class DontLookAtMeInstruction:SimpleNoStackInstruction{}
+	public sealed class DontLookAtMeInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.RunAt60)]
-	public sealed class RunAt60Instruction:UnimplementedInstruction{}
+	public sealed class RunAt60Instruction():UnimplementedInstruction(fail:false);
 
 	[Opcode(InstructionOpcode.MoveForwardq)]
 	public sealed class MoveForwardqInstruction:BaseMoveInstruction
@@ -2257,10 +2276,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.SetWP)]
-	public sealed class SetWPInstruction:SimpleNoStackInstruction{}
+	public sealed class SetWPInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.ResetWP)]
-	public sealed class ResetWPInstruction:SimpleNoStackInstruction{}
+	public sealed class ResetWPInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.SoundVolume)]
 	public sealed class SoundVolumeInstruction:SimplePureConsumeInstruction
@@ -2274,11 +2293,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Push)]
-	public sealed class PushInstruction:FlagInstruction
-	{}
+	public sealed class PushInstruction:FlagInstruction;
 
 	[Opcode(InstructionOpcode.String)]
-	public sealed class StringInstruction:UnimplementedInstruction{}
+	public sealed class StringInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.SetBossHearts)]
 	public sealed class SetBossHeartsInstruction:SimplePureConsumeInstruction
@@ -2291,7 +2309,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.LoseBossHeart)]
-	public sealed class LoseBossHeartInstruction:SimpleNoStackInstruction{}
+	public sealed class LoseBossHeartInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.SoundShiftRelative)]
 	public sealed class SoundShiftRelativeInstruction:SimplePureConsumeInstruction
@@ -2311,7 +2329,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.IsBoss)]
-	public sealed class IsBossInstruction:SimpleNoStackInstruction{}
+	public sealed class IsBossInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.TopSay)]
 	public sealed class TopSayInstruction:DialogSayInstruction
@@ -2336,23 +2354,22 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.GetParentPos)]
-	public sealed class GetParentPosInstruction:SimpleNoStackInstruction{}
+	public sealed class GetParentPosInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.AfterBoss)]
-	public sealed class AfterBossInstruction:SimpleNoStackInstruction{}
+	public sealed class AfterBossInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.AfterPlayer)]
-	public sealed class AfterPlayerInstruction:SimpleNoStackInstruction{}
+	public sealed class AfterPlayerInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.BeforePlayer)]
-	public sealed class BeforePlayerInstruction:SimpleNoStackInstruction{}
+	public sealed class BeforePlayerInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.BeforeBoss)]
-	public sealed class BeforeBossInstruction:SimpleNoStackInstruction{}
+	public sealed class BeforeBossInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.NoHang)]
-	public sealed class NoHangInstruction:FlagInstruction
-	{}
+	public sealed class NoHangInstruction:FlagInstruction;
 
 	[Opcode(InstructionOpcode.Zero)]
 	public sealed class ZeroInstruction:PureProducerInstruction
@@ -2401,16 +2418,16 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.GetPlayerPos)]
-	public sealed class GetPlayerPosInstruction:SimpleNoStackInstruction{}
+	public sealed class GetPlayerPosInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.GetWPpos)]
-	public sealed class GetWPposInstruction:SimpleNoStackInstruction{}
+	public sealed class GetWPposInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.GetBossPos)]
-	public sealed class GetBossPosInstruction:SimpleNoStackInstruction{}
+	public sealed class GetBossPosInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.GetDoorPos)]
-	public sealed class GetDoorPosInstruction:SimpleNoStackInstruction{}
+	public sealed class GetDoorPosInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.FadeOut)]
 	public sealed class FadeOutInstruction:SimplePureConsumeInstruction
@@ -2445,7 +2462,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.ForcePlayerDist)]
-	public sealed class ForcePlayerDistInstruction:SimpleNoStackInstruction{}
+	public sealed class ForcePlayerDistInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.ShadeType)]
 	public sealed class ShadeTypeInstruction:SimplePureConsumeInstruction
@@ -2458,7 +2475,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.NOP)]
-	public sealed class NOPInstruction:SimpleNoStackInstruction{}
+	public sealed class NOPInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.SetAnimSpeed)]
 	public sealed class SetAnimSpeedInstruction:SimplePureConsumeInstruction
@@ -2471,41 +2488,40 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.CheckLevelDoor)]
-	public sealed class CheckLevelDoorInstruction:SimpleNoStackInstruction{}
+	public sealed class CheckLevelDoorInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.BottomHeadLeft)]
-	public sealed class BottomHeadLeftInstruction:SimpleNoStackInstruction{}
+	public sealed class BottomHeadLeftInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.TopHeadLeft)]
-	public sealed class TopHeadLeftInstruction:SimpleNoStackInstruction{}
+	public sealed class TopHeadLeftInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.GainJigsaw)]
-	public sealed class GainJigsawInstruction:SimpleNoStackInstruction{}
+	public sealed class GainJigsawInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.GainGoldenGobbo)]
-	public sealed class GainGoldenGobboInstruction:SimpleNoStackInstruction{}
+	public sealed class GainGoldenGobboInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Gain100Crystal)]
-	public sealed class Gain100CrystalInstruction:SimpleNoStackInstruction{}
+	public sealed class Gain100CrystalInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.ResetSpline)]
-	public sealed class ResetSplineInstruction:SimpleNoStackInstruction{}
+	public sealed class ResetSplineInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.CheckPoint)]
-	public sealed class CheckPointInstruction:SimpleNoStackInstruction{}
+	public sealed class CheckPointInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.WaterTest)]
-	public sealed class WaterTestInstruction:FlagInstruction
-	{}
+	public sealed class WaterTestInstruction:FlagInstruction;
 
 	[Opcode(InstructionOpcode.IsMainCamera)]
-	public sealed class IsMainCameraInstruction:SimpleNoStackInstruction{}
+	public sealed class IsMainCameraInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.ResetDialog)]
-	public sealed class ResetDialogInstruction:SimpleNoStackInstruction{}
+	public sealed class ResetDialogInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.EndLevel)]
-	public sealed class EndLevelInstruction:SimpleNoStackInstruction{}
+	public sealed class EndLevelInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Dialog_AlienVar)]
 	public sealed class Dialog_AlienVarInstruction:VarInstruction
@@ -2524,7 +2540,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.IsDialog)]
-	public sealed class IsDialogInstruction:SimpleNoStackInstruction{}
+	public sealed class IsDialogInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Distance)]
 	public sealed class DistanceInstruction:BaseExpressionInstruction
@@ -2543,7 +2559,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public bool State;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
 			var state = int.Parse(RawArgs[0]);
@@ -2565,26 +2581,25 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.TopCloseDialog)]
-	public sealed class TopCloseDialogInstruction:SimpleNoStackInstruction{}
+	public sealed class TopCloseDialogInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.BottomCloseDialog)]
-	public sealed class BottomCloseDialogInstruction:SimpleNoStackInstruction{}
+	public sealed class BottomCloseDialogInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.NextInventory)]
-	public sealed class NextInventoryInstruction:SimpleNoStackInstruction{}
+	public sealed class NextInventoryInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.PrevInventory)]
-	public sealed class PrevInventoryInstruction:SimpleNoStackInstruction{}
+	public sealed class PrevInventoryInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.OtherPiece)]
-	public sealed class OtherPieceInstruction:SimpleNoStackInstruction{}
+	public sealed class OtherPieceInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.NormalPiece)]
-	public sealed class NormalPieceInstruction:SimpleNoStackInstruction{}
+	public sealed class NormalPieceInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Climb)]
-	public sealed class ClimbInstruction:FlagInstruction
-	{}
+	public sealed class ClimbInstruction:FlagInstruction;
 
 	[Opcode(InstructionOpcode.DelInv)]
 	public sealed class DelInvInstruction:ItemChangeInstruction
@@ -2593,7 +2608,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.GainReward)]
-	public sealed class GainRewardInstruction:SimpleNoStackInstruction{}
+	public sealed class GainRewardInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.WorldVector)]
 	public sealed class WorldVectorInstruction:SimplePureConsumeInstruction
@@ -2609,7 +2624,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.ObjectFallVerySlow)]
-	public sealed class ObjectFallVerySlowInstruction:SimpleNoStackInstruction{}
+	public sealed class ObjectFallVerySlowInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Slope2Controller)]
 	public sealed class Slope2ControllerInstruction:SimplePureConsumeInstruction
@@ -2695,10 +2710,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.BordersOn)]
-	public sealed class BordersOnInstruction:SimpleNoStackInstruction{}
+	public sealed class BordersOnInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.BordersOff)]
-	public sealed class BordersOffInstruction:SimpleNoStackInstruction{}
+	public sealed class BordersOffInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.SoundAdsr)]
 	public sealed class SoundAdsrInstruction:SimplePureConsumeInstruction
@@ -2729,19 +2744,19 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.RotatePiece)]
-	public sealed class RotatePieceInstruction:SimpleNoStackInstruction{}
+	public sealed class RotatePieceInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.SetAmbient)]
-	public sealed class SetAmbientInstruction:UnimplementedInstruction{}
+	public sealed class SetAmbientInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.ResetAmbient)]
-	public sealed class ResetAmbientInstruction:UnimplementedInstruction{}
+	public sealed class ResetAmbientInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.Inactive)]
-	public sealed class InactiveInstruction:SimpleNoStackInstruction{}
+	public sealed class InactiveInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.InvInactive)]
-	public sealed class InvInactiveInstruction:SimpleNoStackInstruction{}
+	public sealed class InvInactiveInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.SampleStatus)]
 	public sealed class SampleStatusInstruction:BaseExpressionInstruction
@@ -2754,28 +2769,28 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.ResetToCheckPointnlh)]
-	public sealed class ResetToCheckPointnlhInstruction:SimpleNoStackInstruction{}
+	public sealed class ResetToCheckPointnlhInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.ResetDoor)]
-	public sealed class ResetDoorInstruction:SimpleNoStackInstruction{}
+	public sealed class ResetDoorInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.StoreDoor)]
-	public sealed class StoreDoorInstruction:SimpleNoStackInstruction{}
+	public sealed class StoreDoorInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Camera_modified)]
-	public sealed class Camera_modifiedInstruction:SimpleNoStackInstruction{}
+	public sealed class Camera_modifiedInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.PushPlayer)]
-	public sealed class PushPlayerInstruction:SimpleNoStackInstruction{}
+	public sealed class PushPlayerInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.PopPlayer)]
-	public sealed class PopPlayerInstruction:SimpleNoStackInstruction{}
+	public sealed class PopPlayerInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.ReSetPostrn)]
-	public sealed class ReSetPostrnInstruction:SimpleNoStackInstruction{}
+	public sealed class ReSetPostrnInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.GainItem)]
-	public sealed class GainItemInstruction:SimpleNoStackInstruction{}
+	public sealed class GainItemInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.SetItem)]
 	public sealed class SetItemInstruction:SimplePureConsumeInstruction
@@ -2798,7 +2813,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.TimerOff)]
-	public sealed class TimerOffInstruction:SimpleNoStackInstruction{}
+	public sealed class TimerOffInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.DistanceNoY)]
 	public sealed class DistanceNoYInstruction:BaseExpressionInstruction
@@ -2812,42 +2827,41 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Swim)]
-	public sealed class SwimInstruction:FlagInstruction
-	{}
+	public sealed class SwimInstruction:FlagInstruction;
 
 	[Opcode(InstructionOpcode.Lose100Crystals)]
-	public sealed class Lose100CrystalsInstruction:UnimplementedInstruction{}
+	public sealed class Lose100CrystalsInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.LoseReward)]
-	public sealed class LoseRewardInstruction:SimpleNoStackInstruction{}
+	public sealed class LoseRewardInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.LoseGoldenGobbo)]
-	public sealed class LoseGoldenGobboInstruction:SimpleNoStackInstruction{}
+	public sealed class LoseGoldenGobboInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.NextTribe)]
-	public sealed class NextTribeInstruction:SimpleNoStackInstruction{}
+	public sealed class NextTribeInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.PrevTribe)]
-	public sealed class PrevTribeInstruction:SimpleNoStackInstruction{}
+	public sealed class PrevTribeInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.SetTimerClock)]
-	public sealed class SetTimerClockInstruction:SimpleNoStackInstruction{}
+	public sealed class SetTimerClockInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.SetTimerBomb)]
-	public sealed class SetTimerBombInstruction:SimpleNoStackInstruction{}
+	public sealed class SetTimerBombInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.InitBurpingGame)]
-	public sealed class InitBurpingGameInstruction:SimpleNoStackInstruction{}
+	public sealed class InitBurpingGameInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.CloseBurpingGame)]
-	public sealed class CloseBurpingGameInstruction:SimpleNoStackInstruction{}
+	public sealed class CloseBurpingGameInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Credit)]
 	public sealed class CreditInstruction:SimpleNoStackInstruction
 	{
 		public int Operand;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
 			Operand = int.Parse(RawArgs[0]);
@@ -2857,20 +2871,20 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.CloseCredits)]
-	public sealed class CloseCreditsInstruction:SimpleNoStackInstruction{}
+	public sealed class CloseCreditsInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.ShowRewardCard)]
-	public sealed class ShowRewardCardInstruction:SimpleNoStackInstruction{}
+	public sealed class ShowRewardCardInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.ShowHearts)]
-	public sealed class ShowHeartsInstruction:SimpleNoStackInstruction{}
+	public sealed class ShowHeartsInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Cwg)]
 	public sealed class CwgInstruction:SimpleNoStackInstruction
 	{
 		public int Value;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
 			Value = int.Parse(RawArgs[0]);
@@ -2884,7 +2898,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public int Value;
 
-		public override void Setup(Parser parser)
+		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
 			Value = int.Parse(RawArgs[0]);
@@ -2894,14 +2908,14 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.CameraFunction_47F1E0)]
-	public sealed class CameraFunction_47F1E0Instruction:SimpleNoStackInstruction{}
+	public sealed class CameraFunction_47F1E0Instruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.CameraFunction_47F040)]
-	public sealed class CameraFunction_47F040Instruction:SimpleNoStackInstruction{}
+	public sealed class CameraFunction_47F040Instruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.CameraFunction_47F0C0)]
-	public sealed class CameraFunction_47F0C0Instruction:SimpleNoStackInstruction{}
+	public sealed class CameraFunction_47F0C0Instruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.CameraFunction_47F490)]
-	public sealed class CameraFunction_47F490Instruction:SimpleNoStackInstruction{}
+	public sealed class CameraFunction_47F490Instruction:SimpleNoStackInstruction;
 }

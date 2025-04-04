@@ -4,13 +4,13 @@ namespace ArgonautReverse.PSX.StratLang
 {
 	public unsafe class StratParser
 	{
-		private readonly Queue<Instruction> needsSetup = new Queue<Instruction>();
+		private readonly Queue<AsmInstruction> needsSetup = new Queue<AsmInstruction>();
 
-		private readonly Dictionary<InstructionAddress,Instruction> instructions = new Dictionary<InstructionAddress,Instruction>();
+		private readonly Dictionary<InstructionAddress,AsmInstruction> instructions = new Dictionary<InstructionAddress,AsmInstruction>();
 
-		private readonly Dictionary<InstructionAddress,Instruction> subroutines = new Dictionary<InstructionAddress,Instruction>();
+		private readonly Dictionary<InstructionAddress,AsmInstruction> subroutines = new Dictionary<InstructionAddress,AsmInstruction>();
 
-		private readonly Dictionary<int,Instruction> triggers = new Dictionary<int,Instruction>();
+		private readonly Dictionary<int,AsmInstruction> triggers = new Dictionary<int,AsmInstruction>();
 
 		public readonly WadFilePSX WadFile;
 		public readonly ActorDataPSX Script;
@@ -23,7 +23,7 @@ namespace ArgonautReverse.PSX.StratLang
 			data = script.data;
 		}
 
-		public Instruction ParseInstruction(InstructionAddress instrAddr, Instruction? prev, Instruction? jumpFrom)
+		public AsmInstruction ParseInstruction(InstructionAddress instrAddr, AsmInstruction? prev, AsmInstruction? jumpFrom)
 		{
 			//Check if instruction was already processed
 			if(instructions.TryGetValue(instrAddr, out var ret))
@@ -49,7 +49,7 @@ namespace ArgonautReverse.PSX.StratLang
 			return ret;
 		}
 
-		public Instruction ParseStrat(InstructionAddress instrAddr, Instruction? referenced, bool start)
+		public AsmInstruction ParseStrat(InstructionAddress instrAddr, AsmInstruction? referenced, bool start)
 		{
 			var retInstruction = ParseInstruction(instrAddr, null, null);
 			retInstruction.SubroutineType = SubroutineType.Strat;
@@ -61,7 +61,7 @@ namespace ArgonautReverse.PSX.StratLang
 			subroutines[instrAddr] = retInstruction;
 			return retInstruction;
 		}
-		public Instruction ParseProc(InstructionAddress instrAddr, Instruction callFrom)
+		public AsmInstruction ParseProc(InstructionAddress instrAddr, AsmInstruction callFrom)
 		{
 			var retInstruction = ParseInstruction(instrAddr, null, null);
 			retInstruction.SubroutineType = SubroutineType.Proc;
@@ -69,9 +69,9 @@ namespace ArgonautReverse.PSX.StratLang
 			subroutines[instrAddr] = retInstruction;
 			return retInstruction;
 		}
-		public Instruction ParseTrigger(InstructionAddress? instrAddr, int index, Instruction referencing)
+		public AsmInstruction ParseTrigger(InstructionAddress? instrAddr, int index, AsmInstruction referencing)
 		{
-			Instruction retInstruction;
+			AsmInstruction retInstruction;
 			if(instrAddr == null)
 			{
 				if(triggers[index] == null)
@@ -91,7 +91,7 @@ namespace ArgonautReverse.PSX.StratLang
 			return retInstruction;
 		}
 
-		private void SetupInstruction(Instruction instruction)
+		private void SetupInstruction(AsmInstruction instruction)
 		{
 			if(instruction.Done){return;}
 
@@ -114,7 +114,7 @@ namespace ArgonautReverse.PSX.StratLang
 			instruction.Done = true;
 		}
 
-		public Instruction ParseAndSetup(InstructionAddress rawInstr)
+		public AsmInstruction ParseAndSetup(InstructionAddress rawInstr)
 		{
 			var retInstructions = ParseStrat(rawInstr, null, true);
 			while(needsSetup.TryDequeue(out var cur))
@@ -124,17 +124,18 @@ namespace ArgonautReverse.PSX.StratLang
 			return retInstructions;
 		}
 
-		public void Write(StreamWriter output, bool exportForParsing)
+		public void Write(TextWriter output, bool exportForParsing)
 		{
 			bool lastInstrMissing = false;
 
-			foreach(Instruction instr in this.instructions.OrderBy(e => e.Key).Select(e => e.Value))
+			foreach(AsmInstruction instr in this.instructions.OrderBy(e => e.Key).Select(e => e.Value))
 			{
 				var instrStr = instr.ToAsmString(exportForParsing);
 
 				//If the last instruction is empty, it means that this one was merged with it. 
 				//In order for this to work, the current instruction should not have any calls/jump to it,
 				//then we use the jumps and calls from the previous instructions.
+				//In other words, we use the labels from the first instruction but the operation from the second.
 
 				if(exportForParsing && lastInstrMissing)
 				{
@@ -189,11 +190,48 @@ namespace ArgonautReverse.PSX.StratLang
 			}
 		}
 
-		private static Instruction CreateInstruction(StratReader reader, Instruction? prev)
+		public IReadOnlyList<(string textInstruction,AsmInstruction label,AsmInstruction operation)> GetInstructions()
+		{
+			var ret = new List<(string textInstruction,AsmInstruction label,AsmInstruction operation)>();
+
+			bool lastInstrMissing = false;
+
+			AsmInstruction? label = null;
+			foreach(AsmInstruction instr in instructions.OrderBy(e => e.Key).Select(e => e.Value))
+			{
+				//If the last instruction is empty, it means that this one was merged with it. 
+				//In order for this to work, the current instruction should not have any calls/jump to it,
+				//then we use the jumps and calls from the previous instructions.
+				//In other words, we use the labels from the first instruction but the operation from the second.
+
+				if(lastInstrMissing)
+				{
+					if(instr.SubroutineType != SubroutineType.None || instr.JumpsFrom.Count!=0)
+					{
+						throw new Exception("Invalid merged instruction");
+					}
+				}
+				else
+				{
+					label = instr;
+				}
+
+				var instrStr = instr.ToAsmString(true);
+				if(instrStr.Length != 0)
+				{
+					var text = $"{label!.SubroutineName()}:{label.GetLabel()}:{instrStr}";
+					ret.Add((text, label, instr));
+				}
+				lastInstrMissing = instrStr.Length == 0;
+			}
+			return ret;
+		}
+
+		private static AsmInstruction CreateInstruction(StratReader reader, AsmInstruction? prev)
 		{
 			var opcodeValue = reader.ReadInt();
 			var opcode = reader.WadFile.Version.MapOpcode(opcodeValue);
-			Instruction newInstr = opcode switch
+			AsmInstruction newInstr = opcode switch
 			{
 				//0 - 99
 				InstructionOpcode.CommandError => new CommandErrorInstruction(reader.Position, InstructionOpcode.CommandError),
@@ -389,7 +427,7 @@ namespace ArgonautReverse.PSX.StratLang
 				InstructionOpcode.Max => new BasicInstruction(2, 1, reader.Position, InstructionOpcode.Max),
 				InstructionOpcode.SpawnParticle => new BasicInstruction(6, 0, reader.Position, InstructionOpcode.SpawnParticle),
 				InstructionOpcode.Sgn => new BasicInstruction(1, 1, reader.Position, InstructionOpcode.Sgn),
-				InstructionOpcode.SpawnAfter => new SpawnInstruction(reader.Position, InstructionOpcode.SpawnAfter),
+				InstructionOpcode.SpawnAfter => new SpawnAfterInstruction(reader.Position, InstructionOpcode.SpawnAfter),
 				InstructionOpcode.Camera_AlienVar => new VarInstruction(reader.Position, InstructionOpcode.Camera_AlienVar),
 				InstructionOpcode.Camera_AlienVarAddress => new VarInstruction(reader.Position, InstructionOpcode.Camera_AlienVarAddress),
 				InstructionOpcode.Target_AlienVar => new VarInstruction(reader.Position, InstructionOpcode.Target_AlienVar),

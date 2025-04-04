@@ -3,20 +3,20 @@ using ArgonautReverse.Engine;
 using ArgonautReverse.Files;
 using ArgonautReverse.WadChunks.PSX;
 using ArgonautReverse.WadChunks;
+using System.Diagnostics.CodeAnalysis;
+using ArgonautReverse.Universal.StratLang.Decompiler;
 
 namespace ArgonautReverse.PSX
 {
-	public sealed class WadFilePSX:WADFile
+	public sealed class WadFilePSX(WadVersion version, string stem, byte[] data):WADFile(version, stem, data)
 	{
-		public TPSXChunk TPSX{get;private set;}
-		public SPSXChunk SPSX{get;private set;}
-		public DPSXChunk DPSX{get;private set;}
-		public PORTChunk PORT{get;private set;}
-		public ENDChunkPSX END{get;private set;}
+		public TPSXChunk? TPSX{get;private set;}
+		public SPSXChunk? SPSX{get;private set;}
+		public DPSXChunk? DPSX{get;private set;}
+		public PORTChunk? PORT{get;private set;}
+		public ENDChunkPSX? END{get;private set;}
 
-		public WadFilePSX(WadVersion version, string stem, byte[] data) : base(version, stem, data){}
-
-		public override bool TryGetChunkInfo(ChunkType chunkType, out BaseWADChunkInfo info)
+		public override bool TryGetChunkInfo(ChunkType chunkType, [MaybeNullWhen(false)]out BaseWADChunkInfo info)
 		{
 			info = chunkType switch
 			{
@@ -319,22 +319,12 @@ namespace ArgonautReverse.PSX
 			{
 				var script = this.actors[i];
 				var baseFilePath = Path.Join(folder_path, $"{wad_filename}_{i}");
-				try
-				{
-					using var output = new StreamWriter($"{baseFilePath}.strat_asm", false);
-					script.Write(output, true);
-				}
-				catch(Exception e)
-				{
-					Console.WriteLine($"Failed to export ASM {baseFilePath}:");
-					Console.WriteLine(e.ToString());
-					continue;
-				}
+				script.ExportAsm(baseFilePath);
 
-				Universal.StratLang.Decompiler.Parser parser;
+				AsmParser parser;
 				try
 				{
-					var lines = File.ReadAllLines($"{baseFilePath}.strat_asm");
+					var lines = script.parser.GetInstructions();
 
 					parser = new();
 					var start = parser.ParseAndSetupInstructions(lines);
@@ -342,29 +332,30 @@ namespace ArgonautReverse.PSX
 				catch(Exception e)
 				{
 					Console.WriteLine($"Failed to analyze stack {baseFilePath}:");
-					Console.WriteLine(e.ToString());
-					continue;
+					Console.WriteLine(e.Message);
+					return;
 				}
 
-				Universal.StratLang.Decompiler.StackAnalyzer stackAnalyzer;
+				StackAnalyzer stackAnalyzer;
 				try
 				{
+					//TODO: StackAanalyzer likely should be consistant across all scripts.
+					//Failing during analysis could invalidate the values in the analyzer though.
 					stackAnalyzer = new();
 					stackAnalyzer.Analyze(parser.GetSubroutines());
 				}
 				catch(Exception e)
 				{
 					Console.WriteLine($"Failed to analyze stack {baseFilePath}:");
-					Console.WriteLine(e.ToString());
-					continue;
+					Console.WriteLine(e.Message);
+					return;
 				}
 				var stackOutputLines = new List<string>();
 				stackAnalyzer.Write(stackOutputLines);
 
 				File.WriteAllLines($"{baseFilePath}.stack.strat", stackOutputLines);
 
-
-				Universal.StratLang.Decompiler.FlowAnalyzer flowAnalyzer;
+				FlowAnalyzer flowAnalyzer;
 				try
 				{
 					flowAnalyzer = new();
@@ -373,10 +364,10 @@ namespace ArgonautReverse.PSX
 				catch(Exception e)
 				{
 					Console.WriteLine($"Failed to analyze flow {baseFilePath}:");
-					Console.WriteLine(e.ToString());
-					continue;
+					Console.WriteLine(e.Message);
+					return;
 				}
-				var flowWriter = new Universal.StratLang.Decompiler.Writer();
+				var flowWriter = new Writer();
 				flowAnalyzer.Write(flowWriter);
 
 				File.WriteAllLines($"{baseFilePath}.flow.strat", flowWriter.GetLines());

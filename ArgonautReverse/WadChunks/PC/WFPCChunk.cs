@@ -12,7 +12,7 @@ namespace ArgonautReverse.WadChunks.PC
 		public override string ChunkDescription => "WadFlags";
 		public override ChunkType ChunkType => ChunkType.ID_PC_WADFLAGS;
 
-		private WFPCChunkInfo() { }
+		private WFPCChunkInfo(){}
 
 		public override BaseWadChunk Parse(WadReader reader)
 		{
@@ -22,12 +22,8 @@ namespace ArgonautReverse.WadChunks.PC
 		}
 
 	}
-	public sealed class WFPCChunk:BaseWadChunk
+	public sealed class WFPCChunk(BaseWADChunkInfo info, WadFlagPC wadFlags):BaseWadChunk(info)
 	{
-		public WadFlagPC WadFlags { get; }
-		public WFPCChunk(BaseWADChunkInfo info, WadFlagPC wadFlags) : base(info)
-		{
-			WadFlags = wadFlags;
-		}
+		public WadFlagPC WadFlags{get;} = wadFlags;
 	}
 }

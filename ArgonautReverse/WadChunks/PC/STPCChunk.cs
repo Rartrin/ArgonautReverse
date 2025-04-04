@@ -22,7 +22,7 @@ namespace ArgonautReverse.WadChunks.PC
 			int animationCount = reader.Read<int>();
 			var animations = reader.ReadArrayWithoutMultipass<AnimationStructPC>(animationCount);
 
-			IReadOnlyList<Cutscene> cutscenes = null;
+			IReadOnlyList<Cutscene>? cutscenes = null;
 			var wadFlags = reader.WadFile.GetChunk(WFPCChunkInfo.Instance).WadFlags;
 			if((wadFlags & WadFlagPC.WAD_FLAG_100) != 0)
 			{
@@ -32,18 +32,11 @@ namespace ArgonautReverse.WadChunks.PC
 			return new STPCChunk(Instance, models, animations, cutscenes, reader.GetAllWadData());
 		}
 	}
-	public sealed class STPCChunk:BaseWadChunk
+	public sealed class STPCChunk(BaseWADChunkInfo info, IReadOnlyList<StratObject2PC> models, IReadOnlyList<AnimationStructPC> animations, IReadOnlyList<Cutscene>? cutscenes, byte[]? data = null):BaseWadChunk(info, data)
 	{
-		public readonly IReadOnlyList<StratObject2PC> Models;
-		public readonly IReadOnlyList<AnimationStructPC> Animations;
-		public readonly IReadOnlyList<Cutscene> Cutscenes;
-
-		public STPCChunk(BaseWADChunkInfo info, IReadOnlyList<StratObject2PC> models, IReadOnlyList<AnimationStructPC> animations, IReadOnlyList<Cutscene> cutscenes, byte[] data = null) : base(info, data)
-		{
-			Models = models;
-			Animations = animations;
-			Cutscenes = cutscenes;
-		}
+		public readonly IReadOnlyList<StratObject2PC> Models = models;
+		public readonly IReadOnlyList<AnimationStructPC> Animations = animations;
+		public readonly IReadOnlyList<Cutscene>? Cutscenes = cutscenes;
 
 		public StratObject2PC GetStratObject(int addr)
 		{
