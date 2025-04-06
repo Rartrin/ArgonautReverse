@@ -315,62 +315,109 @@ namespace ArgonautReverse.PSX
 
 		public void ExportActors(string folder_path, string wad_filename)
 		{
+			var scriptData = new (string? baseFilePath,AsmParser? parser,StackAnalyzer? stackAnalyzer,FlowAnalyzer? flowAnalyzer)[this.n_scripts];
 			for(int i=0; i<this.n_scripts; i++)
 			{
-				var script = this.actors[i];
+				ref var data = ref scriptData[i];
 				var baseFilePath = Path.Join(folder_path, $"{wad_filename}_{i}");
-				script.ExportAsm(baseFilePath);
 
-				AsmParser parser;
+
+
+
+
+
+				//TODO: SKIP EVERYTHING EXCEPT for this WalkingCroc for testing
+				//if(!baseFilePath.EndsWith("0015F800_4")){continue;}
+
+
+
+
+
+
+
+
+
+				var script = this.actors[i];
+				
+				
+				//TODO: Make exporting ASM an argument
+				//script.ExportAsm(baseFilePath);
+
+
+
+
+				if(script.Failed || script.parser==null)
+				{
+					continue;
+				}
+				data.baseFilePath = baseFilePath;
+			}
+
+			for(int i=0; i<this.n_scripts; i++)
+			{
+				ref var data = ref scriptData[i];
+				if(data.baseFilePath == null){continue;}
 				try
 				{
-					var lines = script.parser!.GetInstructions();
+					var lines = this.actors[i].parser!.GetInstructions();
 
-					parser = new();
+					var parser = new AsmParser();
 					var start = parser.ParseAndSetupInstructions(lines);
+
+					data.parser = parser;
 				}
 				catch(Exception e)
 				{
-					Console.WriteLine($"Failed to setup asm parser {baseFilePath}:");
+					Console.WriteLine($"Failed to setup asm parser {data.baseFilePath}:");
 					Console.WriteLine(e.Message);
-					return;
+					continue;
 				}
+			}
 
-				StackAnalyzer stackAnalyzer;
+			for(int i=0; i<this.n_scripts; i++)
+			{
+				ref var data = ref scriptData[i];
+				if(data.parser == null){continue;}
 				try
 				{
 					//TODO: StackAanalyzer likely should be consistant across all scripts.
 					//Failing during analysis could invalidate the values in the analyzer though.
-					stackAnalyzer = new();
-					stackAnalyzer.Analyze(parser.GetSubroutines());
+					var stackAnalyzer = new StackAnalyzer();
+					stackAnalyzer.Analyze(data.parser.GetSubroutines());
+
+					data.stackAnalyzer = stackAnalyzer;
 				}
 				catch(Exception e)
 				{
-					Console.WriteLine($"Failed to analyze stack {baseFilePath}:");
+					Console.WriteLine($"Failed to analyze stack {data.baseFilePath}:");
 					Console.WriteLine(e.Message);
-					return;
+					continue;
 				}
 				var stackOutputLines = new List<string>();
-				stackAnalyzer.Write(stackOutputLines);
+				data.stackAnalyzer.Write(stackOutputLines);
 
-				File.WriteAllLines($"{baseFilePath}.stack.strat", stackOutputLines);
-
-				FlowAnalyzer flowAnalyzer;
+				File.WriteAllLines($"{data.baseFilePath}.stack.strat", stackOutputLines);
+			}
+			for(int i=0; i<this.n_scripts; i++)
+			{
+				ref var data = ref scriptData[i];
+				if(data.stackAnalyzer == null){continue;}
 				try
 				{
-					flowAnalyzer = new();
-					flowAnalyzer.Analyze(stackAnalyzer.Subroutines);
+					var flowAnalyzer = new FlowAnalyzer();
+					flowAnalyzer.Analyze(data.stackAnalyzer.Subroutines);
+					data.flowAnalyzer = flowAnalyzer;
 				}
 				catch(Exception e)
 				{
-					Console.WriteLine($"Failed to analyze flow {baseFilePath}:");
+					Console.WriteLine($"Failed to analyze flow {data.baseFilePath}:");
 					Console.WriteLine(e.Message);
-					return;
+					continue;
 				}
 				var flowWriter = new Writer();
-				flowAnalyzer.Write(flowWriter);
+				data.flowAnalyzer.Write(flowWriter);
 
-				File.WriteAllLines($"{baseFilePath}.flow.strat", flowWriter.GetLines());
+				File.WriteAllLines($"{data.baseFilePath}.flow.strat", flowWriter.GetLines());
 			}
 		}
 

@@ -34,41 +34,22 @@ namespace ArgonautReverse.PSX.StratLang
 
 		public virtual bool Export => true;
 
-		//private:
-		//std::string label;
-		//public:
+		public bool HasLabel => JumpsFrom.Count != 0;
 		public string GetLabel()
 		{
-			if(/*label.empty() && */JumpsFrom.Count>0)
-			{
-				/*label = */return $"Label_{(uint)InstrAddr:X8}";
-			}
-			return "";//label;
+			if(!HasLabel){throw new Exception("Instruction does not have a label");}
+			return $"Label_{(uint)InstrAddr:X8}";
 		}
 
-		public string SubroutineName()
+		public bool IsSubroutineEntry => SubroutineType != SubroutineType.None;
+		public string SubroutineName() => SubroutineType switch
 		{
-			if(SubroutineType == SubroutineType.Proc)
-			{
-				return $"Proc_{(uint)InstrAddr:X8}";
-			}
-			else if(SubroutineType == SubroutineType.Strat)
-			{
-				if(Start)
-				{
-					return $"StratExternal_{(uint)InstrAddr:X8}";
-				}
-				return $"Strat_{(uint)InstrAddr:X8}";
-			}
-			else if(SubroutineType == SubroutineType.Trigger)
-			{
-				return $"Trigger_{(uint)InstrAddr:X8}";
-			}
-			else
-			{
-				return "";
-			}
-		}
+			SubroutineType.Proc => $"Proc_{(uint)InstrAddr:X8}",
+			SubroutineType.Strat => $"{(Start ? "StratExternal_" : "Strat_")}{(uint)InstrAddr:X8}",
+			SubroutineType.Trigger => $"Trigger_{(uint)InstrAddr:X8}",
+			SubroutineType.None => throw new Exception("Instruction is not a subroutine"),
+			_ => throw new NotImplementedException($"Unimplemented subroutine type: {SubroutineType}")
+		};
 
 		public AsmInstruction(InstructionAddress address, InstructionOpcode opcode, int operandCount,int popCount,int pushCount)
 		{
@@ -89,7 +70,15 @@ namespace ArgonautReverse.PSX.StratLang
 
 		public sealed override string ToString()
 		{
-			return $"{(uint)InstrAddr:X8} {base.ToString()}";
+			if(IsSubroutineEntry)
+			{
+				return SubroutineName();
+			}
+			if(HasLabel)
+			{
+				return GetLabel();
+			}
+			return $"{(uint)InstrAddr:X8} {OpCode}";
 		}
 	}
 }

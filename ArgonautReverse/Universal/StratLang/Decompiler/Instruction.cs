@@ -1,17 +1,15 @@
-﻿using ArgonautReverse.PSX.StratLang;
+﻿using System.Diagnostics.CodeAnalysis;
+using ArgonautReverse.PSX.StratLang;
 
 namespace ArgonautReverse.Universal.StratLang.Decompiler
 {
 	public abstract class Instruction
 	{
-		public AsmInstruction RawLabel;
-		public AsmInstruction RawOperation;
+		public AsmInstruction AsmLabel;
+		public AsmInstruction AsmOperation;
 
 		//During parsing, this is the line number on the input file.
 		public int Index;
-
-		public string? AsmSubroutineName;
-		public string? AsmLabelName;
 
 		public Instruction AsmPrev;
 		public Instruction AsmNext;
@@ -27,8 +25,6 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public bool SetupDone = false;
 
-		public string[] RawArgs;
-
 		//TODO: Make these sets?
 		public readonly List<Instruction> JumpsFrom = new List<Instruction>();
 		public readonly List<Instruction> CallsFrom = new List<Instruction>();//Proc
@@ -38,18 +34,16 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public virtual void Create(AsmInstruction label, AsmInstruction operation)
 		{
-			RawLabel = label;
-			RawOperation = operation;
+			AsmLabel = label;
+			AsmOperation = operation;
 
-			if(label.SubroutineType != SubroutineType.None)
+			if(label.IsSubroutineEntry)
 			{
 				SubroutineType = label.SubroutineType;
 				Start = label.Start;
-				AsmSubroutineName = label.SubroutineName();
 			}
-			if(label.JumpsFrom.Count > 0)
+			if(label.HasLabel)
 			{
-				AsmLabelName = label.GetLabel();
 				//TODO: Remove this once I'm sure
 				if(this is IStackConsumer)
 				{
@@ -60,10 +54,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public virtual void Setup(AsmParser parser){}
 
-		public abstract bool TryGetSubroutineName(out string subroutineName);
+		public abstract bool TryGetSubroutine([MaybeNullWhen(false)]out AsmInstruction subroutine);
 
-		public abstract bool TryGetLabel(out string label);
+		public abstract bool TryGetLabel([MaybeNullWhen(false)]out AsmInstruction label);
 
-		public TAsmInstruction GetAsmInstruction<TAsmInstruction>() where TAsmInstruction:AsmInstruction => (TAsmInstruction)RawOperation;
+		public TAsmInstruction GetAsmInstruction<TAsmInstruction>() where TAsmInstruction:AsmInstruction => (TAsmInstruction)AsmOperation;
 	}
 }

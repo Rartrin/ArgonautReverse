@@ -5,13 +5,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 {
 	public sealed class AsmParser
 	{
-		public Instruction[] Instructions;
 		public readonly Dictionary<AsmInstruction,Instruction> PsxInstructions = new();
-
-		private readonly Dictionary<string,Instruction> Subroutines = new();
 		private readonly Dictionary<AsmInstruction,Instruction> PsxSubroutines = new();
-
-		private readonly Dictionary<string,Instruction> Labels = new();
 
 		private readonly Queue<Instruction> NeedsSetup = new();
 
@@ -23,35 +18,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 			if(instr.SubroutineType != SubroutineType.None)
 			{
-				Subroutines.Add(instr.AsmSubroutineName, instr);
 				PsxSubroutines.Add(psxLabel, instr);
-			}
-			if(!string.IsNullOrEmpty(instr.AsmLabelName))
-			{
-				Labels.Add(instr.AsmLabelName, instr);
 			}
 
 			return instr;
-		}
-
-		public Instruction GetInstruction(int lineNumber, Instruction? prev, Instruction? jumpFrom)
-		{
-			var ret = Instructions[lineNumber];
-
-			if(ret.AsmPrev == null && prev != null)
-			{
-				ret.AsmPrev = prev;
-			}
-
-			if(jumpFrom != null)
-			{
-				ret.JumpsFrom.Add(jumpFrom);
-			}
-			if(!ret.SetupDone)
-			{
-				NeedsSetup.Enqueue(ret);
-			}
-			return ret;
 		}
 
 		public Instruction GetInstruction(AsmInstruction psxInstr, Instruction? prev, Instruction? jumpFrom)
@@ -103,9 +73,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 			if(!instruction.Terminal)
 			{
-				var lineNumber = instruction.Index;
-
-				instruction.AsmNext = GetInstruction(lineNumber+1, instruction, null);
+				instruction.AsmNext = GetInstruction(instruction.AsmOperation.Next!, instruction, null);
+				//instruction.AsmNext = GetInstruction(instruction.Index + 1, instruction, null);
 			}
 
 			instruction.SetupDone = true;
@@ -113,20 +82,20 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public Instruction ParseAndSetupInstructions(IReadOnlyList<(AsmInstruction label,AsmInstruction operation)> lines)
 		{
-			Instructions = CreateInstructions(lines);
+			var instructions = CreateInstructions(lines);
 
-			foreach(var subroutine in Subroutines.Values)
+			foreach(var subroutine in PsxSubroutines.Values)
 			{
-				GetStrat(subroutine.RawLabel, null);//Trigger setup
+				GetStrat(subroutine.AsmLabel, null);//Trigger setup
 				while(NeedsSetup.TryDequeue(out var instr))
 				{
 					SetupInstruction(instr);
 				}
 			}
-			return Instructions.First(i => i.Start);
+			return instructions.First(i => i.Start);
 		}
 
-		private Instruction[] CreateInstructions(IReadOnlyList<(AsmInstruction label,AsmInstruction operation)> lines)
+		private List<Instruction> CreateInstructions(IReadOnlyList<(AsmInstruction label,AsmInstruction operation)> lines)
 		{
 			int lineNumber = 0;
 
@@ -148,12 +117,12 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 				instruction.RawAsmPrev = prev;
 				prev.RawAsmNext = instruction;
 			}
-			return instructions.ToArray();
+			return instructions;
 		}
 
 		public IReadOnlyList<Instruction> GetSubroutines()
 		{
-			return Subroutines.Values.OrderBy(i => i.Index).ToImmutableList();
+			return PsxSubroutines.Values.OrderBy(i => i.Index).ToImmutableList();
 		}
 	}
 }

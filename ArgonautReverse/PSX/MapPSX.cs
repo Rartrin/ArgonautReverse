@@ -259,7 +259,7 @@ namespace ArgonautReverse.PSX
 		//Didn't have fields originally
 		public int SequenceCount;
 		public byte[] RawSequenceData;
-		public IReadOnlyList<ALAmbiencePSX> Ambiences;
+		public IReadOnlyList<ALAmbiencePSX>? Ambiences;
 		#endregion
 
 		private MapPSX() { }
@@ -654,7 +654,7 @@ namespace ArgonautReverse.PSX
 					map.RawSequenceData = data_in.ReadArray<byte>(totalSequenceByteLength);
 					//TODO: Parse sequence data
 
-					IReadOnlyList<ALAmbiencePSX> ambience = null;
+					IReadOnlyList<ALAmbiencePSX>? ambience = null;
 					if((soundDataFlags&SPSXFlagsPSX.AMBIENTSEP)!=0)
 					{
 						if((wadFlag&WadFlagPSX.WF_HASMULTIAMBIENT)!=0)

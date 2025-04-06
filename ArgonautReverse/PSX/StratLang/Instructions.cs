@@ -737,7 +737,7 @@ namespace ArgonautReverse.PSX.StratLang
 
 		public override void Setup(StratParser parser)
 		{
-			if(this.JumpsFrom.Count != 0 || Prev!.OpCode != InstructionOpcode.Address)
+			if(this.HasLabel || Prev!.OpCode != InstructionOpcode.Address)
 			{
 				throw new Exception("Unsupported spawn instruction");
 			}
@@ -774,7 +774,7 @@ namespace ArgonautReverse.PSX.StratLang
 
 		public override void Setup(StratParser parser)
 		{
-			if(this.JumpsFrom.Count != 0 || Prev!.OpCode != InstructionOpcode.Address)
+			if(this.HasLabel || Prev!.OpCode != InstructionOpcode.Address)
 			{
 				throw new Exception("Unsupported spawn instruction");
 			}
@@ -799,6 +799,8 @@ namespace ArgonautReverse.PSX.StratLang
 
 		public StackCompareInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 0, 1, address, opcode)
 		{
+			//Peeking values or pushing multiple values would make stack analysis and reconstruction very difficult.
+			//Since it isn't even used in any code I've seen, we are not going to support it.
 			throw new NotSupportedException();
 		}
 

@@ -177,7 +177,7 @@
 			//An unidentified unconditional forward jump is a Break
 			if(flow is IFlowGoto jump && flow.StatementIndex<jump.FlowDestination.StatementIndex)
 			{
-
+				//TODO: Anything needed here?
 			}
 
 			if(SwitchFlowData.TryIdentifySwitchFlow(flow, scope, out var switchFlowData))
@@ -902,7 +902,7 @@
 		public static bool TryIdentifySubroutine(IFlowStatement flow, BlockFlowData scope, out SubroutineFlowData subroutineFlowData)
 		{
 			//If this is not a subroutine or if it has already been identified.
-			if(flow.StackStatement.StatementSubroutineName == null || flow.HasPreflow(FlowStatementType.StartSubroutine))
+			if(!flow.StackStatement.StatementLabel.IsSubroutineEntry || flow.HasPreflow(FlowStatementType.StartSubroutine))
 			{
 				subroutineFlowData = null;
 				return false;
@@ -911,7 +911,7 @@
 			var subroutineStart = flow;
 			var subroutineEnd = flow;
 			//Find either the end of the program or the start of the next subroutine. The end for this subroutine should be the instruction before it.
-			while(subroutineEnd.RawNextFlow!=null && subroutineEnd.RawNextFlow.StackStatement.StatementSubroutineName == null)
+			while(subroutineEnd.RawNextFlow!=null && !subroutineEnd.RawNextFlow.StackStatement.StatementLabel.IsSubroutineEntry)
 			{
 				subroutineEnd = subroutineEnd.RawNextFlow;
 			}
@@ -927,7 +927,6 @@
 						subroutineFlowData.AddBreak(source);
 					}
 				}
-					
 			}
 			
 			scope.AddSubflow(subroutineFlowData);
@@ -935,23 +934,21 @@
 		}
 		public override void WriteStart(Writer writer, IFlowStatement start, FlowStatementType statementType)
 		{
-			var subroutineName = start.StackStatement.StatementSubroutineName;
-			var subroutineType = start.StackStatement.FirstInstruction.SubroutineType;
-			var defKeyword = subroutineType switch
+			var defKeyword = start.StackStatement.FirstInstruction.SubroutineType switch
 			{
 				SubroutineType.Strat => "strat",
 				SubroutineType.Trigger => "trigger",
 				SubroutineType.Proc => "defproc",
 				_ => throw new Exception("Unknown subroutine type")
 			};
+			var subroutineName = start.StackStatement.StatementLabel.SubroutineName();
 			writer.WriteLine($"{defKeyword} {subroutineName}");
 			writer.Indent();
 		}
 
 		public override void WriteEnd(Writer writer, IFlowStatement end, FlowStatementType statementType)
 		{
-			var subroutineType = Start.StackStatement.FirstInstruction.SubroutineType;
-			var endKeyword = subroutineType switch
+			var endKeyword = Start.StackStatement.FirstInstruction.SubroutineType switch
 			{
 				SubroutineType.Strat => "endstrat",
 				SubroutineType.Trigger => "endtrigger",
@@ -968,8 +965,7 @@
 
 		public override void WriteBreak(Writer writer, IFlowStatement breakStatement, FlowStatementType statementType)
 		{
-			var subroutineType = Start.StackStatement.FirstInstruction.SubroutineType;
-			var breakKeyword = subroutineType switch
+			var breakKeyword = Start.StackStatement.FirstInstruction.SubroutineType switch
 			{
 				SubroutineType.Strat => throw new NotSupportedException("Strat does not support break"),
 				SubroutineType.Trigger => "return # This is wrong",//throw new NotSupportedException("Trigger does not support break"),
@@ -1213,10 +1209,13 @@
 		public void Analyze()
 		{
 			var programFlowData = new ProgramFlowData(Statements[0], Statements[^1]);
-			BlockFlowData scope = null;
+			BlockFlowData? scope = null;
 			//Setup initial scope around programFlowData.
-			foreach(var statement in Statements)
+			//foreach(var statement in Statements)
+			for(int i = 0; i<Statements.Count; i++)
 			{
+				var statement = Statements[i];
+
 				//TODO: For scope, nesting loops won't be an issue. Loops inside of a final switch case or at the end of a subroutine can have overlap.
 				//We should defaulting to the innermost loop (though it should work either way).
 				//Otherwise, pay attention to the jump destination to determine the probper scope break.
@@ -1237,7 +1236,7 @@
 			{
 				var statement = Statements[i];
 
-				//if(statement.StackStatement.TryGetSubroutineName(out var subroutineName))
+				//if(statement.StackStatement.TryGetSubroutine(out var subroutine))
 				//{
 				//	subroutineType = statement.StackStatement.FirstInstruction.SubroutineType;
 				//	var defKeyword = subroutineType switch
@@ -1247,7 +1246,7 @@
 				//		SubroutineType.Proc => "defproc",
 				//		_ => throw new Exception("Unknown subroutine type")
 				//	};
-				//	writer.WriteLine($"{defKeyword} {subroutineName}");
+				//	writer.WriteLine($"{defKeyword} {subroutine.SubroutineName()}");
 				//}
 
 				//if(statement.StackStatement.TryGetLabel(out var label))

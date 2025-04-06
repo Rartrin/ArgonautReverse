@@ -139,14 +139,14 @@ namespace ArgonautReverse.PSX.StratLang
 
 				if(exportForParsing && lastInstrMissing)
 				{
-					if(instr.SubroutineType != SubroutineType.None || instr.JumpsFrom.Count!=0)
+					if(instr.IsSubroutineEntry || instr.HasLabel)
 					{
 						throw new Exception("Invalid merged instruction");
 					}
 				}
 				else
 				{
-					if(instr.SubroutineType != SubroutineType.None)
+					if(instr.IsSubroutineEntry)
 					{
 						if(!exportForParsing)
 						{
@@ -163,7 +163,7 @@ namespace ArgonautReverse.PSX.StratLang
 					{
 						output.Write(':');
 					}
-					if(instr.JumpsFrom.Count != 0)
+					if(instr.HasLabel)
 					{
 						output.Write(instr.GetLabel());
 						output.Write(':');
@@ -206,7 +206,7 @@ namespace ArgonautReverse.PSX.StratLang
 
 				if(lastInstrMissing)
 				{
-					if(instr.SubroutineType != SubroutineType.None || instr.JumpsFrom.Count!=0)
+					if(instr.IsSubroutineEntry || instr.HasLabel)
 					{
 						throw new Exception("Invalid merged instruction");
 					}
@@ -562,7 +562,6 @@ namespace ArgonautReverse.PSX.StratLang
 				InstructionOpcode.CameraFunction_47F040 => new BasicInstruction(0, 0, reader.Position, InstructionOpcode.CameraFunction_47F040),
 				InstructionOpcode.CameraFunction_47F0C0 => new BasicInstruction(0, 0, reader.Position, InstructionOpcode.CameraFunction_47F0C0),
 				InstructionOpcode.CameraFunction_47F490 => new BasicInstruction(0, 0, reader.Position, InstructionOpcode.CameraFunction_47F490),
-
 				_ => throw new Exception("Unknown OpCode")
 			};
 

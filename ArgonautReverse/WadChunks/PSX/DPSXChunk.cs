@@ -136,7 +136,7 @@ namespace ArgonautReverse.WadChunks.PSX
 				var script = actors[i];
 				if(script.EntryPointAddrs.Count == 0)
 				{
-					Console.WriteLine($"Script {i} missing entrypoint");
+					Console.WriteLine($"WARNING: Script {wadFile.Name}_{i} missing entrypoint");
 				}
 			}
 		}

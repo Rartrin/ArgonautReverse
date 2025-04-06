@@ -150,7 +150,17 @@ namespace ArgonautReverse.Engine.Versions
 					176 => InstructionOpcode.UseBone,//Guessed by location
 					177 => InstructionOpcode.IsCamera,//Guessed by location
 					178 => InstructionOpcode.LookAtMe,
-					
+
+					#region Unconfirmed
+					//179 => InstructionOpcode.LookAtMe2,//Guessed by location
+					//180 => InstructionOpcode.PushCamera,//Guessed by location
+					//181 => InstructionOpcode.PopCamera,//Guessed by location
+					//182 => InstructionOpcode.ResetCameraPos,//Guessed by location
+					//183 => InstructionOpcode.GainHeart,//Guessed by location
+					//184 => InstructionOpcode.GainHeartPot,//Guessed by location
+					//185 => InstructionOpcode.AddInv,//Guessed by location
+					#endregion
+
 					186 => InstructionOpcode.GainCrystal,//Guessed by location
 					187 => InstructionOpcode.Cutscene,//Guessed by location
 
@@ -194,8 +204,11 @@ namespace ArgonautReverse.Engine.Versions
 					230 => InstructionOpcode.IsBoss,//Guessed by location
 					#endregion
 
+					//TODO: THIS IS BAD. This shows up in some cases like referencing spawn processes in dummy wad, likely an offset.
+					//0x10000 => InstructionOpcode.NOP,
+
 					//>=# and <=# => (InstructionOpcode)(value-13),//stDebugName to stString
-					_ => throw new NotImplementedException()
+					_ => throw new NotImplementedException($"Opcode {value} either does not exist or has not been implemented.")
 				};
 			}
 

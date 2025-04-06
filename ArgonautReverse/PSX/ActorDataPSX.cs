@@ -80,7 +80,7 @@ namespace ArgonautReverse.PSX
 			return true;
 		}
 
-		public void ExportAsm(string baseFilePath)
+		public bool ExportAsm(string baseFilePath)
 		{
 			try
 			{
@@ -88,16 +88,17 @@ namespace ArgonautReverse.PSX
 				if(!Write(output, true))
 				{
 					Console.WriteLine($"Failed or no script to export {baseFilePath}:");
-					return;
+					return false;
 				}
 				using var file = File.CreateText($"{baseFilePath}.asm.strat");
 				file.Write(output.GetStringBuilder());
+				return true;
 			}
 			catch(Exception e)
 			{
 				Console.WriteLine($"Failed to export ASM {baseFilePath}:");
 				Console.WriteLine(e.Message);
-				return;
+				return false;
 			}
 		}
 	}

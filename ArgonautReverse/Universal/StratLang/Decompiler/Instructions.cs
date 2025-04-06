@@ -1,6 +1,8 @@
 ﻿using System.Data;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text;
+using ArgonautReverse.PSX.StratLang;
 
 namespace ArgonautReverse.Universal.StratLang.Decompiler
 {
@@ -68,9 +70,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			}
 		}
 
-		public override bool TryGetSubroutineName(out string subroutineName) => throw new NotImplementedException();
+		public override bool TryGetSubroutine(out AsmInstruction subroutine) => throw new NotImplementedException();
 
-		public override bool TryGetLabel(out string label) => throw new NotImplementedException();
+		public override bool TryGetLabel(out AsmInstruction label) => throw new NotImplementedException();
 	}
 
 	public abstract class BaseOperandInstruction:Instruction,IStackOperation
@@ -92,8 +94,6 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public override void Analyze(StackAnalyzer stack)
 		{
-			//base.Analyze(stack);
-
 			Operands = new IStackProducer[PopCount];
 			//Reverse order
 			for(int i=PopCount-1; i>=0; i--)
@@ -111,22 +111,22 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public override IEnumerable<IStackOperation> GetRootOperations() => Operands.SelectMany(o => o.GetRootOperations());
 
-		public override bool TryGetSubroutineName(out string subroutineName)
+		public override bool TryGetSubroutine([MaybeNullWhen(false)]out AsmInstruction subroutine)
 		{
-			subroutineName = null;
 			foreach(var operand in Operands)
 			{
 				var producer = (Instruction)operand;
-				if(producer.TryGetSubroutineName(out var producerSubroutineName))
+				if(producer.TryGetSubroutine(out var producerSubroutine))
 				{
-					subroutineName = producerSubroutineName;
-					break;
+					subroutine = producerSubroutine;
+					return true;
 				}
 			}
-			return subroutineName != null;
+			subroutine = null;
+			return false;
 		}
 
-		public override bool TryGetLabel(out string label)
+		public override bool TryGetLabel([MaybeNullWhen(false)]out AsmInstruction label)
 		{
 			label = null;
 			foreach(var operand in Operands)
@@ -141,7 +141,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 					label = producerLabel;
 				}
 			}
-			return label != null;
+			return label != null && label.HasLabel;
 		}
 	}
 
@@ -153,8 +153,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override IStackStatement Statement => this;
 		public virtual IStackStatement ControlStatement => null;
 
-		public string StatementLabel{get;private set;}
-		public string StatementSubroutineName{get;private set;}
+		public AsmInstruction StatementLabel{get;private set;}
 		public Instruction FirstInstruction{get;private set;}
 
 		public abstract string ToStatement();
@@ -177,8 +176,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		{
 			base.Analyze(stack);
 			
-			StatementLabel = stack.CurrentStatementLabel;
-			StatementSubroutineName = stack.CurrentStatementSubroutineName;
+			StatementLabel = stack.CurrentStatementFirstInstruction.AsmLabel;
 			FirstInstruction = stack.CurrentStatementFirstInstruction;
 		}
 
@@ -204,16 +202,16 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public abstract string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown);
 
-		public override bool TryGetSubroutineName(out string subroutineName)
+		public override bool TryGetSubroutine(out AsmInstruction subroutine)
 		{
-			subroutineName = AsmSubroutineName;
-			return subroutineName != null;
+			subroutine = AsmLabel;
+			return AsmLabel.IsSubroutineEntry;
 		}
 
-		public override bool TryGetLabel(out string label)
+		public override bool TryGetLabel(out AsmInstruction label)
 		{
-			label = AsmLabelName;
-			return label != null;
+			label = AsmLabel;
+			return label.HasLabel;
 		}
 	}
 
@@ -240,13 +238,12 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public Instruction StatementInstruction => this;
 		public IFlowStatement FlowStatement => this;
 
-		public string StatementLabel => AsmLabelName;
-		public string StatementSubroutineName => AsmSubroutineName;
+		public AsmInstruction StatementLabel => AsmLabel;
 		public Instruction FirstInstruction => this;
 
 		public IStackStatement Statement => this;
 		public virtual IStackStatement ControlStatement => null;
-		
+
 		public IStackStatement NextStatement{get;set;}
 		public IStackStatement PrevStatement{get;set;}
 
@@ -261,25 +258,34 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackStatement StackStatement => this;
 
-
 		public virtual void Analyze(StackAnalyzer stack){}
 
 		public abstract string ToStatement();
 
 		public virtual void Analyze(FlowAnalyzer flow){}
 
-		public IEnumerable<IStackOperation> GetRootOperations(){yield return this;}
+		public IEnumerable<IStackOperation> GetRootOperations() => [this];
 
-		public override bool TryGetSubroutineName(out string subroutineName)
+		public override bool TryGetSubroutine([MaybeNullWhen(false)]out AsmInstruction subroutine)
 		{
-			subroutineName = AsmSubroutineName;
-			return subroutineName != null;
+			if(AsmLabel.IsSubroutineEntry)
+			{
+				subroutine = AsmLabel;
+				return true;
+			}
+			subroutine = null;
+			return false;
 		}
 
-		public override bool TryGetLabel(out string label)
+		public override bool TryGetLabel([MaybeNullWhen(false)]out AsmInstruction label)
 		{
-			label = AsmLabelName;
-			return label != null;
+			if(AsmLabel.HasLabel)
+			{
+				label = AsmLabel;
+				return true;
+			}
+			label = null;
+			return false;
 		}
 	}
 	public abstract class SimpleNoStackInstruction:NoStackInstruction
@@ -581,7 +587,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		{
 			base.Setup(parser);
 
-			var spawnAsmInstr = GetAsmInstruction<PSX.StratLang.SpawnInstruction>();
+			var spawnAsmInstr = GetAsmInstruction<PSX.StratLang.BaseSpawnInstruction>();
 			
 			SpawnStratProc = parser.GetStrat(spawnAsmInstr.SpawnStratProc, this);
 
@@ -1130,7 +1136,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	[Opcode(InstructionOpcode.Jump)]
 	public sealed class JumpInstruction:BaseJumpInstruction
 	{
-		public override string ToStatement() => $"goto {Destination.AsmLabelName} $ DONE";
+		public override string ToStatement() => $"goto {Destination.AsmLabel.GetLabel()} $ DONE";
 	}
 
 	[Opcode(InstructionOpcode.ObjectFall)]
@@ -1326,7 +1332,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 					ret.Append(Arg + " ");
 					break;
 			}
-			ret.Append(TriggerProc.AsmSubroutineName);
+			ret.Append(TriggerProc.AsmLabel.SubroutineName());
 			return ret.ToString();
 		}
 	}
@@ -1334,7 +1340,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	[Opcode(InstructionOpcode.KillTrigger)]
 	public sealed class KillTriggerInstruction:TriggerUpdateInstruction
 	{
-		public override string ToStatement() => $"KillTrigger {TriggerProc.AsmSubroutineName}";
+		public override string ToStatement() => $"KillTrigger {TriggerProc.AsmLabel.SubroutineName()}";
 	}
 
 	[Opcode(InstructionOpcode.HoldTriggers)]
@@ -1346,13 +1352,13 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	[Opcode(InstructionOpcode.HoldTrigger)]
 	public sealed class HoldTriggerInstruction:TriggerUpdateInstruction
 	{
-		public override string ToStatement() => $"HoldTrigger {TriggerProc.AsmSubroutineName}";
+		public override string ToStatement() => $"HoldTrigger {TriggerProc.AsmLabel.SubroutineName()}";
 	}
 
 	[Opcode(InstructionOpcode.ReleaseTrigger)]
 	public sealed class ReleaseTriggerInstruction:TriggerUpdateInstruction
 	{
-		public override string ToStatement() => $"ReleaseTrigger {TriggerProc.AsmSubroutineName}";
+		public override string ToStatement() => $"ReleaseTrigger {TriggerProc.AsmLabel.SubroutineName()}";
 	}
 
 	[Opcode(InstructionOpcode.Wait)]
@@ -1392,7 +1398,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	[Opcode(InstructionOpcode.Spawn)]
 	public sealed class SpawnInstruction:BaseSpawnInstruction
 	{
-		public override string ToStatement() => $"Spawn {SpawnStratProc.AsmSubroutineName}, {LocalVarsToPop}, {LocalCount}, {TriggerCount}, {CollisionSize}, {CollisionBoneCount}";
+		public override string ToStatement() => $"Spawn {SpawnStratProc.AsmLabel.SubroutineName()}, {LocalVarsToPop}, {LocalCount}, {TriggerCount}, {CollisionSize}, {CollisionBoneCount}";
 	}
 
 	[Opcode(InstructionOpcode.SpawnFrom)]
@@ -1408,7 +1414,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			BoneToSpawnFrom = spawnFromAsmInstr.BoneToSpawnFrom;
 		}
 
-		public override string ToStatement() => $"SpawnFrom {SpawnStratProc.AsmSubroutineName}, {LocalVarsToPop}, {LocalCount}, {TriggerCount}, {CollisionSize}, {CollisionBoneCount}, {BoneToSpawnFrom}";
+		public override string ToStatement() => $"SpawnFrom {SpawnStratProc.AsmLabel.SubroutineName()}, {LocalVarsToPop}, {LocalCount}, {TriggerCount}, {CollisionSize}, {CollisionBoneCount}, {BoneToSpawnFrom}";
 	}
 
 	[Opcode(InstructionOpcode.Link)]
@@ -1572,9 +1578,6 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override string ToStatement() => $"Pop {Discarded.ToExpressionString()}";
 	}
 
-	//Never actually used by Croc 2. Removing to simplify strat decompilation.
-	//[OpCode(123,"StkCmp")]StkCmpInstruction
-
 	[Opcode(InstructionOpcode.Address)]
 	public sealed class AddressInstruction:PureProducerInstruction
 	{
@@ -1634,13 +1637,13 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	[Opcode(InstructionOpcode.Jsr)]
 	public sealed class JsrInstruction:BaseJumpSubroutineInstruction
 	{
-		public override string ToStatement() => $"proc {Proc.AsmSubroutineName} $ DONE";
+		public override string ToStatement() => $"proc {Proc.AsmLabel.SubroutineName()} $ DONE";
 	}
 
 	[Opcode(InstructionOpcode.JsrImm)]
 	public sealed class JsrImmInstruction:BaseJumpSubroutineInstruction
 	{
-		public override string ToStatement() => $"proc {Proc.AsmSubroutineName} $ IMM";
+		public override string ToStatement() => $"proc {Proc.AsmLabel.SubroutineName()} $ IMM";
 	}
 
 	[Opcode(InstructionOpcode.Return)]
@@ -1656,14 +1659,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public override string ToStatement()
 		{
-			return $"if {Condition.ToExpressionString()} == 0 then goto {ConditionalDest.AsmLabelName} endif $ DONE";
+			return $"if {Condition.ToExpressionString()} == 0 then goto {ConditionalDest.AsmLabel.GetLabel()} endif $ DONE";
 		}
-		//public override void ToStatement(List<string> lines)
-		//{
-		//	lines.Add($"if {Condition.ToExpressionString()} == 0 then $ DONE");
-		//	lines.Add($"\tgoto {ConditionalDest.AsmLabelName}");
-		//	lines.Add($"endif");
-		//}
 	}
 
 	[Opcode(InstructionOpcode.Bne)]
@@ -1671,14 +1668,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public override string ToStatement()
 		{
-			return $"if {Condition.ToExpressionString()} != 0 then goto {ConditionalDest.AsmLabelName} endif $ DONE";
+			return $"if {Condition.ToExpressionString()} != 0 then goto {ConditionalDest.AsmLabel.GetLabel()} endif $ DONE";
 		}
-		//public override void ToStatement(List<string> lines)
-		//{
-		//	lines.Add($"if {Condition.ToExpressionString()} != 0 then $ DONE");
-		//	lines.Add($"\tgoto {ConditionalDest.AsmLabelName}");
-		//	lines.Add($"endif");
-		//}
 	}
 
 	[Opcode(InstructionOpcode.BeqImm)]
@@ -1686,14 +1677,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public override string ToStatement()
 		{
-			return $"if {Condition.ToExpressionString()} == 0 then goto {ConditionalDest.AsmLabelName} endif $ IMM";
+			return $"if {Condition.ToExpressionString()} == 0 then goto {ConditionalDest.AsmLabel.GetLabel()} endif $ IMM";
 		}
-		//public override void ToStatement(List<string> lines)
-		//{
-		//	lines.Add($"if {Condition.ToExpressionString()} == 0 then $ IMM");
-		//	lines.Add($"\tgoto {ConditionalDest.AsmLabelName}");
-		//	lines.Add($"endif");
-		//}
 	}
 
 	[Opcode(InstructionOpcode.BneImm)]
@@ -1701,20 +1686,14 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public override string ToStatement()
 		{
-			return $"if {Condition.ToExpressionString()} != 0 then goto {ConditionalDest.AsmLabelName} endif $ IMM";
+			return $"if {Condition.ToExpressionString()} != 0 then goto {ConditionalDest.AsmLabel.GetLabel()} endif $ IMM";
 		}
-		//public override void ToStatement(List<string> lines)
-		//{
-		//	lines.Add($"if {Condition.ToExpressionString()} != 0 then $ IMM");
-		//	lines.Add($"\tgoto {ConditionalDest.AsmLabelName}");
-		//	lines.Add($"endif");
-		//}
 	}
 
 	[Opcode(InstructionOpcode.JumpImm)]
 	public sealed class JumpImmInstruction:BaseJumpInstruction
 	{
-		public override string ToStatement() => $"goto {Destination.AsmLabelName} $ IMM";
+		public override string ToStatement() => $"goto {Destination.AsmLabel.GetLabel()} $ IMM";
 	}
 
 	[Opcode(InstructionOpcode.EndStrat)]
@@ -1810,7 +1789,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 				{
 					ret.AppendLine($"\tcase {comparand}");
 				}
-				ret.AppendLine($"\t\tgoto {c.Destination.AsmLabelName}");
+				ret.AppendLine($"\t\tgoto {c.Destination.AsmLabel.GetLabel()}");
 				ret.AppendLine($"\tendcase");
 			}
 			ret.AppendLine("endswitch");
@@ -2270,7 +2249,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	[Opcode(InstructionOpcode.SpawnAfter)]
 	public sealed class SpawnAfterInstruction:BaseSpawnInstruction
 	{
-		public override string ToStatement() => $"SpawnAfter {SpawnStratProc.AsmSubroutineName}, {LocalVarsToPop}, {LocalCount}, {TriggerCount}, {CollisionSize}, {CollisionBoneCount}";
+		public override string ToStatement() => $"SpawnAfter {SpawnStratProc.AsmLabel.SubroutineName()}, {LocalVarsToPop}, {LocalCount}, {TriggerCount}, {CollisionSize}, {CollisionBoneCount}";
 	}
 
 	[Opcode(InstructionOpcode.Camera_AlienVar)]

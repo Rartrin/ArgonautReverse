@@ -1,4 +1,7 @@
-﻿namespace ArgonautReverse.Universal.StratLang.Decompiler
+﻿using System.Diagnostics.CodeAnalysis;
+using ArgonautReverse.PSX.StratLang;
+
+namespace ArgonautReverse.Universal.StratLang.Decompiler
 {
 	//Terms:
 	//Consumers pop values off the start
@@ -63,8 +66,7 @@
 	//In other words, a non-producer
 	public interface IStackStatement:IStackOperation
 	{
-		public abstract string StatementLabel{get;}
-		public abstract string StatementSubroutineName{get;}
+		public abstract AsmInstruction StatementLabel{get;}
 		public abstract Instruction FirstInstruction{get;}
 
 		//The specific instruction ending this expression chain.
@@ -75,11 +77,10 @@
 		public abstract IStackStatement NextStatement{get;set;}
 		public abstract IStackStatement PrevStatement{get;set;}
 
-		//public abstract void ToStatement(List<string> lines);
 		public abstract string ToStatement();
 
-		public abstract bool TryGetSubroutineName(out string subroutineName);
-		public abstract bool TryGetLabel(out string label);
+		public abstract bool TryGetSubroutine([MaybeNullWhen(false)]out AsmInstruction subroutine);
+		public abstract bool TryGetLabel([MaybeNullWhen(false)]out AsmInstruction label);
 	}
 
 	public sealed class StackAnalyzer
@@ -90,13 +91,11 @@
 
 		private readonly Queue<Instruction> pending = new Queue<Instruction>();
 
-		public readonly List<IStackStatement> statements = new List<IStackStatement>();
+		private readonly List<IStackStatement> statements = new List<IStackStatement>();
 
 		public readonly List<IStackStatement> Subroutines = new List<IStackStatement>();
 
 		public Instruction CurrentStatementFirstInstruction{get;private set;}
-		public string CurrentStatementLabel{get;private set;}
-		public string CurrentStatementSubroutineName{get;private set;}
 
 		public void Push(IStackProducer operand)
 		{
@@ -125,12 +124,9 @@
 
 		private void AnalyzeDestination(Instruction dest)
 		{
-			IStackStatement prevStatement = null;
-				
+			IStackStatement? prevStatement = null;
 			var cur = dest;
 
-			CurrentStatementLabel = cur.AsmLabelName;
-			CurrentStatementSubroutineName = cur.AsmSubroutineName;
 			CurrentStatementFirstInstruction = cur;
 			while(true)
 			{
@@ -166,8 +162,6 @@
 
 					if(!cur.Terminal)
 					{
-						CurrentStatementLabel = cur.AsmNext.AsmLabelName;
-						CurrentStatementSubroutineName = cur.AsmNext.AsmSubroutineName;
 						CurrentStatementFirstInstruction = cur.AsmNext;
 					}
 				}
@@ -203,28 +197,28 @@
 
 			foreach(var statement in sortedStatements)
 			{
-				if(statement.TryGetSubroutineName(out var subroutineName))
+				if(statement.TryGetSubroutine(out var subroutine))
 				{
-					lines.Add(subroutineName + ":");
-					if(statement.StatementSubroutineName != subroutineName)
+					lines.Add(subroutine.SubroutineName() + ":");
+					if(statement.StatementLabel != subroutine)
 					{
 						throw new Exception();
 					}
 				}
-				else if(statement.StatementSubroutineName!=null)
+				else if(statement.StatementLabel.IsSubroutineEntry)
 				{
 					throw new Exception();
 				}
 
 				if(statement.TryGetLabel(out var label))
 				{
-					lines.Add(label + ":");
+					lines.Add(label.GetLabel() + ":");
 					if(statement.StatementLabel != label)
 					{
 						throw new Exception();
 					}
 				}
-				else if(statement.StatementLabel != null)
+				else if(statement.StatementLabel.HasLabel)
 				{
 					throw new Exception();
 				}
