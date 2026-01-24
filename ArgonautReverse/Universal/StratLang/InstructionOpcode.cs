@@ -33,8 +33,8 @@
 		ShadowSize = 28,//BASIC_INSTRUCTION(1,0)
 		ShadowType = 29,//BASIC_INSTRUCTION(1,0)
 		Hide = 30,//FlagInstruction
-		Flash = 31,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
-		Trans = 32,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+		Flash = 31,//FlagInstruction//Unimplemented
+		Trans = 32,//BASIC_INSTRUCTION(1,0)//Unimplemented
 		MoveUp = 33,//BASIC_INSTRUCTION(1,0)
 		MoveDown = 34,//BASIC_INSTRUCTION(1,0)
 		MoveForward = 35,//BASIC_INSTRUCTION(1,0)
@@ -63,8 +63,8 @@
 		WPLast = 58,//BASIC_INSTRUCTION(0,0)
 		WPNext = 59,//BASIC_INSTRUCTION(0,0)
 		WPPrev = 60,//BASIC_INSTRUCTION(0,0)
-		WPDel = 61,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
-		WPNew = 62,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+		WPDel = 61,//BASIC_INSTRUCTION(0,0)//Unimplemented
+		WPNew = 62,//BASIC_INSTRUCTION(0,0)//Unimplemented
 		WPNearest = 63,//BASIC_INSTRUCTION(0,0)
 		WPFurthest = 64,//BASIC_INSTRUCTION(0,0)
 		WPTurnToX = 65,//BASIC_INSTRUCTION(1,0)
@@ -73,12 +73,12 @@
 		AnimPlay = 68,//BASIC_INSTRUCTION(1,0)
 		AnimStop = 69,//BASIC_INSTRUCTION(0,0)
 		AnimClear = 70,//BASIC_INSTRUCTION(0,0)
-		AnimSetSpeed = 71,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+		AnimSetSpeed = 71,//BASIC_INSTRUCTION(1,0)//Unimplemented
 		CollisionType = 72,//BASIC_INSTRUCTION(1,0)
 		CollRadius = 73,//BASIC_INSTRUCTION(1,0)
-		CollHeight = 74,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+		CollHeight = 74,//Probably BASIC_INSTRUCTION(1,0)//Unimplemented
 		CollExtent = 75,//BASIC_INSTRUCTION(1,0)
-		CollView = 76,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+		CollView = 76,//Probably BASIC_INSTRUCTION(1,0)//Unimplemented
 		CollPoints = 77,//BASIC_INSTRUCTION(1,0)
 		CollSetPoint = 78,//BASIC_INSTRUCTION(4,0)
 		CreateTrigger = 79,//TriggerCreateInstruction
@@ -98,8 +98,8 @@
 		Collected = 93,//BASIC_INSTRUCTION(0,0)
 		Spawn = 94,//SpawnInstruction
 		SpawnFrom = 95,//SpawnFromInstruction
-		Link = 96,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
-		Unlink = 97,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+		Link = 96,//Probably BASIC_INSTRUCTION(0,0)//Unimplemented
+		Unlink = 97,//Probably BASIC_INSTRUCTION(0,0)//Unimplemented
 		SoundShift = 98,//BASIC_INSTRUCTION(2,0)
 		SoundStop = 99,//BASIC_INSTRUCTION(1,0)
 
@@ -206,7 +206,7 @@
 
 		Target2_AlienVarAddress = 200,//VarInstruction
 		DontLookAtMe = 201,//BASIC_INSTRUCTION(0,0)
-		RunAt60 = 202,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+		RunAt60 = 202,//Probably BASIC_INSTRUCTION(0,0)//Used in DUMMY, Unimplemented in PC and PSX
 		MoveForwardq = 203,//BASIC_INSTRUCTION(1,0)
 		MoveBackwardq = 204,//BASIC_INSTRUCTION(1,0)
 		ScreenPrint = 205,//PrintInstruction
@@ -292,7 +292,7 @@
 		RotatePiece = 285,//BASIC_INSTRUCTION(0,0)
 		SetAmbient = 286,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
 		ResetAmbient = 287,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
-		Inactive = 288,//BASIC_INSTRUCTION(0,0)
+		InvActive = 288,//BASIC_INSTRUCTION(0,0)
 		InvInactive = 289,//BASIC_INSTRUCTION(0,0)
 		SampleStatus = 290,//BASIC_INSTRUCTION(1,1)
 		ResetToCheckPointnlh = 291,//BASIC_INSTRUCTION(0,0)
@@ -328,9 +328,248 @@
 		CameraFunction_47F040 = 320,//BASIC_INSTRUCTION(0,0)
 		CameraFunction_47F0C0 = 321,//BASIC_INSTRUCTION(0,0)
 		CameraFunction_47F490 = 322,//BASIC_INSTRUCTION(0,0)
-
-
-		//Special opcodes for analysis
-		SPECIAL_ANALYSIS_CODES = 0x10000,
 	}
+
+
+	/*
+	//Attempt to group up similar instructions. Potentially combine some
+
+	CommandError,
+	NOP,
+
+	Print,ScreenPrint,//PrintInstruction
+	DebugName,//DebugNameInstruction
+
+	Local,Global,WorldGlobal,AlienVar,LocalAddress,GlobalAddress,WorldGlobalAddress,AlienVarAddress,Ext_Local,Ext_LocalAddress,Ext_Global,Ext_GlobalAddress,Ext_AlienVar,Ext_AlienVarAddress,Player_AlienVar,Player_AlienVarAddress,Camera_AlienVar,Camera_AlienVarAddress,Target_AlienVar,Target_AlienVarAddress,Collide_AlienVar,Collide_AlienVarAddress,Target2_AlienVar,Target2_AlienVarAddress,Boss_AlienVar,Boss_AlienVarAddress,Dialog_AlienVar,Dialog_AlienVarAddress,//VarInstruction
+
+	//Constants
+	Zero,//BASIC_INSTRUCTION(0,1)
+	Number = 10,//NumberInstruction
+	String = 212,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+	Address = 124,//AddressInstruction
+
+	Add,Sub,Mul,DivMin,Max,Smin,//BASIC_INSTRUCTION(2,1)//Math Deciaml Binary-Operations
+	And,Or,BitwiseAnd,ShiftLeft,ShiftRight,//BASIC_INSTRUCTION(2,1)//Math Bitwise operations
+	Compare,LessThan,GreaterThan,NotEqual,GreaterEqual,LessEqual,//BASIC_INSTRUCTION(2,1)//Math Compare
+	UMinus,Int,Sin,Cos,Not,BitwiseNot,Abs,Sgn,//BASIC_INSTRUCTION(1,1)//Math Unary-Functions
+	Rnd,//BASIC_INSTRUCTION(1,1)
+	
+	Increase = 12,//BASIC_INSTRUCTION(1,0)
+	Decrease = 13,//BASIC_INSTRUCTION(1,0)
+	Equals = 18,//BASIC_INSTRUCTION(2,0)//This is set, not comparison
+
+	Shadow,Hide,Hang,PlayerAttack,SuspendIfTooFar,PlayerDistanceCheck,OnGround,Pickup,Push,NoHang,WaterTest,Climb,Swim,//FlagInstruction
+	Flash,//FlagInstruction//Unimplemented
+
+	SetModel = 22,//BASIC_INSTRUCTION(1,0)
+	Scale,ScaleX,ScaleY,ScaleZ,//BASIC_INSTRUCTION(1,0)
+	
+	ShadowSize = 28,//BASIC_INSTRUCTION(1,0)
+	ShadowType = 29,//BASIC_INSTRUCTION(1,0)
+	Trans,//Probably BASIC_INSTRUCTION(1,0)//Unimplemented
+	MoveUp,MoveDown,MoveForward,MoveBackward,MoveLeft,MoveRight,MoveUpq,MoveDownq,MoveForwardq,MoveBackwardq,MoveLeftq,MoveRightq,//BASIC_INSTRUCTION(1,0)
+	TurnRight,TurnLeft,//BASIC_INSTRUCTION(1,0)
+	TiltLeft,TiltRight,TiltForward,TiltBackward,//BASIC_INSTRUCTION(1,0)
+	TurnToPlayerX,TurnToPlayerY,TurnToPlayerXY,//BASIC_INSTRUCTION(1,0)
+	TurnToX,TurnToY,TurnToXY,BASIC_INSTRUCTION(4,0)
+	TurnFromPlayerY = 157,//BASIC_INSTRUCTION(1,0)
+
+	Wobble = 51,//BASIC_INSTRUCTION(1,0)
+
+	SetPos,//BASIC_INSTRUCTION(0,0)
+	ReSetPos,//BASIC_INSTRUCTION(0,0)
+	ReSetPostrn,//BASIC_INSTRUCTION(0,0)
+
+	Jump,JumpImm,//JumpInstruction
+	Jsr,JsrImm,//JumpSubroutineInstruction
+	Return,//ReturnInstruction
+	Beq,Bne,BeqImm,BneImm,//BranchInstruction
+	Index_Jump = 137,//IndexJumpInstruction
+
+	SoundShift = 98,//BASIC_INSTRUCTION(2,0)
+	SoundStop = 99,//BASIC_INSTRUCTION(1,0)
+	SoundPlay1,SoundPlay2,SoundPlay3,SoundPlay4,//BASIC_INSTRUCTION(1-4,0)//4 is unimplemented on PC
+	SoundPlay1ASS,SoundPlay2ASS,SoundPlay3ASS,SoundPlay4ASS,//BASIC_INSTRUCTION(1-4,1)//4 is unimplemented on PC
+
+	SoundAddress = 180,//SoundAddressInstruction
+	SoundVolume = 210,//BASIC_INSTRUCTION(2,0)
+	SoundShiftRelative = 215,//BASIC_INSTRUCTION(2,0)
+	SoundAdsr = 283,//BASIC_INSTRUCTION(5,0)
+	SoundAdsrRelative = 284,//BASIC_INSTRUCTION(5,0)
+
+	TopSay,BottomSay,//DialogSayInstruction
+	TopHead,BottomHead,//BASIC_INSTRUCTION(1,0)
+	TopDialog,BottomDialog,//DialogSetInstruction
+	TopHeadLeft,BottomHeadLeft,
+	TopCloseDialog,BottomCloseDialog,//BASIC_INSTRUCTION(0,0)
+
+	ObjectFall = 55,//BASIC_INSTRUCTION(0,0)
+
+	WPFirst,WPLast,//BASIC_INSTRUCTION(0,0)
+	WPNext,WPPrev,//BASIC_INSTRUCTION(0,0)
+	WPDel,//BASIC_INSTRUCTION(0,0)//Unimplemented
+	WPNew,//BASIC_INSTRUCTION(0,0)//Unimplemented
+	WPNearest,WPFurthest,//BASIC_INSTRUCTION(0,0)
+	WPTurnToX,WPTurnToY,WPTurnToXY,//BASIC_INSTRUCTION(1,0)
+
+	AnimPlay = 68,//BASIC_INSTRUCTION(1,0)
+	AnimStop = 69,//BASIC_INSTRUCTION(0,0)
+	AnimClear = 70,//BASIC_INSTRUCTION(0,0)
+	AnimSetSpeed = 71,//BASIC_INSTRUCTION(1,0)//Unimplemented
+	AnimAdvance = 149,//BASIC_INSTRUCTION(1,0)
+	SetAnimSpeed = 244,//BASIC_INSTRUCTION(1,0)
+
+	CollisionType = 72,//BASIC_INSTRUCTION(1,0)
+	CollRadius = 73,//BASIC_INSTRUCTION(1,0)
+	CollHeight = 74,//Probably BASIC_INSTRUCTION(1,0)//Unimplemented
+	CollExtent = 75,//BASIC_INSTRUCTION(1,0)
+	CollView = 76,//Probably BASIC_INSTRUCTION(1,0)//Unimplemented
+	CollPoints = 77,//BASIC_INSTRUCTION(1,0)
+	CollSetPoint = 78,//BASIC_INSTRUCTION(4,0)
+	CollisionOn,CollisionOff,//FlagInstruction
+	CollisionOffAll = 113,//BASIC_INSTRUCTION(0,0)
+	ForceCollision = 156,//BASIC_INSTRUCTION(0,0)
+	CollisionBone = 162,//BASIC_INSTRUCTION(2,0)
+	CollisionOffset = 185,//BASIC_INSTRUCTION(3,0)
+
+	CreateTrigger = 79,//TriggerCreateInstruction
+	HoldTriggers = 81,//BASIC_INSTRUCTION(0,0)
+	ReleaseTriggers = 82,//BASIC_INSTRUCTION(0,0)
+	KillTrigger,HoldTrigger,ReleaseTrigger,//TriggerUpdateInstruction
+
+	Wait = 85,//BASIC_INSTRUCTION(1,0)
+	Hold = 86,//BASIC_INSTRUCTION(0,0)
+	Release = 87,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+	Remove = 88,//BASIC_INSTRUCTION(0,0)
+	MapRemove = 89,//BASIC_INSTRUCTION(0,0)
+	MapAdd = 90,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+	MapReplace = 91,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+	Activated = 92,//BASIC_INSTRUCTION(0,0)
+	Collected = 93,//BASIC_INSTRUCTION(0,0)
+
+	Spawn,SpawnAfter,//SpawnInstruction
+	SpawnFrom = 95,//SpawnFromInstruction
+
+	IsLight,IsPlayer,IsCamera,IsBoss,IsMainCamera,IsDialog,//BASIC_INSTRUCTION(0,0)
+
+	Link,Unlink,//Probably BASIC_INSTRUCTION(0,0)//Unimplemented
+
+	CdPlay = 100,//BASIC_INSTRUCTION(1,0)
+	CdFade = 103,//BASIC_INSTRUCTION(1,0)
+	MidiLoop,//FlagInstruction//Unimplemented
+	MidiVolume = 102,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+	MidiStop = 104,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+	MidiQueue = 105,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+	LightCol = 107,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+	LightFade = 108,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+	LightAtten = 109,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+	LightType = 110,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+	
+	Pop = 122,//BASIC_INSTRUCTION(1,0)
+	EndStrat = 133,//EndStratInstruction
+	ObjectJump = 143,//BASIC_INSTRUCTION(1,0)
+	Blink = 153,//BlinkInstruction
+	LoseHeart = 154,//BASIC_INSTRUCTION(0,0)
+	ResetToCheckPoint = 155,//BASIC_INSTRUCTION(0,0)
+	Rumble = 159,//BASIC_INSTRUCTION(2,0)
+	Vibrate = 160,//BASIC_INSTRUCTION(1,0)
+	UseBone = 163,//BASIC_INSTRUCTION(1,0)
+	LookAtMe,LookAtMe2,//BASIC_INSTRUCTION(0,0)
+	PushCamera,PopCamera,//BASIC_INSTRUCTION(0,0)
+	ResetCameraPos = 169,//BASIC_INSTRUCTION(0,0)
+	Cutscene = 174,//BASIC_INSTRUCTION(1,0)
+	AddInv,DelInv,//ItemChangeInstruction
+	Inventory = 175,//ItemCountInstruction
+	InvActive,InvInactive,//BASIC_INSTRUCTION(0,0)
+	NextInventory = 264,//BASIC_INSTRUCTION(0,0)
+	PrevInventory = 265,//BASIC_INSTRUCTION(0,0)
+	GainItem = 298,//BASIC_INSTRUCTION(0,0)
+	SetItem = 299,//BASIC_INSTRUCTION(1,0)
+	GainHeart = 170,//BASIC_INSTRUCTION(0,0)
+	GainHeartPot = 171,//BASIC_INSTRUCTION(0,0)
+	GainCrystal = 173,//BASIC_INSTRUCTION(1,0)
+
+	ObjectFallSlow = 182,//BASIC_INSTRUCTION(0,0)
+	SpawnParticle = 190,//BASIC_INSTRUCTION(6,0)
+
+	DontLookAtMe = 201,//BASIC_INSTRUCTION(0,0)
+	RunAt60 = 202,//Probably BASIC_INSTRUCTION(0,0)//Used in DUMMY, Unimplemented in PC and PSX
+	SetWP = 208,//BASIC_INSTRUCTION(0,0)
+	ResetWP = 209,//BASIC_INSTRUCTION(0,0)
+
+	SetBossHearts = 213,//BASIC_INSTRUCTION(1,0)
+	LoseBossHeart = 214,//BASIC_INSTRUCTION(0,0)
+
+	AfterBoss,AfterPlayer,BeforePlayer,BeforeBoss,//BASIC_INSTRUCTION(0,0)
+	
+	GetParentPos,GetPlayerPos,GetWPpos,GetBossPos,//BASIC_INSTRUCTION(0,0)
+	GetDoorPos = 236,//BASIC_INSTRUCTION(0,0)
+
+	FadeOut = 237,//BASIC_INSTRUCTION(1,0)
+	FadeIn = 238,//BASIC_INSTRUCTION(1,0)
+	FadeFunction_47E960 = 318,//FadeSetUnknownInstruction
+
+	ForcePlayerDist = 241,//BASIC_INSTRUCTION(0,0)
+	ShadeType = 242,//BASIC_INSTRUCTION(1,0)
+	CheckLevelDoor = 245,//BASIC_INSTRUCTION(0,0)
+	
+	GainJigsaw = 248,//BASIC_INSTRUCTION(0,0)
+	GainGoldenGobbo,LoseGoldenGobbo,//BASIC_INSTRUCTION(0,0)
+	Gain100Crystal,Lose100Crystals,//BASIC_INSTRUCTION(0,0)//Lose unimplemented but code exists
+	GainReward,LoseReward,//BASIC_INSTRUCTION(0,0)
+
+	ResetSpline = 251,//BASIC_INSTRUCTION(0,0)
+	CheckPoint = 252,//BASIC_INSTRUCTION(0,0)
+	ResetDialog = 255,//BASIC_INSTRUCTION(0,0)
+	EndLevel = 256,//BASIC_INSTRUCTION(0,0)
+	Distance = 260,//BASIC_INSTRUCTION(3,1)
+	Binocs = 261,//BinocsInstruction
+
+	OtherPiece = 266,//BASIC_INSTRUCTION(0,0)
+	NormalPiece = 267,//BASIC_INSTRUCTION(0,0)
+	RotatePiece = 285,//BASIC_INSTRUCTION(0,0)
+
+	WorldVector = 271,//BASIC_INSTRUCTION(3,0)
+	ObjectFallVerySlow = 272,//BASIC_INSTRUCTION(0,0)
+	Slope2Controller = 273,//BASIC_INSTRUCTION(1,0)
+	
+	LevelComplete = 274,//BASIC_INSTRUCTION(3,1)
+	SetLevelFlag = 275,//BASIC_INSTRUCTION(1,0)
+	GetLevelFlag = 276,//BASIC_INSTRUCTION(3,1)
+
+	CalcCarTilt = 277,//BASIC_INSTRUCTION(4,0)
+	BordersOn,BordersOff,//BASIC_INSTRUCTION(0,0)
+	SetAmbient = 286,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+	ResetAmbient = 287,//UNIMPLEMENTED_INSTRUCTION(0,0,0)
+	SampleStatus = 290,//BASIC_INSTRUCTION(1,1)
+	ResetToCheckPointnlh = 291,//BASIC_INSTRUCTION(0,0)
+
+	ResetDoor = 292,//BASIC_INSTRUCTION(0,0)
+	StoreDoor = 293,//BASIC_INSTRUCTION(0,0)
+	PushPlayer = 295,//BASIC_INSTRUCTION(0,0)
+	PopPlayer = 296,//BASIC_INSTRUCTION(0,0)
+
+	SetTimer = 300,//BASIC_INSTRUCTION(1,0)
+	TimerOff = 301,//BASIC_INSTRUCTION(0,0)
+	DistanceNoY = 302,//BASIC_INSTRUCTION(2,1)
+	NextTribe = 307,//BASIC_INSTRUCTION(0,0)
+	PrevTribe = 308,//BASIC_INSTRUCTION(0,0)
+	SetTimerClock,SetTimerBomb,//BASIC_INSTRUCTION(0,0)
+
+	InitBurpingGame,CloseBurpingGame,//BASIC_INSTRUCTION(0,0)
+
+	Credit = 313,//CreditInstruction
+	CloseCredits = 314,//BASIC_INSTRUCTION(0,0)
+	ShowRewardCard = 315,//BASIC_INSTRUCTION(0,0)
+	ShowHearts = 316,//BASIC_INSTRUCTION(0,0)
+	Cwg = 317,//CwgInstruction
+	
+	Camera_modified = 294,//BASIC_INSTRUCTION(0,0)
+	CameraFunction_47F1E0 = 319,//BASIC_INSTRUCTION(0,0)
+	CameraFunction_47F040 = 320,//BASIC_INSTRUCTION(0,0)
+	CameraFunction_47F0C0 = 321,//BASIC_INSTRUCTION(0,0)
+	CameraFunction_47F490 = 322,//BASIC_INSTRUCTION(0,0)
+
+	StkCmp = 123,//StackCompareInstruction//Implemented but never used by Croc 2
+	 */
 }

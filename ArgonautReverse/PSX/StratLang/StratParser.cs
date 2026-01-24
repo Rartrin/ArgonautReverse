@@ -526,7 +526,7 @@ namespace ArgonautReverse.PSX.StratLang
 				InstructionOpcode.RotatePiece => new BasicInstruction(0, 0, reader.Position, InstructionOpcode.RotatePiece),
 				InstructionOpcode.SetAmbient => new UnimplementedInstruction(0, 0, 0, reader.Position, InstructionOpcode.SetAmbient),
 				InstructionOpcode.ResetAmbient => new UnimplementedInstruction(0, 0, 0, reader.Position, InstructionOpcode.ResetAmbient),
-				InstructionOpcode.Inactive => new BasicInstruction(0, 0, reader.Position, InstructionOpcode.Inactive),
+				InstructionOpcode.InvActive => new BasicInstruction(0, 0, reader.Position, InstructionOpcode.InvActive),
 				InstructionOpcode.InvInactive => new BasicInstruction(0, 0, reader.Position, InstructionOpcode.InvInactive),
 				InstructionOpcode.SampleStatus => new BasicInstruction(1, 1, reader.Position, InstructionOpcode.SampleStatus),
 				InstructionOpcode.ResetToCheckPointnlh => new BasicInstruction(0, 0, reader.Position, InstructionOpcode.ResetToCheckPointnlh),

@@ -2824,8 +2824,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	[Opcode(InstructionOpcode.ResetAmbient)]
 	public sealed class ResetAmbientInstruction:UnimplementedInstruction;
 
-	[Opcode(InstructionOpcode.Inactive)]
-	public sealed class InactiveInstruction:SimpleNoStackInstruction;
+	[Opcode(InstructionOpcode.InvActive)]
+	public sealed class InvActiveInstruction:SimpleNoStackInstruction;
 
 	[Opcode(InstructionOpcode.InvInactive)]
 	public sealed class InvInactiveInstruction:SimpleNoStackInstruction;
