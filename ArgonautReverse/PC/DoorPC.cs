@@ -27,7 +27,7 @@ namespace ArgonautReverse.PC
 		public int Fade;
 
 		public int BackgroundOffset;
-		public StratObjectPC Background;
+		public StratObjectPC? Background;
 		
 		public int BackgroundAddYRotation;
 		public int BackgroundHeightAdjust;

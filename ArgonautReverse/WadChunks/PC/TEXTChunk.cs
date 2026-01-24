@@ -37,7 +37,7 @@ namespace ArgonautReverse.WadChunks.PC
 		public IReadOnlyList<SpriteStructPC> Sprites { get; }
 		public IReadOnlyList<EffectPC> Effects { get; }
 
-		public TEXTChunk(BaseWADChunkInfo info, IReadOnlyList<BrTexturePalettePC> palette, IReadOnlyList<TextureStructPC> textures, IReadOnlyList<SpriteStructPC> sprites, IReadOnlyList<EffectPC> effects, byte[] data = null) : base(info, data)
+		public TEXTChunk(BaseWADChunkInfo info, IReadOnlyList<BrTexturePalettePC> palette, IReadOnlyList<TextureStructPC> textures, IReadOnlyList<SpriteStructPC> sprites, IReadOnlyList<EffectPC> effects, byte[]? data = null) : base(info, data)
 		{
 			Palettes = palette;
 			Textures = textures;

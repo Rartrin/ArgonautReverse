@@ -46,13 +46,8 @@ namespace ArgonautReverse.WadChunks.PC
 			}
 		}
 	}
-	public sealed class MAPChunk:BaseWadChunk
+	public sealed class MAPChunk(BaseWADChunkInfo info, MapPC map, byte[]? data = null):BaseWadChunk(info, data)
 	{
-		public MapPC Map { get; }
-
-		public MAPChunk(BaseWADChunkInfo info, MapPC map, byte[] data = null) : base(info, data)
-		{
-			Map = map;
-		}
+		public MapPC Map => map;
 	}
 }

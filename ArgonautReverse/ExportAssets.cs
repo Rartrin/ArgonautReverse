@@ -1,3 +1,4 @@
+using ArgonautReverse.Engine;
 using ArgonautReverse.Files;
 
 namespace ArgonautReverse
@@ -5,18 +6,18 @@ namespace ArgonautReverse
 	public sealed class ProgramArgs
 	{
 		public string ReadFormat;
-		public string WriteFormat;
+		public string? WriteFormat;
 
-		public string PsxDirDat;//Path to PSX DIR/DAT files
-		public string WadFiles;//Path to WAD files or directories containing WADs
+		public string? PsxDirDat;//Path to PSX DIR/DAT files
+		public string? WadFiles;//Path to WAD files or directories containing WADs
 
-		public string ExportTextures;//Output path for textures
-		public string ExportModels;//Output path for models
-		public string ExportAudio;//Output path for WAV audio
-		public string UnpackAudio;//Output path for unpacked PS1 WAG audio
-		public string ExportLevels;//Output path for level's model geometry
-		public string ExportImages;//Output path for images
-		public string ExportActors;//Output path for actors
+		public string? ExportTextures;//Output path for textures
+		public string? ExportModels;//Output path for models
+		public string? ExportAudio;//Output path for WAV audio
+		public string? UnpackAudio;//Output path for unpacked PS1 WAG audio
+		public string? ExportLevels;//Output path for level's model geometry
+		public string? ExportImages;//Output path for images
+		public string? ExportActors;//Output path for actors
 					
 		public bool IgnoreWarnings;
 		public bool NoConfirm;
@@ -50,6 +51,11 @@ namespace ArgonautReverse
 					default:throw new Exception("Unknown argument: " + args[i]);
 				}
 			}
+			if(parsedArgs.ReadFormat == null)
+			{
+				throw new Exception("Missing read-format argument.");
+			}
+
 			return parsedArgs;
 		}
 
@@ -90,8 +96,8 @@ namespace ArgonautReverse
 				Console.ReadLine();
 			}
 
-			var readFormat = Configuration.SUPPORTED_GAMES.SingleOrDefault(g => g.Title == parsedArgs.ReadFormat);
-			var writeFormat = Configuration.SUPPORTED_GAMES.SingleOrDefault(g => g.Title == parsedArgs.WriteFormat);
+			var readFormat = Configuration.SUPPORTED_GAMES[parsedArgs.ReadFormat];
+			var writeFormat = parsedArgs.WriteFormat!=null ? Configuration.SUPPORTED_GAMES[parsedArgs.WriteFormat] : null;
 			if(!Configuration.ALL_PARSABLE_GAMES.Contains(readFormat))
 			{
 				throw new NotImplementedException("Files from this game can be extracted, but not reversed (yet). If you just want to extract them, use the extract_files_from_dat.py script.");

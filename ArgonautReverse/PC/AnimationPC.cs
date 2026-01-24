@@ -54,12 +54,12 @@ namespace ArgonautReverse.PC
 		public int FrameCount;
 		
 		public bool Flag;//Unioned with PositionDeltas
-		public IReadOnlyList<AnimationStruct1_PC> PositionDeltas;
+		public IReadOnlyList<AnimationStruct1_PC>? PositionDeltas;
 
 		public int MorphCount;
-		public IReadOnlyList<IReadOnlyList<short>> Morphs;
+		public IReadOnlyList<IReadOnlyList<short>>? Morphs;
 		public int BoneCount;
-		public IReadOnlyList<IReadOnlyList<Matrix4x4F>> Bones;
+		public IReadOnlyList<IReadOnlyList<Matrix4x4F>>? Bones;
 
 		public static AnimationStructPC ParseStruct(WadReader reader)
 		{
@@ -89,14 +89,14 @@ namespace ArgonautReverse.PC
 			{
 				animation.PositionDeltas = reader.ReadArray<AnimationStruct1_PC>(animation.FrameCount);
 			}
-			short[][] morphs = null;
+			short[][]? morphs = null;
 			if(animation.MorphCount!=0 && animation.FrameCount!=0)
 			{
 				//Morphs array placeholder
 				reader.AssertEmptyReadData<int>(animation.FrameCount);//Type would actually be a short*
 				morphs = new short[animation.FrameCount][];
 			}
-			Matrix4x4F[][] bones = null;
+			Matrix4x4F[][]? bones = null;
 			if(animation.FrameCount!=0)
 			{
 				//Bones array placeholder

@@ -28,7 +28,7 @@ namespace ArgonautReverse.WadChunks.PC
 	{
 		public IReadOnlyList<StratObjectPC> Models { get; }
 
-		public TRAKChunk(BaseWADChunkInfo info, IReadOnlyList<StratObjectPC> models, byte[] data = null) : base(info, data)
+		public TRAKChunk(BaseWADChunkInfo info, IReadOnlyList<StratObjectPC> models, byte[]? data = null) : base(info, data)
 		{
 			Models = models;
 		}

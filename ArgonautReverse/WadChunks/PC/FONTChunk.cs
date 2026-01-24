@@ -23,7 +23,7 @@ namespace ArgonautReverse.WadChunks.PC
 	{
 		public IReadOnlyList<FontStructPC> FontLookup{get;}
 
-		public FONTChunk(BaseWADChunkInfo info, IReadOnlyList<FontStructPC> fontLookup, byte[] data = null) : base(info, data)
+		public FONTChunk(BaseWADChunkInfo info, IReadOnlyList<FontStructPC> fontLookup, byte[]? data = null) : base(info, data)
 		{
 			FontLookup = fontLookup;
 		}

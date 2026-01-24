@@ -6,7 +6,7 @@ namespace ArgonautReverse.PC
 	public enum TextureFlagsPC:int
 	{
 		TEXTURE_FLAG_NONE = 0,
-		TEXTURE_FLAG_80 = 0x80,
+		TEXTURE_FLAG_80 = 0x80,//Compressed
 	}
 
 	public sealed class BrTexturePalettePC:IReadable<BrTexturePalettePC>
@@ -64,18 +64,26 @@ namespace ArgonautReverse.PC
 
 		//public object obj7;
 
+		private TextureStructPC(TextureFlagsPC flags, int width, int height, ushort[] pixels)
+		{
+			this.flags = flags;
+			Width = width;
+			Height = height;
+			this.pixels = pixels;
+		}
+
 		public static TextureStructPC Parse(WadReader reader)
 		{
-			var texture = new TextureStructPC(); ;
-			texture.flags = (TextureFlagsPC)reader.Read<int>();
-			texture.Width = reader.Read<int>();
-			texture.Height = reader.Read<int>();
-			int pixelCount = texture.Width * texture.Height;
-			if(texture.flags != 0)
+			var flags = (TextureFlagsPC)reader.Read<int>();
+			var width = reader.Read<int>();
+			var height = reader.Read<int>();
+			int pixelCount = width * height;
+			ushort[] pixels;
+			if(flags != 0)
 			{
-				if((texture.flags & TextureFlagsPC.TEXTURE_FLAG_80) != 0)
+				if((flags & TextureFlagsPC.TEXTURE_FLAG_80) != 0)
 				{
-					texture.pixels = new ushort[pixelCount];
+					pixels = new ushort[pixelCount];
 
 					var srcSize = reader.Read<int>();
 					if(srcSize < 0 || srcSize % sizeof(ushort) != 0)
@@ -83,11 +91,11 @@ namespace ArgonautReverse.PC
 						throw new Exception();
 					}
 					var src = reader.ReadArray<ushort>(srcSize / sizeof(ushort));
-					TexturePC.DecompressPixels(src, texture.pixels, texture.Width, texture.Height);
+					TexturePC.DecompressPixels(src, pixels, width, height);
 				}
 				else
 				{
-					texture.pixels = reader.ReadArray<ushort>(pixelCount);
+					pixels = reader.ReadArray<ushort>(pixelCount);
 				}
 			}
 			else
@@ -96,10 +104,10 @@ namespace ArgonautReverse.PC
 				{
 					throw new Exception("This should the byte length of a ushort array");
 				}
-				texture.pixels = reader.ReadArray<ushort>(pixelCount / sizeof(ushort));
+				pixels = reader.ReadArray<ushort>(pixelCount / sizeof(ushort));
 			}
 
-			return texture;
+			return new(flags, width, height, pixels);
 		}
 	}
 

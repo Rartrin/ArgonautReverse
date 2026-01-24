@@ -108,13 +108,13 @@ namespace ArgonautReverse.PC
 				//case ChunkType.ID_PC_RIMG:EnsureEmpty(RIMGChunk);RIMGChunk = (RIMGChunk)chunk;break;
 
 				case ChunkType.ID_END:EnsureEmpty(EndChunk);EndChunk = (ENDChunkPC)chunk;break;
-				//default:throw new Exception("Unsupported chunk for platform");
+				default:
+				{
+					//throw new Exception("Unsupported chunk for platform");
+					Console.WriteLine($"Skipping unsupported chunk: {chunk.Info.ChunkType}");
+					break;
+				}
 			}
-		}
-
-		private void ExportSTRAT(ProgramArgs args, Configuration conf)
-		{
-			throw new NotImplementedException();
 		}
 
 		public override void ExportWadAssets(ProgramArgs args, Configuration conf)
@@ -123,9 +123,9 @@ namespace ArgonautReverse.PC
 			//Skip VERSION
 			//ExportMAP(args, conf);
 			//ExportTRACK(args, conf);
-			//ExportTEXT(args, conf);
+			ExportTEXT(args, conf);
 			//ExportLIGHT(args, conf);
-			ExportSTRAT(args, conf);
+			//ExportSTRAT(args, conf);
 			//Skip WADFLAGS
 			//ExportSAMPLE(args, conf);
 			//ExportLANG(args, conf);
@@ -134,6 +134,16 @@ namespace ArgonautReverse.PC
 			//ExportSPRITE(args, conf);
 			//ExportRIMG(args, conf);
 			//Skip END
+			throw new NotImplementedException();
+		}
+
+		private void ExportTEXT(ProgramArgs args, Configuration conf)
+		{
+			throw new NotImplementedException();
+		}
+
+		private void ExportSTRAT(ProgramArgs args, Configuration conf)
+		{
 			throw new NotImplementedException();
 		}
 	}

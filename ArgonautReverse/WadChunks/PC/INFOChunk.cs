@@ -27,6 +27,6 @@ namespace ArgonautReverse.WadChunks.PC
 	}
 	public sealed class INFOChunk:BaseWadChunk
 	{
-		public INFOChunk(BaseWADChunkInfo info, byte[] data = null) : base(info, data) { }
+		public INFOChunk(BaseWADChunkInfo info, byte[]? data = null) : base(info, data) { }
 	}
 }
