@@ -27,7 +27,9 @@ namespace ArgonautReverse.Files
 			output.WriteLine("(?) Unknown file");
 		}
 
-		public virtual void Parse(Configuration conf){}
+		public virtual void Parse(ProgramArgs args, Configuration conf){}
+
+		public virtual void ExtractAssets(ProgramArgs args, Configuration conf){}
 
 		public virtual void Serialize(WadWriter data_out)
 		{

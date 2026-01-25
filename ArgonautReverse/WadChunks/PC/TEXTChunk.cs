@@ -30,19 +30,11 @@ namespace ArgonautReverse.WadChunks.PC
 			return new TEXTChunk(this, palettes, textures, sprites, effects, reader.GetAllWadData());
 		}
 	}
-	public sealed class TEXTChunk:BaseWadChunk
+	public sealed class TEXTChunk(BaseWADChunkInfo info, IReadOnlyList<BrTexturePalettePC> palettes, IReadOnlyList<TextureStructPC> textures, IReadOnlyList<SpriteStructPC> sprites, IReadOnlyList<EffectPC> effects, byte[]? data = null):BaseWadChunk(info, data)
 	{
-		public IReadOnlyList<BrTexturePalettePC> Palettes { get; }
-		public IReadOnlyList<TextureStructPC> Textures { get; }
-		public IReadOnlyList<SpriteStructPC> Sprites { get; }
-		public IReadOnlyList<EffectPC> Effects { get; }
-
-		public TEXTChunk(BaseWADChunkInfo info, IReadOnlyList<BrTexturePalettePC> palette, IReadOnlyList<TextureStructPC> textures, IReadOnlyList<SpriteStructPC> sprites, IReadOnlyList<EffectPC> effects, byte[]? data = null) : base(info, data)
-		{
-			Palettes = palette;
-			Textures = textures;
-			Sprites = sprites;
-			Effects = effects;
-		}
+		public IReadOnlyList<BrTexturePalettePC> Palettes = palettes;
+		public IReadOnlyList<TextureStructPC> Textures = textures;
+		public IReadOnlyList<SpriteStructPC> Sprites = sprites;
+		public IReadOnlyList<EffectPC> Effects = effects;
 	}
 }

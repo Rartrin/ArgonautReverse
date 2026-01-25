@@ -25,194 +25,197 @@
 	//These are separate to prevent conflict with methods only differing by generic arguments
 	public static class ReaderExtensions
 	{
-		#region IReadable<T>
-		public static T Read<T>(this WadReader that) where T : IReadable<T>
+		extension(WadReader that)
 		{
-			return T.Parse(that);
-		}
-
-		public static T[] ReadArray<T>(this WadReader that, int length) where T : IReadable<T>
-		{
-			if(length == 0){return Array.Empty<T>();}
-
-			var array = new T[length];
-			for(int i = 0; i < length; i++)
+			#region IReadable<T>
+			public T Read<T>() where T : IReadable<T>
 			{
-				array[i] = T.Parse(that);
+				return T.Parse(that);
 			}
-			return array;
-		}
 
-		public static void Read<T>(this WadReader that, out T value) where T : IReadable<T>
-		{
-			value = T.Parse(that);
-		}
-
-		public static void ReadArray<T>(this WadReader that, Span<T> array) where T : IReadable<T>
-		{
-			for(int i = 0; i < array.Length; i++)
+			public T[] ReadArray<T>(int length) where T : IReadable<T>
 			{
-				array[i] = T.Parse(that);
+				if(length == 0){return [];}
+
+				var array = new T[length];
+				for(int i = 0; i < length; i++)
+				{
+					array[i] = T.Parse(that);
+				}
+				return array;
 			}
-		}
-		#endregion
-		#region IReadable<T,A>
-		public static T Read<T,A>(this WadReader that, A arg) where T : IReadable<T,A>
-		{
-			return T.Parse(that, arg);
-		}
 
-		public static T[] ReadArray<T,A>(this WadReader that, A arg, int length) where T : IReadable<T,A>
-		{
-			if(length == 0){return Array.Empty<T>();}
-
-			var array = new T[length];
-			that.ReadArray<T,A>(arg, array);
-			return array;
-		}
-		public static T[] ReadArray<T,A>(this WadReader that, IReadOnlyList<A> args, int length) where T : IReadable<T,A>
-		{
-			if(length == 0){return Array.Empty<T>();}
-
-			var array = new T[length];
-			that.ReadArray<T,A>(args, array);
-			return array;
-		}
-
-		public static void Read<T,A>(this WadReader that, A arg, out T value) where T : IReadable<T,A>
-		{
-			value = T.Parse(that, arg);
-		}
-
-		public static void ReadArray<T,A>(this WadReader that, A arg, Span<T> array) where T : IReadable<T,A>
-		{
-			for(int i = 0; i < array.Length; i++)
+			public void Read<T>(out T value) where T : IReadable<T>
 			{
-				array[i] = T.Parse(that, arg);
+				value = T.Parse(that);
 			}
-		}
-		public static void ReadArray<T,A>(this WadReader that, IReadOnlyList<A> args, Span<T> array) where T : IReadable<T,A>
-		{
-			for(int i = 0; i < array.Length; i++)
+
+			public void ReadArray<T>(Span<T> array) where T : IReadable<T>
 			{
-				array[i] = T.Parse(that, args[i]);
+				for(int i = 0; i < array.Length; i++)
+				{
+					array[i] = T.Parse(that);
+				}
 			}
-		}
-		#endregion
-		#region IReadableMultipass<T>
-		public static IReadOnlyList<T> ReadArrayMultipass<T>(this WadReader that, int length) where T:class,IReadableArrayMultipass<T>
-		{
-			if(length == 0){return Array.Empty<T>();}
-
-			var array = new T[length];
-			for(int i = 0; i < length; i++)
+			#endregion
+			#region IReadable<T,A>
+			public T Read<T,A>(A arg) where T : IReadable<T,A>
 			{
-				array[i] = T.ParseStruct(that);
+				return T.Parse(that, arg);
 			}
-			for(int i = 0; i < length; i++)
+
+			public T[] ReadArray<T,A>(A arg, int length) where T : IReadable<T,A>
 			{
-				T.ParseData(that, array[i]);
-			}
-			return array;
-		}
-		public static IReadOnlyList<T> ReadArrayWithoutMultipass<T>(this WadReader that, int length) where T:class,IReadableArrayMultipass<T>
-		{
-			if(length == 0){return Array.Empty<T>();}
+				if(length == 0){return [];}
 
-			var array = new T[length];
-			for(int i = 0; i < length; i++)
+				var array = new T[length];
+				that.ReadArray<T,A>(arg, array);
+				return array;
+			}
+			public T[] ReadArray<T,A>(IReadOnlyList<A> args, int length) where T : IReadable<T,A>
 			{
-				array[i] = T.ParseStruct(that);
-				T.ParseData(that, array[i]);
+				if(length == 0){return [];}
+
+				var array = new T[length];
+				that.ReadArray(args, array);
+				return array;
 			}
-			return array;
-		}
-		#endregion
 
-		#region DelRead<T>
-		public static T Read<T>(this WadReader that, DelRead<T> read)
-		{
-			return read(that);
-		}
+			public void Read<T,A>(A arg, out T value) where T : IReadable<T,A>
+			{
+				value = T.Parse(that, arg);
+			}
 
-		public static T[] ReadArray<T>(this WadReader that, DelRead<T> read, int length)
-		{
-			if(length == 0){return Array.Empty<T>();}
+			public void ReadArray<T,A>(A arg, Span<T> array) where T : IReadable<T,A>
+			{
+				for(int i = 0; i < array.Length; i++)
+				{
+					array[i] = T.Parse(that, arg);
+				}
+			}
+			public void ReadArray<T,A>(IReadOnlyList<A> args, Span<T> array) where T : IReadable<T,A>
+			{
+				for(int i = 0; i < array.Length; i++)
+				{
+					array[i] = T.Parse(that, args[i]);
+				}
+			}
+			#endregion
+			#region IReadableMultipass<T>
+			public IReadOnlyList<T> ReadArrayMultipass<T>(int length) where T:class,IReadableArrayMultipass<T>
+			{
+				if(length == 0){return [];}
 
-			var array = new T[length];
-			that.ReadArray(read, array);
-			return array;
-		}
+				var array = new T[length];
+				for(int i = 0; i < length; i++)
+				{
+					array[i] = T.ParseStruct(that);
+				}
+				for(int i = 0; i < length; i++)
+				{
+					T.ParseData(that, array[i]);
+				}
+				return array;
+			}
+			public IReadOnlyList<T> ReadArrayWithoutMultipass<T>(int length) where T:class,IReadableArrayMultipass<T>
+			{
+				if(length == 0){return [];}
+
+				var array = new T[length];
+				for(int i = 0; i < length; i++)
+				{
+					array[i] = T.ParseStruct(that);
+					T.ParseData(that, array[i]);
+				}
+				return array;
+			}
+			#endregion
+
+			#region DelRead<T>
+			public T Read<T>(DelRead<T> read)
+			{
+				return read(that);
+			}
+
+			public T[] ReadArray<T>(DelRead<T> read, int length)
+			{
+				if(length == 0){return [];}
+
+				var array = new T[length];
+				that.ReadArray(read, array);
+				return array;
+			}
 		
-		public static void Read<T>(this WadReader that, DelRead<T> read, out T value)
-		{
-			value = read(that);
-		}
-
-		public static void ReadArray<T>(this WadReader that, DelRead<T> read, Span<T> array)
-		{
-			for(int i = 0; i < array.Length; i++)
+			public void Read<T>(DelRead<T> read, out T value)
 			{
-				array[i] = read(that);
+				value = read(that);
 			}
-		}
-		#endregion
-		#region DelReadInto<T>
-		public static void ReadInto<T>(this WadReader that, DelReadInto<T> readInto, T instance)
-		{
-			readInto(that, instance);
-		}
 
-		public static void ReadIntoArray<T>(this WadReader that, DelReadInto<T> readInto, IReadOnlyList<T> array) where T : class
-		{
-			for(int i = 0; i < array.Count; i++)
+			public void ReadArray<T>(DelRead<T> read, Span<T> array)
 			{
-				readInto(that, array[i]);
+				for(int i = 0; i < array.Length; i++)
+				{
+					array[i] = read(that);
+				}
 			}
-		}
-		#endregion
-		#region DelRead<T,A>
-		public static T Read<T,A>(this WadReader that, DelRead<T,A> read, A arg)
-		{
-			return read(that, arg);
-		}
-
-		public static T[] ReadArray<T,A>(this WadReader that, DelRead<T,A> read, A arg, int length)
-		{
-			if(length == 0){return Array.Empty<T>();}
-
-			var array = new T[length];
-			that.ReadArray(read, arg, array);
-			return array;
-		}
-		public static T[] ReadArray<T,A>(this WadReader that, DelRead<T,A> read, IReadOnlyList<A> args, int length)
-		{
-			if(length == 0){return Array.Empty<T>();}
-
-			var array = new T[length];
-			that.ReadArray(read, args, array);
-			return array;
-		}
-
-		public static void Read<T,A>(this WadReader that, DelRead<T,A> read, A arg, out T value)
-		{
-			value = read(that, arg);
-		}
-
-		public static void ReadArray<T,A>(this WadReader that, DelRead<T,A> read, A arg, Span<T> array)
-		{
-			for(int i = 0; i < array.Length; i++)
+			#endregion
+			#region DelReadInto<T>
+			public void ReadInto<T>(DelReadInto<T> readInto, T instance)
 			{
-				array[i] = read(that, arg);
+				readInto(that, instance);
 			}
-		}
-		public static void ReadArray<T,A>(this WadReader that, DelRead<T,A> read, IReadOnlyList<A> args, Span<T> array)
-		{
-			for(int i = 0; i < array.Length; i++)
+
+			public void ReadIntoArray<T>(DelReadInto<T> readInto, IReadOnlyList<T> array) where T : class
 			{
-				array[i] = read(that, args[i]);
+				for(int i = 0; i < array.Count; i++)
+				{
+					readInto(that, array[i]);
+				}
 			}
+			#endregion
+			#region DelRead<T,A>
+			public T Read<T,A>(DelRead<T,A> read, A arg)
+			{
+				return read(that, arg);
+			}
+
+			public T[] ReadArray<T,A>(DelRead<T,A> read, A arg, int length)
+			{
+				if(length == 0){return [];}
+
+				var array = new T[length];
+				that.ReadArray(read, arg, array);
+				return array;
+			}
+			public T[] ReadArray<T,A>(DelRead<T,A> read, IReadOnlyList<A> args, int length)
+			{
+				if(length == 0){return [];}
+
+				var array = new T[length];
+				that.ReadArray(read, args, array);
+				return array;
+			}
+
+			public void Read<T,A>(DelRead<T,A> read, A arg, out T value)
+			{
+				value = read(that, arg);
+			}
+
+			public void ReadArray<T,A>(DelRead<T,A> read, A arg, Span<T> array)
+			{
+				for(int i = 0; i < array.Length; i++)
+				{
+					array[i] = read(that, arg);
+				}
+			}
+			public void ReadArray<T,A>(DelRead<T,A> read, IReadOnlyList<A> args, Span<T> array)
+			{
+				for(int i = 0; i < array.Length; i++)
+				{
+					array[i] = read(that, args[i]);
+				}
+			}
+			#endregion
 		}
-		#endregion
 	}
 }

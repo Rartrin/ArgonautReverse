@@ -3,6 +3,9 @@ using ArgonautReverse.Files;
 using ArgonautReverse.WadChunks.PC;
 using ArgonautReverse.WadChunks;
 using System.Diagnostics.CodeAnalysis;
+using System.Drawing;
+using System.Drawing.Imaging;
+using ArgonautReverse.Universal;
 
 namespace ArgonautReverse.PC
 {
@@ -117,7 +120,7 @@ namespace ArgonautReverse.PC
 			}
 		}
 
-		public override void ExportWadAssets(ProgramArgs args, Configuration conf)
+		public override void ExtractAssets(ProgramArgs args, Configuration conf)
 		{
 			//Skip INFO
 			//Skip VERSION
@@ -138,6 +141,38 @@ namespace ArgonautReverse.PC
 		}
 
 		private void ExportTEXT(ProgramArgs args, Configuration conf)
+		{
+			if(!args.ExtractTextures){return;}
+
+			var textureDirectory = args.GetExtractDirectory(Stem, "Textures");
+			for(int i=0; i<TextChunk.Textures.Count; i++)
+			{
+				var texture = TextChunk.Textures[i];
+				ExtractTexture(texture, Path.Join(textureDirectory, $"{i}.png"));
+			}
+
+			//var spriteDirectory = args.GetExtractDirectory(Stem, "Sprites");
+			//for(int i=0; i<TextChunk.Sprites.Count; i++)
+			//{
+			//	var sprite = TextChunk.Sprites[i];
+			//	ExtractTexture(sprite, Path.Join(spriteDirectory, $"{i}.png"));
+			//}
+		}
+
+		public unsafe void ExtractTexture(TextureStructPC texture, string path)
+		{
+			var abgrPixels = texture.pixels;
+			var argbPixels = stackalloc ColorARGB555[abgrPixels.Length];
+			for(int i=0; i<abgrPixels.Length; i++)
+			{
+				argbPixels[i] = new ColorABGR555(abgrPixels[i]).ToRGB555();
+			}
+			//Save before leaving. Bitmap seem to load lazily meaning there could be pointer degradation regardless of stackalloc or fixed.
+			var ret = new Bitmap(texture.Width, texture.Height, texture.Width * sizeof(ColorARGB555), PixelFormat.Format16bppArgb1555, (nint)argbPixels);
+			ret.Save(path, ImageFormat.Png);
+		}
+
+		public void ExtractSprites(SpriteStructPC sprite, string path)
 		{
 			throw new NotImplementedException();
 		}

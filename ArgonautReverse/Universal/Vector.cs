@@ -139,8 +139,11 @@ namespace ArgonautReverse.Universal
 		public static Vector3I Abs(in Vector3I v) => new Vector3I(Math.Abs(v.X), Math.Abs(v.Y), Math.Abs(v.Z));
 
 		#region Extensions
-		public static float Length(this Vector3F that) => MathF.Sqrt(that.LengthSquared);
-		public static Vector3F Normalized(this Vector3F that) => that / that.Length();
+		extension(Vector3F that)
+		{
+			public float Length() => MathF.Sqrt(that.LengthSquared);
+			public Vector3F Normalized() => that / that.Length();
+		}
 		#endregion
 	}
 }

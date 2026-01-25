@@ -25,98 +25,101 @@
 	//These are separate to prevent conflict with methods only differing by generic arguments
 	public static class WriterExtensions
 	{
-		#region IWritable<T>
-		public static void Write<T>(this WadWriter that, T value) where T : IWritable
+		extension(WadWriter that)
 		{
-			value.Write(that);
-		}
+			#region IWritable<T>
+			public void Write<T>(T value) where T : IWritable
+			{
+				value.Write(that);
+			}
 
-		public static void WriteArray<T>(this WadWriter that, IReadOnlyList<T> array) where T : IWritable
-		{
-			for(int i = 0; i < array.Count; i++)
+			public void WriteArray<T>(IReadOnlyList<T> array) where T : IWritable
 			{
-				array[i].Write(that);
+				for(int i = 0; i < array.Count; i++)
+				{
+					array[i].Write(that);
+				}
 			}
-		}
-		#endregion
-		#region IWritable<T,A>
-		public static void Write<T,A>(this WadWriter that, A arg, T value) where T : IWritable<A>
-		{
-			value.Write(that, arg);
-		}
+			#endregion
+			#region IWritable<T,A>
+			public void Write<T,A>(A arg, T value) where T : IWritable<A>
+			{
+				value.Write(that, arg);
+			}
 
-		public static void WriteArray<T,A>(this WadWriter that, A arg, IReadOnlyList<T> array) where T : IWritable<A>
-		{
-			for(int i = 0; i < array.Count; i++)
+			public void WriteArray<T,A>(A arg, IReadOnlyList<T> array) where T : IWritable<A>
 			{
-				array[i].Write(that, arg);
+				for(int i = 0; i < array.Count; i++)
+				{
+					array[i].Write(that, arg);
+				}
 			}
-		}
 
-		public static void WriteArray<T,A>(this WadWriter that, IList<A> args, IReadOnlyList<T> array) where T : IWritable<A>
-		{
-			for(int i = 0; i < array.Count; i++)
+			public void WriteArray<T,A>(IList<A> args, IReadOnlyList<T> array) where T : IWritable<A>
 			{
-				array[i].Write(that, args[i]);
+				for(int i = 0; i < array.Count; i++)
+				{
+					array[i].Write(that, args[i]);
+				}
 			}
-		}
-		#endregion
-		#region IWritableMultipass<T>
-		public static void WriteArrayMultipass<T>(this WadWriter that, IReadOnlyList<T> array) where T:class,IWritableArrayMultipass
-		{
-			for(int i = 0; i < array.Count; i++)
+			#endregion
+			#region IWritableMultipass<T>
+			public void WriteArrayMultipass<T>(IReadOnlyList<T> array) where T:class,IWritableArrayMultipass
 			{
-				array[i].WriteStruct(that);
+				for(int i = 0; i < array.Count; i++)
+				{
+					array[i].WriteStruct(that);
+				}
+				for(int i = 0; i < array.Count; i++)
+				{
+					array[i].WriteData(that);
+				}
 			}
-			for(int i = 0; i < array.Count; i++)
+			public void WriteArrayWithoutMultipass<T>(IReadOnlyList<T> array) where T:class,IWritableArrayMultipass
 			{
-				array[i].WriteData(that);
+				for(int i = 0; i < array.Count; i++)
+				{
+					array[i].WriteStruct(that);
+					array[i].WriteData(that);
+				}
 			}
-		}
-		public static void WriteArrayWithoutMultipass<T>(this WadWriter that, IReadOnlyList<T> array) where T:class,IWritableArrayMultipass
-		{
-			for(int i = 0; i < array.Count; i++)
-			{
-				array[i].WriteStruct(that);
-				array[i].WriteData(that);
-			}
-		}
-		#endregion
+			#endregion
 
-		#region DelWrite
-		public static void Write(this WadWriter that, DelWrite write)
-		{
-			write(that);
-		}
-
-		public static void WriteArray(this WadWriter that, IReadOnlyList<DelWrite> writes)
-		{
-			foreach(var write in writes)
+			#region DelWrite
+			public void Write(DelWrite write)
 			{
 				write(that);
 			}
-		}
-		#endregion
-		#region DelWriteFrom<T>
-		public static void WriteFrom<T>(this WadWriter that, DelWriteFrom<T> writeFrom, T instance)
-		{
-			writeFrom(that, instance);
-		}
 
-		public static void WriteFromArray<T>(this WadWriter that, DelWriteFrom<T> writeFrom, IReadOnlyList<T> array)
-		{
-			for(int i = 0; i < array.Count; i++)
+			public void WriteArray(IReadOnlyList<DelWrite> writes)
 			{
-				writeFrom(that, array[i]);
+				foreach(var write in writes)
+				{
+					write(that);
+				}
 			}
+			#endregion
+			#region DelWriteFrom<T>
+			public void WriteFrom<T>(DelWriteFrom<T> writeFrom, T instance)
+			{
+				writeFrom(that, instance);
+			}
+
+			public void WriteFromArray<T>(DelWriteFrom<T> writeFrom, IReadOnlyList<T> array)
+			{
+				for(int i = 0; i < array.Count; i++)
+				{
+					writeFrom(that, array[i]);
+				}
+			}
+			#endregion
+			#region DelWrite<T,A>
+			public void Write<A>(DelWrite<A> write, A arg)
+			{
+				write(that, arg);
+			}
+			#endregion
 		}
-		#endregion
-		#region DelWrite<T,A>
-		public static void Write<A>(this WadWriter that, DelWrite<A> write, A arg)
-		{
-			write(that, arg);
-		}
-		#endregion
 	}
 }
 

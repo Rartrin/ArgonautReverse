@@ -425,22 +425,19 @@ namespace ArgonautReverse.PSX
 		{
 			if(!DPSXChunkInfo.Instance.SupportedWadVersions.Intersect(conf.ReadVersion.WadVersions).Any()){return;}
 
-			if(args.ExportActors is string exportActors)
+			if(args.ExtractActors)
 			{
-				var wad_actors_folder_path = Path.Join(exportActors, Stem);
-				ExportAssets.CreateExportDirectory(wad_actors_folder_path);
+				var wad_actors_folder_path = args.GetExtractDirectory(Stem, "Actors");
 				ExportActors(wad_actors_folder_path, Stem);
 			}
-			if(args.ExportModels is string exportModels)
+			if(args.ExtractModels)
 			{
-				var wad_models_3d_folder_path = Path.Join(exportModels, Stem);
-				ExportAssets.CreateExportDirectory(wad_models_3d_folder_path);
+				var wad_models_3d_folder_path = args.GetExtractDirectory(Stem, "Models");
 				export_experimental_models(wad_models_3d_folder_path, Stem);
 			}
-			if(args.ExportLevels is string exportLevels)
+			if(args.ExtractLevels)
 			{
-				var wad_level_folder_path = Path.Join(exportLevels, Stem);
-				ExportAssets.CreateExportDirectory(wad_level_folder_path);
+				var wad_level_folder_path = args.GetExtractDirectory(Stem, "Levels");
 				export_level(wad_level_folder_path, Stem);
 			}
 		}
@@ -449,16 +446,14 @@ namespace ArgonautReverse.PSX
 		{
 			if(!SPSXChunkInfo.Instance.SupportedWadVersions.Intersect(conf.ReadVersion.WadVersions).Any()){return;}
 
-			if(args.ExportAudio is string exportAudio)
+			if(args.ExtractAudio)
 			{
-				var wad_audio_export_folder_path = Path.Join(exportAudio, Stem);
-				ExportAssets.CreateExportDirectory(wad_audio_export_folder_path);
+				var wad_audio_export_folder_path = args.GetExtractDirectory(Stem, "Audio");
 				export_audio_to_wav(wad_audio_export_folder_path, Stem);
 			}
-			if(args.UnpackAudio is string unpackAudio)
+			if(args.UnpackAudio)
 			{
-				var wad_audio_unpack_folder_path = Path.Join(unpackAudio, Stem);
-				ExportAssets.CreateExportDirectory(wad_audio_unpack_folder_path);
+				var wad_audio_unpack_folder_path = args.GetExtractDirectory(Stem, "UnpackedAudio");
 				export_audio_to_vag(wad_audio_unpack_folder_path, Stem);
 			}
 		}
@@ -467,13 +462,13 @@ namespace ArgonautReverse.PSX
 		{
 			if(!TPSXChunkInfo.Instance.SupportedWadVersions.Intersect(conf.ReadVersion.WadVersions).Any()){return;}
 
-			if(args.ExportTextures is string exportTextures)
+			if(args.ExtractTextures)
 			{
-				TPSX.TextureFile.to_colorized_texture().Save(Path.Join(exportTextures, $"{Stem}.PNG"), System.Drawing.Imaging.ImageFormat.Png);
+				TPSX.TextureFile.to_colorized_texture().Save(Path.Join(args.ExtractPath, Stem, "Textures.png"), System.Drawing.Imaging.ImageFormat.Png);
 			}
 		}
 
-		public override void ExportWadAssets(ProgramArgs args, Configuration conf)
+		public override void ExtractAssets(ProgramArgs args, Configuration conf)
 		{
 			ExportTPSX(args, conf);
 			ExportSPSX(args, conf);

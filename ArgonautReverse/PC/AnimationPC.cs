@@ -3,40 +3,24 @@ using ArgonautReverse.Universal;
 
 namespace ArgonautReverse.PC
 {
-	public readonly struct AnimTriggerPC:IReadable<AnimTriggerPC>
+	public readonly record struct AnimTriggerPC(ushort Frame, ushort Trigger):IReadable<AnimTriggerPC>,IWritable
 	{
-		public readonly ushort Frame;
-		public readonly ushort Trigger;
-
-		public AnimTriggerPC(ushort wField0, ushort wField1)
-		{
-			this.Frame = wField0;
-			this.Trigger = wField1;
-		}
-
 		public static AnimTriggerPC Parse(WadReader reader)
 		{
-			var wField0 = reader.Read<ushort>();
-			var wField1 = reader.Read<ushort>();
-			return new AnimTriggerPC(wField0, wField1);
+			var frame = reader.Read<ushort>();
+			var trigger = reader.Read<ushort>();
+			return new AnimTriggerPC(frame, trigger);
 		}
-	}
 
-	public readonly struct AnimationStruct1_PC:IReadable<AnimationStruct1_PC>
+        public void Write(WadWriter writer)
+        {
+            writer.Write<ushort>(Frame);
+			writer.Write<ushort>(Trigger);
+        }
+    }
+
+	public readonly record struct AnimationStruct1_PC(short wField0, short wField1, short wField2, short wField3):IReadable<AnimationStruct1_PC>,IWritable
 	{
-		public readonly short wField0;
-		public readonly short wField1;
-		public readonly short wField2;
-		public readonly short wField3;
-
-		public AnimationStruct1_PC(short wField0, short wField1, short wField2, short wField3)
-		{
-			this.wField0 = wField0;
-			this.wField1 = wField1;
-			this.wField2 = wField2;
-			this.wField3 = wField3;
-		}
-
 		public static AnimationStruct1_PC Parse(WadReader reader)
 		{
 			var wField0 = reader.Read<short>();
@@ -45,7 +29,15 @@ namespace ArgonautReverse.PC
 			var wField3 = reader.Read<short>();
 			return new AnimationStruct1_PC(wField0, wField1, wField2, wField3);
 		}
-	}
+
+        public void Write(WadWriter writer)
+        {
+            writer.Write<short>(wField0);
+            writer.Write<short>(wField1);
+            writer.Write<short>(wField2);
+            writer.Write<short>(wField3);
+        }
+    }
 
 	public sealed class AnimationStructPC:IReadableArrayMultipass<AnimationStructPC>
 	{

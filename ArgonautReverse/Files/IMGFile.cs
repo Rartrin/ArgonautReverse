@@ -112,8 +112,10 @@ namespace ArgonautReverse.Files
 				output.WriteLine(dimensions);
 			}
 		}
-		public override void Parse(Configuration conf/*, string kwargs_stem*/)
+		public override void Parse(ProgramArgs args, Configuration conf/*, string kwargs_stem*/)
 		{
+			if(!args.ExtractIMGs){return;}
+
 			ArraySegment<byte>[] images_data;
 			if(this.Stem == "REPORT")// Patch for REPORT.IMG that contains multiple images
 			{
@@ -175,6 +177,23 @@ namespace ArgonautReverse.Files
 			}
 			this.Images = images;
 		}
+
+        public override void ExtractAssets(ProgramArgs args, Configuration conf)
+        {
+			if(!args.ExtractIMGs){return;}
+
+			if(Images.Count == 1)
+			{
+				Images[0].Save(Path.Join(args.ExtractPath, $"{Stem}.png"));
+			}
+			else
+			{
+				for(int i=0; i<Images.Count; i++)
+				{
+					Images[i].Save(Path.Join(args.ExtractPath, Stem, $"{i}.png"));
+				}
+			}
+        }
 
 		public static unsafe Bitmap to_full_colorized(ArraySegment<byte> data, XY dimensions, Color[] palette, int n_palette_colors, bool has_alpha)
 		{

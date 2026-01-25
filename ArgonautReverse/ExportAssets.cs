@@ -1,4 +1,3 @@
-using ArgonautReverse.Engine;
 using ArgonautReverse.Files;
 
 namespace ArgonautReverse
@@ -6,21 +5,29 @@ namespace ArgonautReverse
 	public sealed class ProgramArgs
 	{
 		public string ReadFormat;
-		public string? WriteFormat;
-
 		public string? PsxDirDat;//Path to PSX DIR/DAT files
-		public string? WadFiles;//Path to WAD files or directories containing WADs
+		public string? ReadWads;//Path to WAD files or directories containing WADs
 
-		public string? ExportTextures;//Output path for textures
-		public string? ExportModels;//Output path for models
-		public string? ExportAudio;//Output path for WAV audio
-		public string? UnpackAudio;//Output path for unpacked PS1 WAG audio
-		public string? ExportLevels;//Output path for level's model geometry
-		public string? ExportImages;//Output path for images
-		public string? ExportActors;//Output path for actors
+		public string? WriteFormat;
+		public string? WriteWads;//Output path for converted wads
+
+		public string? ExtractPath;//Output path for extracted assets
+		public bool ExtractTextures = false;
+		public bool ExtractModels = false;
+		public bool ExtractAudio = false;//Extract WAV audio
+		public bool UnpackAudio = false;//Extract and unpacked PS1 WAG audio
+		public bool ExtractLevels = false;
+		public bool ExtractIMGs = false;
+		public bool ExtractActors = false;
 					
 		public bool IgnoreWarnings;
-		public bool NoConfirm;
+
+		public string GetExtractDirectory(string stem, string subdirectory)
+		{
+			var path = Path.Join(ExtractPath, stem, subdirectory);
+			ExportAssets.CreateExportDirectory(path);
+			return path;
+		}
 	}
 	public static class ExportAssets
 	{
@@ -32,21 +39,34 @@ namespace ArgonautReverse
 				switch(args[i])
 				{
 					case "--read-format":parsedArgs.ReadFormat = args[++i];break;
+					case "--read-psx-dirdat":parsedArgs.PsxDirDat = args[++i];break;
+					case "--read-wads":parsedArgs.ReadWads = args[++i];break;
+
 					case "--write-format":parsedArgs.WriteFormat = args[++i];break;
+					case "--write-wads":parsedArgs.WriteWads = args[++i];break;
 
-					case "--psx-dirdat":parsedArgs.PsxDirDat = args[++i];break;
-					case "--wad-files":parsedArgs.WadFiles = args[++i];break;
+					case "--extract-path":parsedArgs.ExtractPath = args[++i];break;
 
-					case "--export-textures":parsedArgs.ExportTextures = args[++i];break;
-					case "--export-models":parsedArgs.ExportModels = args[++i];break;
-					case "--export-audio":parsedArgs.ExportAudio = args[++i];break;
-					case "--unpack-audio":parsedArgs.UnpackAudio = args[++i];break;
-					case "--export-levels":parsedArgs.ExportLevels = args[++i];break;
-					case "--export-images":parsedArgs.ExportImages = args[++i];break;
-					case "--export-actors":parsedArgs.ExportActors = args[++i];break;
-
+					case "--extract":
+					{
+						var extractions = args[++i].Split(',', StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries);
+						foreach(var extraction in extractions)
+						{
+							switch(extraction)
+							{
+								case "actors":parsedArgs.ExtractActors = true;break;
+								case "audio":parsedArgs.ExtractAudio = true;break;
+								case "audioUnpacked":parsedArgs.UnpackAudio = true;break;
+								case "imgs":parsedArgs.ExtractIMGs = true;break;
+								case "levels":parsedArgs.ExtractLevels = true;break;
+								case "models":parsedArgs.ExtractModels = true;break;
+								case "textures":parsedArgs.ExtractTextures = true;break;
+								default:throw new Exception($"Unknown excration type: {extraction}");
+							}
+						}
+						break;
+					}
 					case "--ignore-warnings":parsedArgs.IgnoreWarnings = true;break;
-					case "--no-confirm":parsedArgs.NoConfirm = true;break;
 
 					default:throw new Exception("Unknown argument: " + args[i]);
 				}
@@ -63,7 +83,7 @@ namespace ArgonautReverse
 		{
 			if(File.Exists(path))
 			{
-				throw new Exception();
+				throw new Exception("Export path must be a directory but already exists a.");
 			}
 			else if(!Directory.Exists(path))
 			{
@@ -71,104 +91,79 @@ namespace ArgonautReverse
 			}
 		}
 
-		public static void ExportImagesFromImg(IMGFile img_file, string output_dir)
+		public static void Run(string[] rawArgs)
 		{
-			if(img_file.Images.Count == 1)
-			{
-				img_file.Images[0].Save(Path.Join(output_dir, $"{img_file.Stem}.PNG"));
-			}
-			else
-			{
-				for(int i=0; i<img_file.Images.Count; i++)
-				{
-					img_file.Images[i].Save(Path.Join(output_dir, $"{img_file.Stem}_{i}.PNG"));
-				}
-			}
-		}
+			var args = ParseArgs(rawArgs);
 
-		public static void Run(string[] args)
-		{
-			var parsedArgs = ParseArgs(args);
-			if(parsedArgs.ExportModels != null && !parsedArgs.NoConfirm)
-			{
-				Console.WriteLine("Models export is VERY EXPERIMENTAL, some models will be completely broken or even missing.");
-				Console.WriteLine("Press <Enter> to continue.");
-				Console.ReadLine();
-			}
-
-			var readFormat = Configuration.SUPPORTED_GAMES[parsedArgs.ReadFormat];
-			var writeFormat = parsedArgs.WriteFormat!=null ? Configuration.SUPPORTED_GAMES[parsedArgs.WriteFormat] : null;
+			var readFormat = Configuration.SUPPORTED_GAMES[args.ReadFormat];
+			var writeFormat = args.WriteFormat!=null ? Configuration.SUPPORTED_GAMES[args.WriteFormat] : null;
 			if(!Configuration.ALL_PARSABLE_GAMES.Contains(readFormat))
 			{
 				throw new NotImplementedException("Files from this game can be extracted, but not reversed (yet). If you just want to extract them, use the extract_files_from_dat.py script.");
 			}
 
-			var conf = new Configuration(readFormat, writeFormat, parsedArgs.IgnoreWarnings);
+			var conf = new Configuration(readFormat, writeFormat, args.IgnoreWarnings);
 
 			DIR_DAT dir_dat;
-			if(parsedArgs.PsxDirDat is string dirdat)
+			if(args.PsxDirDat is string psxDirDat)
 			{
-				dir_dat = DIR_DAT.FromDirDat(conf, dirdat);
+				dir_dat = DIR_DAT.FromDirDat(conf, psxDirDat);
 			}
-			else if(parsedArgs.WadFiles is string files)
+			else if(args.ReadWads is string readWads)
 			{
-				dir_dat = DIR_DAT.FromFiles(conf, files.Split(','));
+				dir_dat = DIR_DAT.FromFiles(conf, readWads.Split(','));
 			}
 			else
 			{
-				Console.WriteLine("Missing either -dirdat or -files");
+				Console.WriteLine("Missing either --read-wads or --read-psx-dirdat");
 				return;
 			}
-
-			var export_paths = new string[]
+			if(args.ExtractPath != null)
 			{
-				parsedArgs.ExportImages,
-				parsedArgs.ExportTextures,
-				parsedArgs.ExportModels,
-				parsedArgs.ExportAudio,
-				parsedArgs.UnpackAudio,
-				parsedArgs.ExportLevels,
-			};
-			bool wads_parsing_needed = true ||
-			(
-				parsedArgs.ExportTextures!=null ||
-				parsedArgs.ExportModels!=null ||
-				parsedArgs.ExportAudio!=null ||
-				parsedArgs.UnpackAudio!=null ||
-				parsedArgs.ExportLevels!=null
-			);
-			foreach(var export_part in export_paths)
-			{
-				if(export_part != null)
-				{
-					CreateExportDirectory(export_part);
-				}
+				CreateExportDirectory(args.ExtractPath);
 			}
-		
-			//Parse files
-			var n_files = dir_dat.Files.Count;
-			var n_digits = n_files.ToString().Length;
-			for(int i=0; i<dir_dat.Files.Count; i++)
+			Console.WriteLine("--Parsing--");
+			var parsedSuccessfully = new List<DATFile>();
+			RunOnFiles(dir_dat.Files, datFile =>
 			{
-				var datFile = dir_dat.Files[i];
-				Console.WriteLine($"[{(i + 1).ToString().PadLeft(n_digits)}/{n_files}] {datFile.Name:12}: ");
+				datFile.PrintInfo(Console.Out);
+				datFile.Parse(args, conf);
+				parsedSuccessfully.Add(datFile);
+			});
+
+			if(args.ExtractPath != null)
+			{
+				Console.WriteLine("--Extracting--");
+				RunOnFiles(parsedSuccessfully, datFile =>
+				{
+					datFile.ExtractAssets(args, conf);
+				});
+			}
+
+			if(args.WriteFormat != null)
+			{
+				Console.WriteLine("--Converting WADs--");
+				RunOnFiles(parsedSuccessfully, datFile =>
+				{
+					if(datFile is not WADFile wadFile){return;}
+					//wadFile.Serialize()
+				});
+			}
+		}
+		private static void RunOnFiles(IReadOnlyList<DATFile> files, Action<DATFile> action)
+		{
+			var n_digits = files.Count.ToString().Length;
+			for(int i=0; i<files.Count; i++)
+			{
+				var datFile = files[i];
+				Console.WriteLine($"[{(i + 1).ToString().PadLeft(n_digits)}/{files.Count}] {datFile.Name:12}");
 				try
 				{
-					if(datFile is IMGFile imgFile && parsedArgs.ExportImages is string export_images)
-					{
-						imgFile.Parse(conf);
-						ExportImagesFromImg(imgFile, export_images);
-					}
-					else if(datFile is WADFile wadFile && wads_parsing_needed)
-					{
-						wadFile.Parse(conf);
-						wadFile.ExportWadAssets(parsedArgs, conf);
-					}
-					datFile.PrintInfo(Console.Out);
+					action(datFile);
 				}
 				catch(Exception e)
 				{
-					Console.WriteLine("FAILED!");
+					Console.WriteLine($"FAILED!");
 					Console.WriteLine(e.ToString());
 				}
 				Console.WriteLine();

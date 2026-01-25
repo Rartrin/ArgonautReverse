@@ -19,7 +19,7 @@ namespace ArgonautReverse.PC
 		public byte bField2;
 		public byte bField3;
 		//public IDirectDrawPalette* ddPalette4;
-		public ColorRGB555[] array5;
+		public ColorABGR555[] array5;
 		public byte[] array6;
 
 		public static BrTexturePalettePC Parse(WadReader reader)
@@ -29,7 +29,7 @@ namespace ArgonautReverse.PC
 
 			palette.count1 = reader.Read<int>();
 
-			palette.array5 = reader.ReadArray<ColorRGB555>(palette.count1);
+			palette.array5 = reader.ReadArray<ColorABGR555>(palette.count1);
 			palette.array6 = reader.ReadArray<byte>(palette.count1);
 
 			return palette;

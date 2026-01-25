@@ -10,7 +10,6 @@ namespace ArgonautReverse
 	{
 		public const int PaddingSize = 2048;
 
-
 		//Padding
 
 		public static int RoundUpPadding(int n) => (n + PaddingSize - 1) & (-PaddingSize);

@@ -1,47 +1,59 @@
 {
-  "profiles": {
-    "ArgonautReverse": {
-      "commandName": "Project"
-    },
-    "Extract DUMMY": {
-      "commandName": "Project",
-      "commandLineArgs": "-extract-files -game \"Croc 2 Demo PS1 (Dummy)\" -dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" -output_dir \"GameFiles/DUMMY/Wads\""
-    },
-    "Extract Croc 2": {
-      "commandName": "Project",
-      "commandLineArgs": "-extract-files -game \"Croc 2 Demo PS1\" -dirdat \"GameFiles/CROCII/Raw/CROCII.DIR\" -output_dir \"GameFiles/CROCII/Wads\""
-    },
-    "Export Jungle Level 1": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --files \"GameFiles/DUMMY/Wads/00FFF800.WAD\" --export-levels \"GameFiles/DUMMY/00FFF800\""
-    },
-    "Export DUMMY": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --psx-dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --export-levels \"GameFiles/DUMMY\" --export-actors \"GameFiles/DUMMY\" --export-textures \"GameFiles/DUMMY/Textures\" --export-models \"GameFiles/DUMMY/Models\" --no-confirm"
-    },
-    "Export DUMMY - Actors": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --psx-dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --export-actors \"GameFiles/DUMMY\""
-    },
-    "Export DUMMY - Levels+Models+Textures": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --psx-dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --export-levels \"GameFiles/DUMMY\" --export-textures \"GameFiles/DUMMY/Textures\" --export-models \"GameFiles/DUMMY/Models\" --no-confirm"
-    },
-    "Export Croc 2 PC": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 PC\" --wad-files \"GameFiles/Croc2PC\" --no-confirm"
-    },
-    "Export C2PC T1L1M001": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 PC\" --wad-files \"GameFiles/Croc2PC/T1L1M001.WAD\" --no-confirm"
-    },
-    "Export TENG - T1L7M003": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 PC\" --wad-files \"GameFiles/TengPC/t1l7m003.wad\" --no-confirm"
-    },
-    "Export JP DUMMY": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --psx-dirdat \"GameFiles/JPDEMO_DUMMY/Raw/JPDEMO_DUMMY.DAT\" --export-levels \"GameFiles/JPDEMO_DUMMY\" --export-actors \"GameFiles/JPDEMO_DUMMY\" --export-textures \"GameFiles/JPDEMO_DUMMY/Textures\" --export-models \"GameFiles/JPDEMO_DUMMY/Models\" --no-confirm"
-    }
-  }
+	"profiles":
+	{
+		"ArgonautReverse":
+		{
+			"commandName": "Project"
+		},
+		"Extract DUMMY":
+		{
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-psx-dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --write-wads \"Extracted/DUMMY\""
+		},
+		"Extract Croc 2":
+		{
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 Demo PS1\" --read-psx-dirdat \"GameFiles/CROCII/Raw/CROCII.DIR\" --write-wads \"Extracted/CROCII\""
+		},
+		"Export Jungle Level 1":
+		{
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-wads \"GameFiles/DUMMY/Wads/00FFF800.WAD\" --extract-path \"Extracted/DUMMY/00FFF800\" --extract-levels"
+		},
+		"Export DUMMY":
+		{
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-psx-dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --extract-path \"Extracted/DUMMY\" --extract levels,actors,textures,models"
+		},
+		"Export DUMMY - Actors":
+		{
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-psx-dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --extract-path \"Extracted/DUMMY\" --extract actors"
+		},
+		"Export DUMMY - Levels+Models+Textures":
+		{
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-psx-dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --extract-path \"Extracted/DUMMY\" --extract levels,textures,models"
+		},
+		"Export Croc 2 PC":
+		{
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC\" --extract-path \"Extracted/Croc2PC\" --extract levels,textures,models"
+		},
+		"Export C2PC T1L1M001":
+		{
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/T1L1M001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract levels,textures,models"
+		},
+		"Export TENG - T1L7M003":
+		{
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/TengPC/t1l7m003.wad\""
+		},
+		"Export JP DUMMY":
+		{
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-psx-dirdat \"GameFiles/JPDEMO_DUMMY/Raw/JPDEMO_DUMMY.DAT\" --extract-path \"Extracted/JPDEMO_DUMMY\"  --extract levels,actors,textures,models"
+		}
+	}
 }

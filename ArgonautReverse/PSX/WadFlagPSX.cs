@@ -44,15 +44,17 @@ namespace ArgonautReverse.PSX
 
 			(WadFlagPSX.WF_HASOTHERPIECES, WadFlagsOSE.HasOtherPieces),
 		};
-
-		public static WadFlagsOSE ToOSE(this WadFlagPSX that)
+		extension(WadFlagPSX that)
 		{
-			WadFlagsOSE ret = 0;
-			foreach((var psx, var ose) in mapping)
+			public WadFlagsOSE ToOSE()
 			{
-				if((that & psx)!=0){ret |= ose;}
+				WadFlagsOSE ret = 0;
+				foreach((var psx, var ose) in mapping)
+				{
+					if((that & psx)!=0){ret |= ose;}
+				}
+				return ret;
 			}
-			return ret;
 		}
 	}
 }

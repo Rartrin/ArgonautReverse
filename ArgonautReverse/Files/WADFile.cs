@@ -82,7 +82,6 @@ namespace ArgonautReverse.Files
 					}
 					else
 					{
-						//var @string = string.Concat(System.Text.Encoding.ASCII.GetString((byte*)&chunkType, 4).Reverse());
 						throw new Exception("Unknown chunk type");
 					}
 				}
@@ -128,7 +127,7 @@ namespace ArgonautReverse.Files
 			return chunkLocations;
 		}
 
-		public override unsafe void Parse(Configuration conf)
+		public override void Parse(ProgramArgs args, Configuration conf)
 		{
 			var data_in = new WadReader(this, conf, conf.ReadVersion.GetWadVersion(Stem), this._data);
 			
@@ -156,6 +155,9 @@ namespace ArgonautReverse.Files
 				}
 			}
 		}
+
+		public abstract void Write(ProgramArgs args, Configuration conf);
+
 		public override void Serialize(WadWriter data_out)
 		{
 			var wad_size_offset = data_out.Position;
@@ -176,7 +178,5 @@ namespace ArgonautReverse.Files
 			data_out.WriteInt32(wad_size);
 			data_out.Position += end_offset;
 		}
-
-		public abstract void ExportWadAssets(ProgramArgs args, Configuration conf);
 	}
 }

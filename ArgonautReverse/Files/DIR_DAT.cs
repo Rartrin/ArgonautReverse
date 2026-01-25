@@ -121,7 +121,7 @@ namespace ArgonautReverse.Files
 			return new DIR_DAT(files);
 		}
 
-		public static DIR_DAT FromFiles(Configuration conf, params string[] paths)
+		public static DIR_DAT FromFiles(Configuration conf, string[] paths)
 		{
 			var filePaths = new List<string>();
 			foreach(var path in paths)
