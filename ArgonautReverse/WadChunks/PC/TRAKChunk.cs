@@ -4,15 +4,15 @@ using ArgonautReverse.PC;
 
 namespace ArgonautReverse.WadChunks.PC
 {
-    public sealed class TRAKChunkInfo:BaseWADChunkInfo<TRAKChunk>
+	public sealed class TRAKChunkInfo:BaseWADChunkInfo<TRAKChunk>
 	{
-		public static TRAKChunkInfo Instance = new TRAKChunkInfo();
+		public static readonly TRAKChunkInfo Instance = new TRAKChunkInfo();
 
 		public override WadVersion[] SupportedWadVersions => Configuration.PC_PARSABLE_WADS;
 		public override string ChunkDescription => "Track data";
 		public override ChunkType ChunkType => ChunkType.ID_PC_TRACK;
 
-		public override BaseWadChunk Parse(WadReader reader)
+		public override TRAKChunk Parse(WadReader reader)
 		{
 			var modelCount = reader.Read<int>();
 
@@ -22,15 +22,15 @@ namespace ArgonautReverse.WadChunks.PC
 			return new TRAKChunk(this, models, reader.GetAllWadData());
 		}
 
-		private TRAKChunkInfo() { }
+		private TRAKChunkInfo(){}
 	}
-	public sealed class TRAKChunk:BaseWadChunk
+	public sealed class TRAKChunk(BaseWADChunkInfo info, IReadOnlyList<StratObjectPC> models, byte[]? data = null):BaseWadChunk(info, data)
 	{
-		public IReadOnlyList<StratObjectPC> Models { get; }
+		public readonly IReadOnlyList<StratObjectPC> Models = models;
 
-		public TRAKChunk(BaseWADChunkInfo info, IReadOnlyList<StratObjectPC> models, byte[]? data = null) : base(info, data)
+		protected override void WriteData(WadWriter writer)
 		{
-			Models = models;
+			throw new NotImplementedException();
 		}
 	}
 }

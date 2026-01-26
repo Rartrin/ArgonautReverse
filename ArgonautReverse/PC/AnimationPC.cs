@@ -12,12 +12,12 @@ namespace ArgonautReverse.PC
 			return new AnimTriggerPC(frame, trigger);
 		}
 
-        public void Write(WadWriter writer)
-        {
-            writer.Write<ushort>(Frame);
+		public void Write(WadWriter writer)
+		{
+			writer.Write<ushort>(Frame);
 			writer.Write<ushort>(Trigger);
-        }
-    }
+		}
+	}
 
 	public readonly record struct AnimationStruct1_PC(short wField0, short wField1, short wField2, short wField3):IReadable<AnimationStruct1_PC>,IWritable
 	{
@@ -30,14 +30,14 @@ namespace ArgonautReverse.PC
 			return new AnimationStruct1_PC(wField0, wField1, wField2, wField3);
 		}
 
-        public void Write(WadWriter writer)
-        {
-            writer.Write<short>(wField0);
-            writer.Write<short>(wField1);
-            writer.Write<short>(wField2);
-            writer.Write<short>(wField3);
-        }
-    }
+		public void Write(WadWriter writer)
+		{
+			writer.Write<short>(wField0);
+			writer.Write<short>(wField1);
+			writer.Write<short>(wField2);
+			writer.Write<short>(wField3);
+		}
+	}
 
 	public sealed class AnimationStructPC:IReadableArrayMultipass<AnimationStructPC>
 	{

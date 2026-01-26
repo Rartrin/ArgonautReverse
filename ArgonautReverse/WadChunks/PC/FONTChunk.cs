@@ -4,7 +4,7 @@ using ArgonautReverse.PC;
 
 namespace ArgonautReverse.WadChunks.PC
 {
-    public sealed class FONTChunkInfo:BaseWADChunkInfo<FONTChunk>
+	public sealed class FONTChunkInfo:BaseWADChunkInfo<FONTChunk>
 	{
 		public static readonly FONTChunkInfo Instance = new FONTChunkInfo();
 
@@ -12,20 +12,20 @@ namespace ArgonautReverse.WadChunks.PC
 		public override string ChunkDescription => "Font lookup table";
 		public override ChunkType ChunkType => ChunkType.ID_PC_FONT;
 
-		public override BaseWadChunk Parse(WadReader reader)
+		public override FONTChunk Parse(WadReader reader)
 		{
 			var fontLookup = reader.ReadArray<FontStructPC>(256);
 			reader.AssertEndOfChunk(ChunkType);
 			return new FONTChunk(this, fontLookup, reader.GetAllWadData());
 		}
 	}
-	public sealed class FONTChunk:BaseWadChunk
+	public sealed class FONTChunk(BaseWADChunkInfo info, IReadOnlyList<FontStructPC> fontLookup, byte[]? data = null):BaseWadChunk(info, data)
 	{
-		public IReadOnlyList<FontStructPC> FontLookup{get;}
+		public IReadOnlyList<FontStructPC> FontLookup{get;} = fontLookup;
 
-		public FONTChunk(BaseWADChunkInfo info, IReadOnlyList<FontStructPC> fontLookup, byte[]? data = null) : base(info, data)
+		protected override void WriteData(WadWriter writer)
 		{
-			FontLookup = fontLookup;
+			throw new NotImplementedException();
 		}
 	}
 }

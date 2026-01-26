@@ -158,8 +158,8 @@ namespace ArgonautReverse.Files
 				Directory.CreateDirectory(outputFolder);
 			}
 
-			using var dirOutput = new WadWriter(conf, File.OpenWrite(Path.Join(outputFolder, conf.WriteVersion.FilenameDIR)), true);
-			using var datOutput = new WadWriter(conf, File.OpenWrite(Path.Join(outputFolder, conf.WriteVersion.FilenameDAT)), true);
+			var dirOutput = new WadWriter(conf, new());
+			var datOutput = new WadWriter(conf, new());
 
 			if(dirOutput.DatVersion != CROC_1_PS1.DatVersion)
 			{
@@ -178,6 +178,8 @@ namespace ArgonautReverse.Files
 				Utils.PadOut2048Bytes(datOutput);
 				conf.WriteVersion.DirFormat!.Pack(dirOutput, file.Name, size, start);
 			}
+			dirOutput.Stream.CopyTo(File.OpenWrite(Path.Join(outputFolder, conf.WriteVersion.FilenameDIR)));
+			datOutput.Stream.CopyTo(File.OpenWrite(Path.Join(outputFolder, conf.WriteVersion.FilenameDAT)));
 		}
 	}
 }

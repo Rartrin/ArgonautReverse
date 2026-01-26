@@ -9,7 +9,7 @@ using ArgonautReverse.Universal;
 
 namespace ArgonautReverse.PC
 {
-	public sealed class WadFilePC:WADFile
+	public sealed class WadFilePC(WadVersion version, string stem, byte[] data):WADFile(version, stem, data)
 	{
 		public INFOChunk InfoChunk{get;private set;}
 		public VERSChunk VersionChunk{get;private set;}
@@ -26,8 +26,6 @@ namespace ArgonautReverse.PC
 		//public SPRTChunk SpriteChunk{get;private set;}
 		//public RIMGChunk RIMGChunk{get;private set;}
 		public ENDChunkPC EndChunk{get;private set;}
-
-		public WadFilePC(WadVersion version, string stem, byte[] data) : base(version, stem, data){}
 
 		public override bool TryGetChunkInfo(ChunkType chunkType, [MaybeNullWhen(false)]out BaseWADChunkInfo info)
 		{

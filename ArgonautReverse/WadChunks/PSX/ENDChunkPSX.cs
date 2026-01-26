@@ -5,9 +5,9 @@ using ArgonautReverse.PSX;
 
 namespace ArgonautReverse.WadChunks.PSX
 {
-    public sealed class ENDChunkInfoPSX:BaseWADChunkInfo<ENDChunkPSX>
+	public sealed class ENDChunkInfoPSX:BaseWADChunkInfo<ENDChunkPSX>
 	{
-		public static ENDChunkInfoPSX Instance{get;} = new ENDChunkInfoPSX();
+		public static readonly ENDChunkInfoPSX Instance = new ENDChunkInfoPSX();
 
 		public override ChunkType ChunkType => ChunkType.ID_END;
 		public override string ChunkDescription => "END but sometimes includes sound effects, background music, and dialogues";
@@ -34,18 +34,19 @@ namespace ArgonautReverse.WadChunks.PSX
 					}
 					data_in.AssertEndOfChunk(ChunkType);
 				}
-				return new ENDChunkPSX(spsxChunk ?? null);
+				return new ENDChunkPSX(spsxChunk);
 			}
 			return new ENDChunkPSX(null);
 		}
 	}
-	public sealed class ENDChunkPSX:BaseWadChunk
+	public sealed class ENDChunkPSX(SPSXChunk? spsxChunk):BaseWadChunk(ENDChunkInfoPSX.Instance)
 	{
-		public readonly SPSXChunk spsxChunk;
+		public readonly SPSXChunk? spsxChunk = spsxChunk;
 
-		public ENDChunkPSX(SPSXChunk spsxChunk):base(ENDChunkInfoPSX.Instance)
+		protected override void WriteData(WadWriter writer)
 		{
-			this.spsxChunk = spsxChunk;
+			if(spsxChunk==null){return;}
+			throw new NotImplementedException();
 		}
 		
 		public override void Serialize(WadWriter data_out)

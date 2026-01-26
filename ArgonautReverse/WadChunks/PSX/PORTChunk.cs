@@ -4,7 +4,7 @@ using ArgonautReverse.IO;
 
 namespace ArgonautReverse.WadChunks.PSX
 {
-    public class PORTChunkInfo:BaseWADChunkInfo<PORTChunk>
+	public class PORTChunkInfo:BaseWADChunkInfo<PORTChunk>
 	{
 		public static readonly PORTChunkInfo Instance = new PORTChunkInfo();
 
@@ -43,20 +43,17 @@ namespace ArgonautReverse.WadChunks.PSX
 		}
 	}
 
-	public class PORTChunk:BaseWadChunk
+	public class PORTChunk(byte[][] idk1, int[][] chunks_zones, byte[]? fallback_data = null):BaseWadChunk(PORTChunkInfo.Instance, fallback_data)
 	{
-		public readonly byte[][] idk1;
-		public readonly int[][] chunks_zones;
-		public PORTChunk(byte[][] idk1, int[][] chunks_zones, byte[] fallback_data = null) : base(PORTChunkInfo.Instance, fallback_data)
-		{
-			this.idk1 = idk1;
-			this.chunks_zones = chunks_zones;
-		}
+		public readonly byte[][] idk1 = idk1;
+		public readonly int[][] chunks_zones = chunks_zones;
 
 		public int size => 8 + 32 * idk1.Length + 12 * n_chunks_zones + 2 * n_chunks;
 
 		public int n_chunks_zones => chunks_zones.Length;
 
 		public int n_chunks => chunks_zones.Sum(zone => zone.Length);
+
+		protected override void WriteData(WadWriter writer) => writer.WriteBytes(Data!);
 	}
 }

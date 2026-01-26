@@ -5,7 +5,7 @@ using ArgonautReverse.PSX;
 
 namespace ArgonautReverse.WadChunks.PSX
 {
-    public enum TextureFlag:int
+	public enum TextureFlag:int
 	{
 		CompressedTPage = 1 << 0,
 		Compressed16Bit = 1 << 1,
@@ -30,8 +30,8 @@ namespace ArgonautReverse.WadChunks.PSX
 			if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
 				hasMemoryCardIcons = false;
-				titles = Array.Empty<string>();
-				fontLookup = Array.Empty<FontPSX>();
+				titles = [];
+				fontLookup = [];
 				compressed16bit = false;
 			}
 			else
@@ -55,7 +55,7 @@ namespace ArgonautReverse.WadChunks.PSX
 					}
 					else
 					{
-						titles = new[] { data_in.ReadString(32).Trim('\0') };
+						titles = [data_in.ReadString(32).Trim('\0')];
 					}
 
 					//TODO: Why are these also in DPSX?
@@ -69,8 +69,8 @@ namespace ArgonautReverse.WadChunks.PSX
 				}
 				else
 				{
-					titles = Array.Empty<string>();
-					fontLookup = Array.Empty<FontPSX>();
+					titles = [];
+					fontLookup = [];
 				}
 			}
 			var texture_file = TextureFilePSX.parse(data_in, compressed16bit, hasMemoryCardIcons);
@@ -80,17 +80,15 @@ namespace ArgonautReverse.WadChunks.PSX
 		}
 	}
 
-	public sealed class TPSXChunk:BaseWadChunk
+	public sealed class TPSXChunk(TextureFilePSX texture_file, IReadOnlyList<string> titles, IReadOnlyList<FontPSX> fontLookup, byte[]? fallback_data = null):BaseWadChunk(TPSXChunkInfo.Instance, fallback_data)
 	{
-		public TextureFilePSX TextureFile { get; }
-		public IReadOnlyList<string> Titles { get; }
-		public IReadOnlyList<FontPSX> FontLookup { get; }
+		public TextureFilePSX TextureFile{get;} = texture_file;
+		public IReadOnlyList<string> Titles{get;} = titles;
+		public IReadOnlyList<FontPSX> FontLookup{get;} = fontLookup;
 
-		public TPSXChunk(TextureFilePSX texture_file, IReadOnlyList<string> titles, IReadOnlyList<FontPSX> fontLookup, byte[] fallback_data = null) : base(TPSXChunkInfo.Instance, fallback_data)
+		protected override void WriteData(WadWriter writer)
 		{
-			TextureFile = texture_file;
-			Titles = titles;
-			FontLookup = fontLookup;
+			throw new NotImplementedException();
 		}
 	}
 }

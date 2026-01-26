@@ -3,7 +3,7 @@ using ArgonautReverse.IO;
 
 namespace ArgonautReverse.WadChunks.PC
 {
-    public sealed class VERSChunkInfo:BaseWADChunkInfo<VERSChunk>
+	public sealed class VERSChunkInfo:BaseWADChunkInfo<VERSChunk>
 	{
 		public static readonly VERSChunkInfo Instance = new VERSChunkInfo();
 
@@ -11,7 +11,7 @@ namespace ArgonautReverse.WadChunks.PC
 		public override string ChunkDescription => "Debug chunk version (empty)";
 		public override ChunkType ChunkType => ChunkType.ID_PC_VERSION;
 
-		public override BaseWadChunk Parse(WadReader reader)
+		public override VERSChunk Parse(WadReader reader)
 		{
 			if(reader.Remaining != 4)
 			{
@@ -25,8 +25,8 @@ namespace ArgonautReverse.WadChunks.PC
 			return new VERSChunk(this, reader.GetAllWadData());
 		}
 	}
-	public sealed class VERSChunk:BaseWadChunk
+	public sealed class VERSChunk(BaseWADChunkInfo info, byte[]? data = null):BaseWadChunk(info, data)
 	{
-		public VERSChunk(BaseWADChunkInfo info, byte[]? data = null) : base(info, data) { }
+		protected override void WriteData(WadWriter writer) => writer.WriteBytes(Data!);
 	}
 }

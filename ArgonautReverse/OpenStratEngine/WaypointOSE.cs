@@ -3,7 +3,7 @@ using ArgonautReverse.Universal;
 
 namespace ArgonautReverse.OpenStratEngine
 {
-    public sealed class WaypointOSE:IWritable
+	public sealed class WaypointOSE:IWritable
 	{
 		//public WaypointPSX Next{get;private set;}
 		public int NextRawValue;

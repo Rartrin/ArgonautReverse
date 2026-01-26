@@ -178,8 +178,8 @@ namespace ArgonautReverse.Files
 			this.Images = images;
 		}
 
-        public override void ExtractAssets(ProgramArgs args, Configuration conf)
-        {
+		public override void ExtractAssets(ProgramArgs args, Configuration conf)
+		{
 			if(!args.ExtractIMGs){return;}
 
 			if(Images.Count == 1)
@@ -193,7 +193,7 @@ namespace ArgonautReverse.Files
 					Images[i].Save(Path.Join(args.ExtractPath, Stem, $"{i}.png"));
 				}
 			}
-        }
+		}
 
 		public static unsafe Bitmap to_full_colorized(ArraySegment<byte> data, XY dimensions, Color[] palette, int n_palette_colors, bool has_alpha)
 		{

@@ -4,7 +4,7 @@ using ArgonautReverse.PC;
 
 namespace ArgonautReverse.WadChunks.PC
 {
-    public sealed class TEXTChunkInfo:BaseWADChunkInfo<TEXTChunk>
+	public sealed class TEXTChunkInfo:BaseWADChunkInfo<TEXTChunk>
 	{
 		public static readonly TEXTChunkInfo Instance = new TEXTChunkInfo();
 
@@ -12,7 +12,7 @@ namespace ArgonautReverse.WadChunks.PC
 		public override string ChunkDescription => "";
 		public override ChunkType ChunkType => ChunkType.ID_PC_TEXT;
 
-		public override BaseWadChunk Parse(WadReader reader)
+		public override TEXTChunk Parse(WadReader reader)
 		{
 			int paletteCount = reader.Read<int>();
 			var palettes = reader.ReadArray<BrTexturePalettePC>(paletteCount);
@@ -32,9 +32,14 @@ namespace ArgonautReverse.WadChunks.PC
 	}
 	public sealed class TEXTChunk(BaseWADChunkInfo info, IReadOnlyList<BrTexturePalettePC> palettes, IReadOnlyList<TextureStructPC> textures, IReadOnlyList<SpriteStructPC> sprites, IReadOnlyList<EffectPC> effects, byte[]? data = null):BaseWadChunk(info, data)
 	{
-		public IReadOnlyList<BrTexturePalettePC> Palettes = palettes;
-		public IReadOnlyList<TextureStructPC> Textures = textures;
-		public IReadOnlyList<SpriteStructPC> Sprites = sprites;
-		public IReadOnlyList<EffectPC> Effects = effects;
+		public readonly IReadOnlyList<BrTexturePalettePC> Palettes = palettes;
+		public readonly IReadOnlyList<TextureStructPC> Textures = textures;
+		public readonly IReadOnlyList<SpriteStructPC> Sprites = sprites;
+		public readonly IReadOnlyList<EffectPC> Effects = effects;
+
+		protected override void WriteData(WadWriter writer)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }

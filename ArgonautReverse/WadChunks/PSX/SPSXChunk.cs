@@ -5,7 +5,7 @@ using ArgonautReverse.PSX;
 
 namespace ArgonautReverse.WadChunks.PSX
 {
-    public sealed class SPSXChunkInfo:BaseWADChunkInfo<SPSXChunk>
+	public sealed class SPSXChunkInfo:BaseWADChunkInfo<SPSXChunk>
 	{
 		public static readonly SPSXChunkInfo Instance = new SPSXChunkInfo();
 
@@ -146,13 +146,7 @@ namespace ArgonautReverse.WadChunks.PSX
 			this.dialogues_bgms = dialogues_bgms ?? new DialoguesBGMsContainerPSX();
 		}
 
-		public int n_sounds =>
-
-			n_common_sfx
-			+ n_ambient_tracks
-			+ n_level_sfx
-			+ n_dialogues_bgms
-		;
+		public int n_sounds => n_common_sfx + n_ambient_tracks + n_level_sfx + n_dialogues_bgms;
 
 		public int n_common_sfx => common_sfx.Sounds.Count;
 
@@ -169,6 +163,11 @@ namespace ArgonautReverse.WadChunks.PSX
 		public int n_dialogues_bgms => dialogues_bgms.Sounds.Count;
 
 		public int end_gap => level_sfx_groups.Groups.Sum(group => Utils.RoundUpPadding(group.size));
+
+		protected override void WriteData(WadWriter writer)
+		{
+			throw new NotImplementedException();
+		}
 
 		public override void Serialize(WadWriter data_out)
 		{

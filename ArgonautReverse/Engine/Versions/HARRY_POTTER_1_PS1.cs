@@ -2,7 +2,7 @@
 
 namespace ArgonautReverse.Engine.Versions
 {
-    public static class HARRY_POTTER_1_PS1
+	public static class HARRY_POTTER_1_PS1
 	{
 		public static DatVersion DatVersion => HARRY_POTTER_1_PS1_Dat.Instance;
 		public static WadVersion WadVersion => HARRY_POTTER_1_PS1_Wad.Instance;

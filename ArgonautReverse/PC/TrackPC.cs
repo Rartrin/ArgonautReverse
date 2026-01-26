@@ -3,7 +3,7 @@ using ArgonautReverse.WadChunks.PC;
 
 namespace ArgonautReverse.PC
 {
-    public readonly struct ModelCollisionStruct0PC:IReadable<ModelCollisionStruct0PC>
+	public readonly struct ModelCollisionStruct0PC:IReadable<ModelCollisionStruct0PC>
 	{
 		public readonly short wField0;
 		public readonly short wField1;

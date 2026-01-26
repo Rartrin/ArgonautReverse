@@ -8,19 +8,16 @@ namespace ArgonautReverse.IO
 		public readonly DatVersion DatVersion;
 		public WadVersion WriteVersion{get;set;}
 
-		public WadWriter(Configuration configuration, Stream stream, bool handleStreamDisposal):base(stream, 0, handleStreamDisposal)
+		public WadWriter(Configuration configuration, MemoryStream stream):base(stream, 0)
 		{
 			DatVersion = configuration.WriteVersion;
 		}
 
-		protected WadWriter(Configuration configuration, Stream stream, int offset):base(stream, offset, false)
+		protected WadWriter(Configuration configuration, MemoryStream stream, int offset):base(stream, offset)
 		{
 			DatVersion = configuration.WriteVersion;
 		}
 
-		public ChunkWriter GetChunkWriter()
-		{
-			return new ChunkWriter(Configuration, WriteVersion, Stream, Position);
-		}
+		public ChunkWriter GetChunkWriter() => new ChunkWriter(Configuration, WriteVersion, Stream, Position);
 	}
 }

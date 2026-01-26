@@ -4,9 +4,9 @@ using ArgonautReverse.PC;
 
 namespace ArgonautReverse.WadChunks.PC
 {
-    public sealed class MAPChunkInfo:BaseWADChunkInfo<MAPChunk>
+	public sealed class MAPChunkInfo:BaseWADChunkInfo<MAPChunk>
 	{
-		public static MAPChunkInfo Instance = new MAPChunkInfo();
+		public static readonly MAPChunkInfo Instance = new MAPChunkInfo();
 
 		public override WadVersion[] SupportedWadVersions => Configuration.PC_PARSABLE_WADS;
 		public override string ChunkDescription => "Map data";
@@ -14,7 +14,7 @@ namespace ArgonautReverse.WadChunks.PC
 
 		private MAPChunkInfo(){}
 
-		public override BaseWadChunk Parse(WadReader reader)
+		public override MAPChunk Parse(WadReader reader)
 		{
 			var map = MapPC.Parse(reader);
 
@@ -48,6 +48,11 @@ namespace ArgonautReverse.WadChunks.PC
 	}
 	public sealed class MAPChunk(BaseWADChunkInfo info, MapPC map, byte[]? data = null):BaseWadChunk(info, data)
 	{
-		public MapPC Map => map;
+		public readonly MapPC Map = map;
+
+		protected override void WriteData(WadWriter writer)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }

@@ -126,8 +126,8 @@ namespace ArgonautReverse
 			var parsedSuccessfully = new List<DATFile>();
 			RunOnFiles(dir_dat.Files, datFile =>
 			{
-				datFile.PrintInfo(Console.Out);
 				datFile.Parse(args, conf);
+				datFile.PrintInfo(Console.Out);
 				parsedSuccessfully.Add(datFile);
 			});
 

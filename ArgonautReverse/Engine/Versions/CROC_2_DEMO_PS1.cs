@@ -3,8 +3,8 @@ using ArgonautReverse.Universal.StratLang;
 
 namespace ArgonautReverse.Engine.Versions
 {
-    //Croc 2 PS1 US Demo
-    public static class CROC_2_DEMO_PS1
+	//Croc 2 PS1 US Demo
+	public static class CROC_2_DEMO_PS1
 	{
 		public static DatVersion DatVersion => CROC_2_DEMO_PS1_Dat.Instance;
 		public static WadVersion WadVersion => CROC_2_DEMO_PS1_Wad.Instance;

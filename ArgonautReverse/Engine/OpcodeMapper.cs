@@ -2,5 +2,5 @@
 
 namespace ArgonautReverse.Engine
 {
-    public delegate InstructionOpcode OpcodeMapper(int value);
+	public delegate InstructionOpcode OpcodeMapper(int value);
 }

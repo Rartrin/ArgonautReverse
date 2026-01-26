@@ -3,7 +3,7 @@ using ArgonautReverse.Universal;
 
 namespace ArgonautReverse.PC
 {
-    public sealed class WaypointPC : IReadable<WaypointPC>
+	public sealed class WaypointPC : IReadable<WaypointPC>
 	{
 		//union
 		public WaypointPC Next;

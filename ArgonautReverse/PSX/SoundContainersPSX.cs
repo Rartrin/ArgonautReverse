@@ -6,7 +6,7 @@ namespace ArgonautReverse.PSX
 	{
 		public List<SoundPSX> Sounds{get;}
 
-		public SoundsContainerPSX(IReadOnlyList<SoundPSX> sounds = null)
+		public SoundsContainerPSX(IReadOnlyList<SoundPSX>? sounds = null)
 		{
 			Sounds = sounds != null ? new List<SoundPSX>(sounds) : new List<SoundPSX>();
 		}
@@ -40,21 +40,15 @@ namespace ArgonautReverse.PSX
 		}
 	}
 
-	public sealed class CommonSFXContainerPSX:SoundsContainerPSX
-	{
-		public CommonSFXContainerPSX(IReadOnlyList<SoundPSX> sounds = null) : base(sounds) { }
-	}
+	public sealed class CommonSFXContainerPSX(IReadOnlyList<SoundPSX>? sounds = null):SoundsContainerPSX(sounds);
 
-	public sealed class AmbientContainerPSX:SoundsContainerPSX
-	{
-		public AmbientContainerPSX(IReadOnlyList<SoundPSX> sounds = null) : base(sounds) { }
-	}
+	public sealed class AmbientContainerPSX(IReadOnlyList<SoundPSX>? sounds = null):SoundsContainerPSX(sounds);
 
 	public sealed class LevelSFXGroupContainerPSX:SoundsContainerPSX
 	{
 		private int? _n_sound_effects;
 
-		public LevelSFXGroupContainerPSX(IReadOnlyList<SoundPSX> sounds = null, int? n_sound_effects = null) : base(sounds)
+		public LevelSFXGroupContainerPSX(IReadOnlyList<SoundPSX>? sounds = null, int? n_sound_effects = null) : base(sounds)
 		{
 			_n_sound_effects = n_sound_effects;
 		}
@@ -99,9 +93,9 @@ namespace ArgonautReverse.PSX
 	{
 		public IReadOnlyList<LevelSFXGroupContainerPSX> Groups { get; }
 
-		public LevelSFXContainerPSX(IReadOnlyList<LevelSFXGroupContainerPSX> groups = null)
+		public LevelSFXContainerPSX(IReadOnlyList<LevelSFXGroupContainerPSX>? groups = null)
 		{
-			Groups = groups ?? Array.Empty<LevelSFXGroupContainerPSX>();
+			Groups = groups ?? [];
 		}
 
 		public int n_sounds => Groups.Sum(group => group.Sounds.Count);
@@ -153,10 +147,8 @@ namespace ArgonautReverse.PSX
 		}
 	}
 
-	public sealed class DialoguesBGMsContainerPSX:SoundsContainerPSX
+	public sealed class DialoguesBGMsContainerPSX(IReadOnlyList<SoundPSX>? sounds = null):SoundsContainerPSX(sounds)
 	{
-		public DialoguesBGMsContainerPSX(IReadOnlyList<SoundPSX> sounds = null) : base(sounds) { }
-
 		public override void parse_vags(WadReader data_in)
 		{
 			foreach(var sound in Sounds)

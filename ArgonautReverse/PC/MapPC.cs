@@ -173,7 +173,7 @@ namespace ArgonautReverse.PC
 
 		//public int NumLights;
 		public IReadOnlyList<LightPC> Lights;
-		//public StrategyList    strategy_list;
+		//public StrategyList strategy_list;
 
 		public IReadOnlyList<ZonePC> ZoneData;
 		public IReadOnlyList<RotPos3Fx> Positions;

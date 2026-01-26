@@ -3,7 +3,7 @@ using ArgonautReverse.IO;
 
 namespace ArgonautReverse.WadChunks.PC
 {
-    public sealed class INFOChunkInfo:BaseWADChunkInfo<INFOChunk>
+	public sealed class INFOChunkInfo:BaseWADChunkInfo<INFOChunk>
 	{
 		public static readonly INFOChunkInfo Instance = new INFOChunkInfo();
 
@@ -11,7 +11,7 @@ namespace ArgonautReverse.WadChunks.PC
 		public override string ChunkDescription => "Debug chunk info (empty)";
 		public override ChunkType ChunkType => ChunkType.ID_PC_INFO;
 
-		public override BaseWadChunk Parse(WadReader reader)
+		public override INFOChunk Parse(WadReader reader)
 		{
 			if(reader.Remaining != 4)
 			{
@@ -25,8 +25,8 @@ namespace ArgonautReverse.WadChunks.PC
 			return new INFOChunk(this, reader.GetAllWadData());
 		}
 	}
-	public sealed class INFOChunk:BaseWadChunk
+	public sealed class INFOChunk(BaseWADChunkInfo info, byte[]? data = null):BaseWadChunk(info, data)
 	{
-		public INFOChunk(BaseWADChunkInfo info, byte[]? data = null) : base(info, data) { }
+		protected override void WriteData(WadWriter writer) => writer.WriteBytes(Data!);
 	}
 }

@@ -37,18 +37,11 @@ namespace ArgonautReverse.Files
 
 		public abstract T GetChunk<T>(BaseWADChunkInfo<T> info) where T:BaseWadChunk;
 
-		private sealed class ChunkLocation
+		private sealed class ChunkLocation(BaseWADChunkInfo info, int dataStart, int dataLength)
 		{
-			public BaseWADChunkInfo Info;
-			public int DataStart;
-			public int DataLength;
-
-			public ChunkLocation(BaseWADChunkInfo info, int dataStart, int dataLength)
-			{
-				Info = info;
-				DataStart = dataStart;
-				DataLength = dataLength;
-			}
+			public BaseWADChunkInfo Info = info;
+			public int DataStart = dataStart;
+			public int DataLength = dataLength;
 		}
 
 		private unsafe IEnumerable<ChunkLocation> LocateChunks(WadReader reader)
@@ -139,24 +132,37 @@ namespace ArgonautReverse.Files
 			{
 				data_in.Position = chunkLocation.DataStart;
 				var chunkReader = data_in.ReadChunk(chunkLocation.DataLength);
+				
+				if(!chunkTypesRead.Add(chunkLocation.Info.ChunkType))
 				{
-					if(!chunkTypesRead.Add(chunkLocation.Info.ChunkType))
-					{
-						throw new Exception($"Chunk {chunkLocation.Info.ChunkType} already read");
-					}
-					var chunk = chunkLocation.Info.Parse(chunkReader);
-					this.AddChunk(chunk);
-					this.chunks.Add(chunk);
-					if(chunkReader.Remaining != 0)
-					{
-						Console.WriteLine($"WARNING: There were {chunkReader.Remaining} bytes of unparsed data in {chunkLocation.Info.ChunkType}!");
-					}
-					chunk.PostParseSetup(this);
+					throw new Exception($"Chunk {chunkLocation.Info.ChunkType} already read");
 				}
+				var chunk = chunkLocation.Info.Parse(chunkReader);
+				this.AddChunk(chunk);
+				this.chunks.Add(chunk);
+				if(chunkReader.Remaining != 0)
+				{
+					Console.WriteLine($"WARNING: There were {chunkReader.Remaining} bytes of unparsed data in {chunkLocation.Info.ChunkType}!");
+				}
+				chunk.PostParseSetup(this);
 			}
 		}
 
-		public abstract void Write(ProgramArgs args, Configuration conf);
+		public void Write(ProgramArgs args, Configuration conf)
+		{
+			var writer = new WadWriter(conf, new());
+			var wadStart = writer.Position;
+			var wadSize = writer.WriteHold<int>();
+
+			foreach(var chunk in chunks)
+			{
+				chunk.Write(writer);
+			}
+
+			var wadEnd = writer.Position;
+			wadSize.Set(wadEnd - wadStart);
+			throw new Exception("Remember to write writer stream to file.");
+		}
 
 		public override void Serialize(WadWriter data_out)
 		{
@@ -174,9 +180,9 @@ namespace ArgonautReverse.Files
 			{
 				wad_size += 2048;
 			}
-			data_out.Position += wad_size_offset;
+			data_out.Position = wad_size_offset;
 			data_out.WriteInt32(wad_size);
-			data_out.Position += end_offset;
+			data_out.Position = end_offset;
 		}
 	}
 }

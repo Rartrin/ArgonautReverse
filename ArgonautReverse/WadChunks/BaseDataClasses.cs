@@ -24,6 +24,18 @@ namespace ArgonautReverse.WadChunks
 
 		public virtual void PostParseSetup(WADFile wadFile){}
 
+		public void Write(WadWriter writer)
+		{
+			writer.Write((uint)Info.ChunkType);
+			var sizeHold = writer.WriteHold<int>();
+			var startPosition = writer.Position;
+			WriteData(writer);
+			var endPosition = writer.Position;
+			sizeHold.Set(endPosition-startPosition);
+		}
+
+		protected abstract void WriteData(WadWriter writer);
+
 		public virtual void Serialize(WadWriter data_out)
 		{
 			data_out.Write((uint)Info.ChunkType);
@@ -68,7 +80,10 @@ namespace ArgonautReverse.WadChunks
 		}
 	}
 
-	public sealed class UnsupportedChunk(BaseWADChunkInfo info, byte[]? data = null):BaseWadChunk(info, data);
+	public sealed class UnsupportedChunk(BaseWADChunkInfo info, byte[]? data = null):BaseWadChunk(info, data)
+	{
+		protected override void WriteData(WadWriter writer) => writer.WriteBytes(Data!);
+	}
 
 	public sealed class UnknownChunkInfo(ChunkType chunkType):BaseWADChunkInfo
 	{
@@ -85,5 +100,8 @@ namespace ArgonautReverse.WadChunks
 		}
 	}
 
-	public sealed class UnknownChunk(BaseWADChunkInfo info, byte[]? data = null):BaseWadChunk(info, data);
+	public sealed class UnknownChunk(BaseWADChunkInfo info, byte[]? data = null):BaseWadChunk(info, data)
+	{
+		protected override void WriteData(WadWriter writer) => writer.WriteBytes(Data!);
+	}
 }

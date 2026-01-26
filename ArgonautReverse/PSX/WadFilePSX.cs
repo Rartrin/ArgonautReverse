@@ -10,11 +10,11 @@ namespace ArgonautReverse.PSX
 {
 	public sealed class WadFilePSX(WadVersion version, string stem, byte[] data):WADFile(version, stem, data)
 	{
-		public TPSXChunk? TPSX{get;private set;}
-		public SPSXChunk? SPSX{get;private set;}
-		public DPSXChunk? DPSX{get;private set;}
-		public PORTChunk? PORT{get;private set;}
-		public ENDChunkPSX? END{get;private set;}
+		public TPSXChunk TPSX{get;private set;}
+		public SPSXChunk SPSX{get;private set;}
+		public DPSXChunk DPSX{get;private set;}
+		public PORTChunk PORT{get;private set;}
+		public ENDChunkPSX END{get;private set;}
 
 		public override bool TryGetChunkInfo(ChunkType chunkType, [MaybeNullWhen(false)]out BaseWADChunkInfo info)
 		{

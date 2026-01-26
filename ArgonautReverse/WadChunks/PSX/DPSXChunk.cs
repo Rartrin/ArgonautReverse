@@ -157,5 +157,10 @@ namespace ArgonautReverse.WadChunks.PSX
 			}
 			throw new Exception("Entry point outside of known scripts");
 		}
+
+		protected override void WriteData(WadWriter writer)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }

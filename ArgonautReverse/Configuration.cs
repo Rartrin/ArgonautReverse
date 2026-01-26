@@ -48,11 +48,11 @@ namespace ArgonautReverse
 		private static Dictionary<string,DatVersion> CreateDatVersionLookup(params ReadOnlySpan<DatVersion> datVersions)
 		{
 			var ret = new Dictionary<string,DatVersion>();
-            foreach(var datVersion in datVersions)
-            {
-                ret.Add(datVersion.Title, datVersion);
-            }
+			foreach(var datVersion in datVersions)
+			{
+				ret.Add(datVersion.Title, datVersion);
+			}
 			return ret;
-        }
+		}
 	}
 }

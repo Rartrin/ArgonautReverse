@@ -2,6 +2,10 @@
 
 namespace ArgonautReverse.IO
 {
+	public readonly struct WriterHold<T>(BaseWriter writer, int index) where T : unmanaged
+	{
+		public readonly void Set(in T value) => writer.SetData(value, index);
+	}
 	public abstract class BaseWriter
 	{
 		public abstract int Position{get;set;}
@@ -10,6 +14,13 @@ namespace ArgonautReverse.IO
 		public void SkipBytes(int offset)
 		{
 			Position += offset;
+		}
+
+		public unsafe WriterHold<T> WriteHold<T>() where T : unmanaged
+		{
+			var holder = new WriterHold<T>(this, Position);
+			Position += sizeof(T);
+			return holder;
 		}
 
 		public void WriteSByte(sbyte value) => Write(value);
@@ -35,6 +46,13 @@ namespace ArgonautReverse.IO
 			}
 		}
 
+		protected void SetRawData(ReadOnlySpan<byte> data, int index)
+		{
+			var oldPos = Position;
+			Position = index;
+			WriteRawData(data);
+			Position = oldPos;
+		}
 		protected abstract void WriteRawData(ReadOnlySpan<byte> data);
 
 		public unsafe void WriteData<T>(in T data) where T : unmanaged
@@ -46,7 +64,7 @@ namespace ArgonautReverse.IO
 		}
 		public unsafe void WriteData<T>(ReadOnlySpan<T> array) where T : unmanaged
 		{
-			fixed (T* ret0 = array)
+			fixed(T* ret0 = array)
 			{
 				WriteRawData(new ReadOnlySpan<byte>((byte*)ret0, sizeof(T) * array.Length));
 			}
@@ -62,6 +80,14 @@ namespace ArgonautReverse.IO
 			for(int i=0; i<count; i++)
 			{
 				Write(empty);
+			}
+		}
+
+		public unsafe void SetData<T>(in T data, int index) where T : unmanaged
+		{
+			fixed(T* data0 = &data)
+			{
+				SetRawData(new ReadOnlySpan<byte>((byte*)data0, sizeof(T)), index);
 			}
 		}
 

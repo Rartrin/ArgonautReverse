@@ -4,7 +4,7 @@ using ArgonautReverse.PC;
 
 namespace ArgonautReverse.WadChunks.PC
 {
-    public sealed class WFPCChunkInfo:BaseWADChunkInfo<WFPCChunk>
+	public sealed class WFPCChunkInfo:BaseWADChunkInfo<WFPCChunk>
 	{
 		public static readonly WFPCChunkInfo Instance = new WFPCChunkInfo();
 
@@ -14,7 +14,7 @@ namespace ArgonautReverse.WadChunks.PC
 
 		private WFPCChunkInfo(){}
 
-		public override BaseWadChunk Parse(WadReader reader)
+		public override WFPCChunk Parse(WadReader reader)
 		{
 			var wadFlags = (WadFlagPC)reader.Read<uint>();
 			reader.AssertEndOfChunk(ChunkType);
@@ -25,5 +25,10 @@ namespace ArgonautReverse.WadChunks.PC
 	public sealed class WFPCChunk(BaseWADChunkInfo info, WadFlagPC wadFlags):BaseWadChunk(info)
 	{
 		public WadFlagPC WadFlags{get;} = wadFlags;
+
+		protected override void WriteData(WadWriter writer)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }

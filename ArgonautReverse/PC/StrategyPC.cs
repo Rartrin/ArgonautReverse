@@ -2,7 +2,7 @@
 
 namespace ArgonautReverse.PC
 {
-    public enum StratEntityFlags0PC : uint
+	public enum StratEntityFlags0PC : uint
 	{
 		ST_FLAGS0_NONE = 0,
 		ST_FLAGS0_1	= (1<<0),

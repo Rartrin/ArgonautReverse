@@ -4,7 +4,7 @@ using ArgonautReverse.PC;
 
 namespace ArgonautReverse.WadChunks.PC
 {
-    public sealed class STPCChunkInfo:BaseWADChunkInfo<STPCChunk>
+	public sealed class STPCChunkInfo:BaseWADChunkInfo<STPCChunk>
 	{
 		public static readonly STPCChunkInfo Instance = new STPCChunkInfo();
 
@@ -14,7 +14,7 @@ namespace ArgonautReverse.WadChunks.PC
 
 		private STPCChunkInfo(){}
 
-		public override BaseWadChunk Parse(WadReader reader)
+		public override STPCChunk Parse(WadReader reader)
 		{
 			int modelCount = reader.Read<int>();
 			var models = reader.ReadArrayWithoutMultipass<StratObject2PC>(modelCount);
@@ -48,6 +48,11 @@ namespace ArgonautReverse.WadChunks.PC
 				}
 			}
 			throw new Exception("StratObject for given addr was not found");
+		}
+
+		protected override void WriteData(WadWriter writer)
+		{
+			throw new NotImplementedException();
 		}
 	}
 }

@@ -3,9 +3,9 @@ using ArgonautReverse.IO;
 
 namespace ArgonautReverse.WadChunks.PC
 {
-    public sealed class ENDChunkPCInfo:BaseWADChunkInfo<ENDChunkPC>
+	public sealed class ENDChunkPCInfo:BaseWADChunkInfo<ENDChunkPC>
 	{
-		public static ENDChunkPCInfo Instance{get;} = new ENDChunkPCInfo();
+		public static readonly ENDChunkPCInfo Instance = new ENDChunkPCInfo();
 
 		public override ChunkType ChunkType => ChunkType.ID_END;
 		public override string ChunkDescription => "END";
@@ -17,14 +17,8 @@ namespace ArgonautReverse.WadChunks.PC
 			return new ENDChunkPC();
 		}
 	}
-	public sealed class ENDChunkPC:BaseWadChunk
+	public sealed class ENDChunkPC():BaseWadChunk(ENDChunkPCInfo.Instance)
 	{
-		public ENDChunkPC():base(ENDChunkPCInfo.Instance){}
-		
-		public override void Serialize(WadWriter data_out)
-		{
-			var start = base.SerializeHeader(data_out);
-			SerializeChunkSize(data_out, start);
-		}
+		protected override void WriteData(WadWriter writer){}
 	}
 }

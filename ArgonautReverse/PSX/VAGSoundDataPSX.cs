@@ -71,7 +71,7 @@ namespace ArgonautReverse.PSX
 			if(with_headers)
 			{
 				header = new byte[48];
-				using var headerStream = new IO.StreamWriter(new MemoryStream(header), 0, true);
+				var headerStream = new IO.StreamWriter(new MemoryStream(header), 0);
 				headerStream.WriteBytes(vagpBytes);
 				headerStream.SkipBytes(8);//TODO: What is this?
 				WriteInt32BE(headerStream, size / n_channels);
@@ -85,7 +85,7 @@ namespace ArgonautReverse.PSX
 			}
 			else
 			{
-				header = Array.Empty<byte>();
+				header = [];
 			}
 			int header_size = 48;
 
@@ -103,7 +103,7 @@ namespace ArgonautReverse.PSX
 					data.CopyTo(ret, header.Length);
 				}
 
-				return new byte[1][] { ret };
+				return [ret];
 			}
 			else
 			{
@@ -142,46 +142,45 @@ namespace ArgonautReverse.PSX
 			var audio_data_size = size * 7 / 2;// VAG -> WAV has a 3.5 size ratio
 
 			var total_wav_size = 44 + audio_data_size;
+
 			var ret = new byte[total_wav_size];
-			using(var headerStream = new IO.StreamWriter(new MemoryStream(ret), 0, true))
+			var headerStream = new IO.StreamWriter(new MemoryStream(ret), 0);
+			//RIFF header
+			headerStream.WriteBytes(riffBytes);
+			headerStream.WriteInt32(total_wav_size - 8);
+			headerStream.WriteBytes(waveBytes);
+
+			//fmt chunk
+			headerStream.WriteBytes(fmtBytes);
+			headerStream.WriteInt32(16);//Chunk size
+			headerStream.WriteUInt16(1);//Format code: 1 = WAVE_FORMAT_PCM
+			headerStream.WriteUInt16((ushort)n_channels);
+			headerStream.WriteInt32((int)sampling_rate);
+			headerStream.WriteInt32((int)byte_rate);
+			headerStream.WriteUInt16((ushort)block_align);
+			headerStream.WriteUInt16(0x0010);//Bits per sample
+
+			//data chunk
+			headerStream.WriteBytes(dataBytes);
+			headerStream.WriteInt32(audio_data_size);
+
+			if(headerStream.Position != 44)
 			{
-				//RIFF header
-				headerStream.WriteBytes(riffBytes);
-				headerStream.WriteInt32(total_wav_size - 8);
-				headerStream.WriteBytes(waveBytes);
-
-				//fmt chunk
-				headerStream.WriteBytes(fmtBytes);
-				headerStream.WriteInt32(16);//Chunk size
-				headerStream.WriteUInt16(1);//Format code: 1 = WAVE_FORMAT_PCM
-				headerStream.WriteUInt16((ushort)n_channels);
-				headerStream.WriteInt32((int)sampling_rate);
-				headerStream.WriteInt32((int)byte_rate);
-				headerStream.WriteUInt16((ushort)block_align);
-				headerStream.WriteUInt16(0x0010);//Bits per sample
-
-				//data chunk
-				headerStream.WriteBytes(dataBytes);
-				headerStream.WriteInt32(audio_data_size);
-
-				if(headerStream.Position != 44)
-				{
-					throw new Exception("Header size invalid");
-				}
+				throw new Exception("Header size invalid");
 			}
 
-			byte[][] channels;
+			byte[][]? channels;
 			if(n_channels == 1)
 			{
 				channels = null;
 			}
 			else
 			{
-				channels = new byte[2][]
-				{
+				channels =
+				[
 					new byte[audio_data_size / 2],
 					new byte[audio_data_size / 2]
-				};
+				];
 			}
 			// Based on VAG-Depack 0.1 by bITmASTER
 			for(int c = 0; c < n_channels; c++)
