@@ -4,7 +4,7 @@ namespace ArgonautReverse.OpenStratEngine.Chunks
 {
 	public sealed class WadFlagsChunkOSE:ChunkOSE
 	{
-		public override ChunkTypeOSE ChunkType => ChunkTypeOSE.Wadflags;
+		public override ChunkTypeOSE ChunkType => ChunkTypeOSE.WadFlags;
 
 		public WadFlagsOSE WadFlags{get;}
 

@@ -74,7 +74,7 @@ namespace ArgonautReverse.PSX.StratLang
 				IsAnimLoad = true;
 				AnimationIndex = ~arg;
 
-				if(arg >= reader.WadFile.animations.Count)
+				if(arg >= reader.WadFile.DPSX.Animations.Count)
 				{
 					throw new Exception("Animation index out of range");
 				}

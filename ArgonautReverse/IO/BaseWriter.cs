@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Text;
 
 namespace ArgonautReverse.IO
 {
@@ -46,6 +47,13 @@ namespace ArgonautReverse.IO
 			}
 		}
 
+		public unsafe void WriteSizedArray<T>(int size, IReadOnlyList<T> array) where T : unmanaged, IBinaryNumber<T>
+		{
+			if(size != array.Count){throw new Exception();}
+
+			WriteArray(array);
+		}
+
 		protected void SetRawData(ReadOnlySpan<byte> data, int index)
 		{
 			var oldPos = Position;
@@ -91,11 +99,14 @@ namespace ArgonautReverse.IO
 			}
 		}
 
-		///// <summary>Writes a fixed length ASCII string</summary>
-		//public string WriteString(string str)
-		//{
-		//	ReadArray(str);
-		//	return Encoding.Latin1.GetString(str);
-		//}
+		/// <summary>Writes a fixed length ASCII string</summary>
+		public void WriteString(int length, string str)
+		{
+			if(length != str.Length){throw new Exception();}
+
+			Span<byte> bytes = stackalloc byte[length];
+			Encoding.Latin1.GetBytes(str, bytes);
+			WriteData(bytes);
+		}
 	}
 }

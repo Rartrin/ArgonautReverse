@@ -3,18 +3,11 @@ using ArgonautReverse.WadChunks.PC;
 
 namespace ArgonautReverse.PC
 {
-	public readonly struct ModelCollisionStruct0PC:IReadable<ModelCollisionStruct0PC>
+	public readonly struct ModelCollisionStruct0PC(short wField0, short wField1, int field2):IReadable<ModelCollisionStruct0PC>,IWritable
 	{
-		public readonly short wField0;
-		public readonly short wField1;
-		public readonly int field2;
-
-		public ModelCollisionStruct0PC(short wField0, short wField1, int field2)
-		{
-			this.wField0 = wField0;
-			this.wField1 = wField1;
-			this.field2 = field2;
-		}
+		public readonly short wField0 = wField0;
+		public readonly short wField1 = wField1;
+		public readonly int field2 = field2;
 
 		public static ModelCollisionStruct0PC Parse(WadReader reader)
 		{
@@ -23,9 +16,16 @@ namespace ArgonautReverse.PC
 			var field2 = reader.Read<int>();
 			return new ModelCollisionStruct0PC(wField0, wField1, field2);
 		}
+
+		public void Write(WadWriter writer)
+		{
+			writer.Write<short>(wField0);
+			writer.Write<short>(wField1);
+			writer.Write<int>(field2);
+		}
 	}
 
-	public sealed class Model_SubStruct1PC:IReadable<Model_SubStruct1PC>
+	public sealed class Model_SubStruct1PC:IReadable<Model_SubStruct1PC>,IWritable
 	{
 		public byte bField0;
 		public byte bField1;
@@ -47,28 +47,36 @@ namespace ArgonautReverse.PC
 			ret.field4 = reader.Read<int>();
 			return ret;
 		}
+
+		public void Write(WadWriter writer)
+		{
+			writer.Write<byte>(bField0);
+			writer.Write<byte>(bField1);
+			writer.Write<short>(wGapField0);
+			writer.WriteSizedArray<ModelCollisionStruct0PC>(4, collisionArray);
+			writer.Write<short>(Y);
+			writer.Write<short>(X);
+			writer.Write<int>(field4);
+		}
 	}
 
-	public readonly struct ModelVertexPC:IReadable<ModelVertexPC>
+	public readonly record struct ModelVertexPC(Vector3F Position, Vector3F Direction):IReadable<ModelVertexPC>,IWritable
 	{
-		public readonly Vector3F Position;
-		public readonly Vector3F Direction;
-
-		public ModelVertexPC(Vector3F position, Vector3F direction)
-		{
-			Position = position;
-			Direction = direction;
-		}
-
 		public static ModelVertexPC Parse(WadReader reader)
 		{
 			var position = reader.Read<Vector3F>();
 			var direction = reader.Read<Vector3F>();
 			return new ModelVertexPC(position, direction);
 		}
+
+		public void Write(WadWriter writer)
+		{
+			writer.Write<Vector3F>(Position);
+			writer.Write<Vector3F>(Direction);
+		}
 	}
 
-	public sealed class ModelTrianglePC:IReadable<ModelTrianglePC>
+	public sealed class ModelTrianglePC:IReadable<ModelTrianglePC>,IWritable
 	{
 		public ushort flags;
 		public ushort[] vertexIndices;//[3];
@@ -92,16 +100,24 @@ namespace ArgonautReverse.PC
 			triangle.pos = reader.Read<Vector4F>();
 			return triangle;
 		}
+
+		public void Write(WadWriter writer)
+		{
+			writer.Write<ushort>(flags);
+			writer.WriteSizedArray<ushort>(3, vertexIndices);
+
+			writer.Write<ushort>((ushort)SpriteIndex);
+			writer.Write<ushort>(0);//Padding
+			writer.Write<Vector4F>(pos);
+		}
 	}
 
-	public sealed class StratObjectPC:IReadableArrayMultipass<StratObjectPC>//ModelStruct
+	public sealed class StratObjectPC:IReadableArrayMultipass<StratObjectPC>,IWritableArrayMultipass//ModelStruct
 	{
 		//The value of the position in the wad
 		public int WadOffset;
 
 		public Vector3F[] vec;//[9]
-		public ushort vertexCount;
-		public ushort triangleCount;
 		public ModelVertexPC[] vertices;
 		public ModelTrianglePC[] triangles;
 		public ushort wField1;
@@ -114,8 +130,8 @@ namespace ArgonautReverse.PC
 			model.WadOffset = reader.Position;
 
 			model.vec = reader.ReadArray<Vector3F>(9);
-			model.vertexCount = reader.Read<ushort>();
-			model.triangleCount = reader.Read<ushort>();
+			model.vertices = new ModelVertexPC[reader.Read<ushort>()];
+			model.triangles = new ModelTrianglePC[reader.Read<ushort>()];
 			reader.AssertRead<uint>(0);//vertices placeholder
 			reader.AssertRead<uint>(0);//triangles placeholder
 			model.wField1 = reader.Read<ushort>();
@@ -126,37 +142,71 @@ namespace ArgonautReverse.PC
 
 		public static void ParseData(WadReader reader, StratObjectPC stratObject)
 		{
-			stratObject.vertices = reader.ReadArray<ModelVertexPC>(stratObject.vertexCount);
-
-			stratObject.triangles = reader.ReadArray<ModelTrianglePC>(stratObject.triangleCount);
+			reader.ReadArray<ModelVertexPC>(stratObject.vertices);
+			reader.ReadArray<ModelTrianglePC>(stratObject.triangles);
 
 			int array2Length = stratObject.wField1 + stratObject.wField2;
 			stratObject.array2 = reader.ReadArray<Model_SubStruct1PC>(array2Length);
 		}
+
+		public void WriteStruct(WadWriter writer)
+		{
+			writer.WriteSizedArray<Vector3F>(9, vec);
+			writer.Write((ushort)vertices.Length);
+			writer.Write((ushort)triangles.Length);
+			writer.Write<uint>(0);//vertices placeholder
+			writer.Write<uint>(0);//triangles placeholder
+			writer.Write<ushort>(wField1);
+			writer.Write<ushort>(wField2);
+			writer.Write<uint>(0);//array2 placeholder
+		}
+
+		public void WriteData(WadWriter writer)
+		{
+			writer.WriteArray<ModelVertexPC>(vertices);
+			writer.WriteArray<ModelTrianglePC>(triangles);
+
+			int array2Length = wField1 + wField2;
+			writer.WriteSizedArray<Model_SubStruct1PC>(array2Length, array2);
+		}
 	}
 
-	public sealed class StratObject2PC:IReadableArrayMultipass<StratObject2PC>//ModelStruct2
+	public sealed class StratObject2PC:IReadableArrayMultipass<StratObject2PC>,IWritableArrayMultipass//ModelStruct2
 	{
 		public StratObjectPC model;
 		public ushort wField0;
-		public ushort boneCount;
 		//Number of verts in a bone
-		public IReadOnlyList<ushort> boneVertCounts;
+		public ushort[] boneVertCounts;
 
 		public static StratObject2PC ParseStruct(WadReader reader)
 		{
 			var model = new StratObject2PC();
 			model.model = StratObjectPC.ParseStruct(reader);
 			model.wField0 = reader.Read<ushort>();
-			model.boneCount = reader.Read<ushort>();
+			var boneCount = reader.Read<ushort>();
+			model.boneVertCounts = new ushort[boneCount];
 			reader.AssertRead<uint>(0);//boneVertCounts placeholder
 			return model;
 		}
 
 		public static void ParseData(WadReader reader, StratObject2PC stratObject)
 		{
-			stratObject.boneVertCounts = reader.ReadArray<ushort>(stratObject.boneCount);
+			reader.ReadArray<ushort>(stratObject.boneVertCounts);
 			StratObjectPC.ParseData(reader, stratObject.model);
+		}
+
+		public void WriteStruct(WadWriter writer)
+		{
+			model.WriteStruct(writer);
+			writer.Write<ushort>(wField0);
+			writer.Write((ushort)boneVertCounts.Length);
+			writer.Write<uint>(0);//boneVertCounts placeholder
+		}
+
+		public void WriteData(WadWriter writer)
+		{
+			writer.WriteArray<ushort>(boneVertCounts);
+			model.WriteData(writer);
 		}
 	}
 }

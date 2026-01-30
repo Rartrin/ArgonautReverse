@@ -54,6 +54,6 @@ namespace ArgonautReverse.WadChunks.PSX
 
 		public int n_chunks => chunks_zones.Sum(zone => zone.Length);
 
-		protected override void WriteData(WadWriter writer) => writer.WriteBytes(Data!);
+		protected override void WriteData(ChunkWriter writer) => writer.WriteBytes(Data!);
 	}
 }

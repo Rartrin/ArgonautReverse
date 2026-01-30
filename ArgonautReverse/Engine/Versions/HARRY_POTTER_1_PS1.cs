@@ -17,7 +17,7 @@ namespace ArgonautReverse.Engine.Versions
 			public override string FilenameDIR => "POTTER.DIR";
 			public override DirFormat DirFormat => HARRY_POTTER_1_PS1.DirFormat;
 
-			public override WadVersion GetWadVersion(string wadName) => WadVersion;
+			public override WadVersion GetWadVersion(string? wadName) => WadVersion;
 
 			public override IReadOnlyList<WadVersion> WadVersions{get;} = [WadVersion];
 		}

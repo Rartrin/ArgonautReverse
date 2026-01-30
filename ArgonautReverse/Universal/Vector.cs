@@ -11,17 +11,12 @@ using ArgonautReverse.IO;
 namespace ArgonautReverse.Universal
 {
 	#region Vector2
-	public struct Vector2<T>:IReadable<Vector2<T>>, IWritable where T : unmanaged, IBinaryNumber<T>
+	public struct Vector2<T>(T x, T y):IReadable<Vector2<T>>, IWritable where T : unmanaged, IBinaryNumber<T>
 	{
-		public T X, Y;
+		public T X = x;
+		public T Y = y;
 
 		public readonly T LengthSquared => X*X + Y*Y;
-
-		public Vector2(T x, T y)
-		{
-			X = x;
-			Y = y;
-		}
 
 		public static Vector2<T> Parse(WadReader reader)
 		{
@@ -41,18 +36,13 @@ namespace ArgonautReverse.Universal
 	}
 	#endregion
 	#region Vector3
-	public struct Vector3<T>:IReadable<Vector3<T>>, IWritable where T : unmanaged, IBinaryNumber<T>
+	public struct Vector3<T>(T x, T y, T z):IReadable<Vector3<T>>, IWritable where T : unmanaged, IBinaryNumber<T>
 	{
-		public T X, Y, Z;
+		public T X = x;
+		public T Y = y;
+		public T Z = z;
 
 		public readonly T LengthSquared => X*X + Y*Y + Z*Z;
-
-		public Vector3(T x, T y, T z)
-		{
-			X = x;
-			Y = y;
-			Z = z;
-		}
 
 		public static Vector3<T> Parse(WadReader reader)
 		{
@@ -96,17 +86,12 @@ namespace ArgonautReverse.Universal
 	}
 	#endregion
 	#region Vector4
-	public struct Vector4<T>:IReadable<Vector4<T>>, IWritable where T : unmanaged, IBinaryNumber<T>
+	public struct Vector4<T>(T x, T y, T z, T w):IReadable<Vector4<T>>, IWritable where T : unmanaged, IBinaryNumber<T>
 	{
-		public T X, Y, Z, W;
-
-		public Vector4(T x, T y, T z, T w)
-		{
-			X = x;
-			Y = y;
-			Z = z;
-			W = w;
-		}
+		public T X = x;
+		public T Y = y;
+		public T Z = z;
+		public T W = w;
 
 		public static Vector4<T> Parse(WadReader reader)
 		{

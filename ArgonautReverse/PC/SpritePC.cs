@@ -11,7 +11,7 @@ namespace ArgonautReverse.PC
 		HasAlpha = 0x2,
 		_20 = 0x20,
 	}
-	public sealed class SpriteStructPC:IReadable<SpriteStructPC>
+	public sealed class SpriteStructPC:IReadable<SpriteStructPC>,IWritable
 	{
 		[StructLayout(LayoutKind.Explicit)]
 		public struct SourceValue//union
@@ -45,6 +45,17 @@ namespace ArgonautReverse.PC
 			sprite.sourceMaxY.U8 = reader.Read<byte>();
 			return sprite;
 		}
+
+		public void Write(WadWriter writer)
+		{
+			writer.Write((ushort)flags);
+			writer.Write<sbyte>(sourceTexture);
+			writer.Write<sbyte>(paletteIndex);
+			writer.Write<byte>(sourceMinX.U8);
+			writer.Write<byte>(sourceMaxX.U8);
+			writer.Write<byte>(sourceMinY.U8);
+			writer.Write<byte>(sourceMaxY.U8);
+		}
 	}
 
 	public enum EffectTypePC:byte
@@ -61,7 +72,7 @@ namespace ArgonautReverse.PC
 		MultiMoveDown = 11,
 	}
 
-	public class EffectPC:IReadable<EffectPC>
+	public class EffectPC:IReadable<EffectPC>,IWritable
 	{
 		public ushort spriteIndex;
 		public EffectTypePC Type;
@@ -74,7 +85,7 @@ namespace ArgonautReverse.PC
 		public byte bSomeCount7;
 		public byte bField8;
 		public byte bSomeCount9;
-		public SpriteStructPC[] frames;
+		public SpriteStructPC[]? frames;
 
 		public static EffectPC Parse(WadReader reader)
 		{
@@ -133,9 +144,61 @@ namespace ArgonautReverse.PC
 					effect.currentFrame = 0;
 					effect.bSomeCount7 = 0;
 					break;
-				default: throw new NotImplementedException("Missing effect type: " + effect.Type);
+				default: throw new NotImplementedException($"Missing effect type: {effect.Type}");
 			}
 			return effect;
+		}
+
+		public void Write(WadWriter writer)
+		{
+			writer.Write<ushort>(spriteIndex);
+			writer.Write((byte)Type);
+			switch(Type)
+			{
+				case EffectTypePC.MoveDown:
+				case EffectTypePC.MoveUp:
+					writer.Write<byte>(bSomeMaxIndex2);
+					writer.Write<byte>(frameCount0);
+					writer.Write<byte>(FirstFrameIndex);
+					if(currentFrame != 0){throw new Exception();}
+					break;
+				case EffectTypePC.RangeCycle:
+				case EffectTypePC.RangeCycle256:
+					writer.Write<byte>(bSomeMaxIndex2);
+					writer.Write<byte>(frameCount0);
+					writer.Write<byte>(currentFrame);
+					writer.Write<byte>(FirstFrameIndex);
+					writer.Write<byte>(frameCount1);
+					writer.Write<byte>(bSomeCount7);
+					if(bSomeCount9 != 0){throw new Exception();}
+					break;
+				case EffectTypePC.Anim2:
+					writer.Write<byte>(bSomeMaxIndex2);
+					writer.Write<byte>(frameCount0);
+					writer.Write<byte>(frameCount1);
+					for(int j = 0; j < frameCount0; j++)
+					{
+						writer.Write((ushort)frames![j].flags);
+					}
+					if(FirstFrameIndex != 0){throw new Exception();}
+					if(currentFrame != 0){throw new Exception();}
+					if(bSomeCount7 != 0){throw new Exception();}
+					break;
+				case EffectTypePC.MultiMoveUp:
+				case EffectTypePC.MultiMoveDown:
+					writer.Write<byte>(bSomeMaxIndex2);
+					writer.Write<byte>(frameCount0);
+					writer.Write<byte>(FirstFrameIndex);
+					writer.Write<byte>(frameCount1);
+					for(int j = 0; j < frameCount1; j++)
+					{
+						writer.Write((ushort)frames![j].flags);
+					}
+					if(currentFrame != 0){throw new Exception();}
+					if(bSomeCount7 != 0){throw new Exception();}
+					break;
+				default:throw new NotImplementedException($"Missing effect type: {Type}");
+			}
 		}
 	}
 }

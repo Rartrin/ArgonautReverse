@@ -6,7 +6,7 @@ namespace ArgonautReverse.OpenStratEngine.Chunks
 	public enum ChunkTypeOSE:uint
 	{
 		Unknown			= 0,
-		Wadflags		= ('F' << 24) + ('L' << 16) + ('A' << 8) + 'G',
+		WadFlags		= ('F' << 24) + ('L' << 16) + ('A' << 8) + 'G',
 		Fonts			= ('F' << 24) + ('O' << 16) + ('N' << 8) + 'T',
 		Objects			= ('O' << 24) + ('B' << 16) + ('J' << 8) + ' ',
 		Animations		= ('A' << 24) + ('N' << 16) + ('I' << 8) + 'M',

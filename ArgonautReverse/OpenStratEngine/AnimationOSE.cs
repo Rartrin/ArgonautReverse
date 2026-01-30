@@ -3,18 +3,8 @@ using ArgonautReverse.Universal;
 
 namespace ArgonautReverse.OpenStratEngine
 {
-	public readonly struct QuatOSE:IWritable
+	public readonly record struct QuatOSE(short W, short X, short Y, short Z):IWritable
 	{
-		public readonly short W,X,Y,Z;
-
-		public QuatOSE(short w, short x, short y, short z)
-		{
-			W = w;
-			X = x;
-			Y = y;
-			Z = z;
-		}
-
 		public void Write(WadWriter writer)
 		{
 			writer.Write<short>(W);
@@ -24,16 +14,10 @@ namespace ArgonautReverse.OpenStratEngine
 		}
 	}
 
-	public sealed class AnimTriggerOSE:IWritable
+	public sealed class AnimTriggerOSE(ushort frame, ushort trigger):IWritable
 	{
-		public readonly ushort Frame;
-		public readonly ushort Trigger;
-
-		public AnimTriggerOSE(ushort frame, ushort trigger)
-		{
-			Frame = frame;
-			Trigger = trigger;
-		}
+		public readonly ushort Frame = frame;
+		public readonly ushort Trigger = trigger;
 
 		public void Write(WadWriter writer)
 		{
@@ -42,18 +26,11 @@ namespace ArgonautReverse.OpenStratEngine
 		}
 	}
 
-	public sealed class KeydataOSE:IWritable
+	public sealed class KeydataOSE(QuatOSE rotation, Vector3<short> position, ushort frame):IWritable
 	{
-		public readonly QuatOSE Rotation;
-		public readonly Vector3<short> Position;
-		public readonly ushort Frame;
-
-		public KeydataOSE(QuatOSE rotation, Vector3<short> position, ushort frame)
-		{
-			Rotation = rotation;
-			Position = position;
-			Frame = frame;
-		}
+		public readonly QuatOSE Rotation = rotation;
+		public readonly Vector3<short> Position =position;
+		public readonly ushort Frame = frame;
 
 		public void Write(WadWriter writer)
 		{

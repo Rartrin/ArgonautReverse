@@ -9,7 +9,7 @@ namespace ArgonautReverse.PC
 		TEXTURE_FLAG_80 = 0x80,//Compressed
 	}
 
-	public sealed class BrTexturePalettePC:IReadable<BrTexturePalettePC>
+	public sealed class BrTexturePalettePC:IReadable<BrTexturePalettePC>,IWritable
 	{
 		public int renderArray3Index;
 		public int count1;
@@ -27,12 +27,20 @@ namespace ArgonautReverse.PC
 			var palette = new BrTexturePalettePC();
 			palette.renderArray3Index = reader.Read<int>();
 
-			palette.count1 = reader.Read<int>();
+			var count1 = reader.Read<int>();
 
-			palette.array5 = reader.ReadArray<ColorABGR555>(palette.count1);
-			palette.array6 = reader.ReadArray<byte>(palette.count1);
+			palette.array5 = reader.ReadArray<ColorABGR555>(count1);
+			palette.array6 = reader.ReadArray<byte>(count1);
 
 			return palette;
+		}
+
+		public void Write(WadWriter writer)
+		{
+			writer.Write<int>(renderArray3Index);
+			writer.Write<int>(count1);
+			writer.WriteArray(array5);
+			writer.WriteArray(array6);
 		}
 	}
 
@@ -51,24 +59,26 @@ namespace ArgonautReverse.PC
 		public int field6;
 	}
 
-	public sealed class TextureStructPC:IReadable<TextureStructPC>
+	public sealed class TextureStructPC:IReadable<TextureStructPC>,IWritable
 	{
-		public TextureFlagsPC flags;
+		public TextureFlagsPC Flags;
 		public int Width;
 		public int Height;
 		//public IDirectDrawSurface4* ddSurface;
 		//public IDirect3DTexture2* ddTexture;
 		//public BrTexturePalette brPalette;
 
+		private ushort[]? compressedPixels;
 		public ushort[] pixels;
 
 		//public object obj7;
 
-		private TextureStructPC(TextureFlagsPC flags, int width, int height, ushort[] pixels)
+		private TextureStructPC(TextureFlagsPC flags, int width, int height, ushort[]? compressedPixels, ushort[] pixels)
 		{
-			this.flags = flags;
+			this.Flags = flags;
 			Width = width;
 			Height = height;
+			this.compressedPixels = compressedPixels;
 			this.pixels = pixels;
 		}
 
@@ -79,6 +89,7 @@ namespace ArgonautReverse.PC
 			var height = reader.Read<int>();
 			int pixelCount = width * height;
 			ushort[] pixels;
+			ushort[]? compressedPixels = null;
 			if(flags != 0)
 			{
 				if((flags & TextureFlagsPC.TEXTURE_FLAG_80) != 0)
@@ -90,8 +101,8 @@ namespace ArgonautReverse.PC
 					{
 						throw new Exception();
 					}
-					var src = reader.ReadArray<ushort>(srcSize / sizeof(ushort));
-					TexturePC.DecompressPixels(src, pixels, width, height);
+					compressedPixels = reader.ReadArray<ushort>(srcSize / sizeof(ushort));
+					TexturePC.DecompressPixels(compressedPixels, pixels, width, height);
 				}
 				else
 				{
@@ -107,7 +118,30 @@ namespace ArgonautReverse.PC
 				pixels = reader.ReadArray<ushort>(pixelCount / sizeof(ushort));
 			}
 
-			return new(flags, width, height, pixels);
+			return new(flags, width, height, compressedPixels, pixels);
+		}
+
+		public void Write(WadWriter writer)
+		{
+			writer.Write((int)Flags);
+			writer.Write<int>(Width);
+			writer.Write<int>(Height);
+			if(Flags != 0)
+			{
+				if((Flags & TextureFlagsPC.TEXTURE_FLAG_80) != 0)
+				{
+					writer.Write<int>(sizeof(ushort) * compressedPixels!.Length);
+					writer.WriteArray<ushort>(compressedPixels);
+				}
+				else
+				{
+					writer.WriteArray<ushort>(pixels);
+				}
+			}
+			else
+			{
+				writer.WriteArray<ushort>(pixels);
+			}
 		}
 	}
 

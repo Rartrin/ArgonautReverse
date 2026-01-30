@@ -3,12 +3,12 @@ using ArgonautReverse.OpenStratEngine;
 
 namespace ArgonautReverse.PSX
 {
-	public sealed class FontPSX:IConvertibleOSE<FontOSE>
+	public sealed class FontPSX:IReadable<FontPSX>,IConvertibleToOSE<FontOSE>
 	{
-		public ushort Texture{get;}
-		public ushort BaseLine{get;}
-		public ushort Width{get;}
-		public ushort Height{get;}
+		public readonly ushort Texture;
+		public readonly ushort BaseLine;
+		public readonly ushort Width;
+		public readonly ushort Height;
 
 		private FontPSX(ushort texture, ushort baseLine, ushort width, ushort height)
 		{
@@ -27,7 +27,7 @@ namespace ArgonautReverse.PSX
 			return new FontPSX(texture, baseLine, width, height);
 		}
 
-		FontOSE IConvertibleOSE<FontOSE>.ToOSE() => new FontOSE
+		FontOSE IConvertibleToOSE<FontOSE>.ToOSE() => new FontOSE
 		(
 			textureId:Texture,
 			charOffsetY:BaseLine,

@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Drawing.Imaging;
 using ArgonautReverse.Universal;
+using ArgonautReverse.OpenStratEngine;
 
 namespace ArgonautReverse.PC
 {
@@ -89,6 +90,7 @@ namespace ArgonautReverse.PC
 
 		public override void AddChunk(BaseWadChunk chunk)
 		{
+			base.AddChunk(chunk);
 			switch(chunk.Info.ChunkType)
 			{
 				case ChunkType.ID_PC_INFO:EnsureEmpty(InfoChunk);InfoChunk = (INFOChunk)chunk;break;
@@ -116,6 +118,19 @@ namespace ArgonautReverse.PC
 					break;
 				}
 			}
+		}
+
+		public static WadFilePC FromOSE(WadFileOSE ose, Configuration config)
+		{
+			var ret = new WadFilePC(config.WriteVersion.GetWadVersion(null), ose.Stem, null);
+			foreach(var oseChunk in ose.Chunks)
+			{
+				ret.AddChunk(oseChunk switch
+				{
+					_ => throw new NotImplementedException(),
+				});
+			}
+			return ret;
 		}
 
 		public override void ExtractAssets(ProgramArgs args, Configuration conf)

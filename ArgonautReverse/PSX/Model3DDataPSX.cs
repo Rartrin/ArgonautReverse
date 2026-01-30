@@ -331,7 +331,7 @@ namespace ArgonautReverse.PSX
 		}
 	}
 
-	public sealed class ObjectDataPSX
+	public sealed class ObjectDataPSX:IReadable<ObjectDataPSX>
 	{
 		public ObjectPSX Object{get;}
 		public Model3DDataPSX Data{get;}

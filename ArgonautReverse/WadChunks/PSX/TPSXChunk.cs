@@ -1,6 +1,7 @@
 using ArgonautReverse.Engine;
 using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
+using ArgonautReverse.OpenStratEngine.Chunks;
 using ArgonautReverse.PSX;
 
 namespace ArgonautReverse.WadChunks.PSX
@@ -36,11 +37,11 @@ namespace ArgonautReverse.WadChunks.PSX
 			}
 			else
 			{
-				var tpsx_flags = (TextureFlag)data_in.Read<int>();
-				var hasLongLevelName = (tpsx_flags & TextureFlag.HasLongLevelName) != 0;
-				hasMemoryCardIcons = (tpsx_flags & TextureFlag.HasMemoryCardIcons) != 0;
-				var hasLevelName = (tpsx_flags & TextureFlag.HasLevelName) != 0;
-				compressed16bit = (tpsx_flags & TextureFlag.Compressed16Bit) != 0;
+				var chunkFlags = (TextureFlag)data_in.Read<int>();
+				var hasLongLevelName = (chunkFlags & TextureFlag.HasLongLevelName) != 0;
+				hasMemoryCardIcons = (chunkFlags & TextureFlag.HasMemoryCardIcons) != 0;
+				var hasLevelName = (chunkFlags & TextureFlag.HasLevelName) != 0;
+				compressed16bit = (chunkFlags & TextureFlag.Compressed16Bit) != 0;
 
 				if(hasLevelName)
 				{
@@ -61,11 +62,7 @@ namespace ArgonautReverse.WadChunks.PSX
 					//TODO: Why are these also in DPSX?
 					var spriteOffset = data_in.Read<int>();
 
-					fontLookup = new FontPSX[256];
-					for(var i = 0; i < 256; i++)
-					{
-						fontLookup[i] = FontPSX.Parse(data_in);
-					}
+					fontLookup = data_in.ReadArray<FontPSX>(256);
 				}
 				else
 				{
@@ -80,15 +77,29 @@ namespace ArgonautReverse.WadChunks.PSX
 		}
 	}
 
-	public sealed class TPSXChunk(TextureFilePSX texture_file, IReadOnlyList<string> titles, IReadOnlyList<FontPSX> fontLookup, byte[]? fallback_data = null):BaseWadChunk(TPSXChunkInfo.Instance, fallback_data)
+	public sealed class TPSXChunk(TextureFilePSX texture_file, IReadOnlyList<string> titles, IReadOnlyList<FontPSX> fontLookup, byte[]? fallback_data = null):BaseWadChunk(TPSXChunkInfo.Instance, fallback_data),IConvertibleToOSE<IReadOnlyList<ChunkOSE>>
 	{
 		public TextureFilePSX TextureFile{get;} = texture_file;
 		public IReadOnlyList<string> Titles{get;} = titles;
 		public IReadOnlyList<FontPSX> FontLookup{get;} = fontLookup;
 
-		protected override void WriteData(WadWriter writer)
+		protected override void WriteData(ChunkWriter writer)
 		{
 			throw new NotImplementedException();
+		}
+
+		public IReadOnlyList<ChunkOSE> ToOSE()
+		{
+			//TODO: Can be null in the dummy wad.
+			var fontChunk = new FontChunkOSE(FontLookup.ToOSE());
+
+			//TODO: Textures
+			//TODO: Titles?
+
+			return
+			[
+				fontChunk,
+			];
 		}
 	}
 }

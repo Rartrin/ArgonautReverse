@@ -2,18 +2,11 @@ using System.Numerics;
 
 namespace ArgonautReverse.PSX
 {
-	public sealed class AnimationDataPSX
+	public sealed class AnimationDataPSX(int boneCount, IReadOnlyList<int> frameIndexes, IReadOnlyList<IReadOnlyList<Matrix4x4>> frames)
 	{
-		public readonly int n_vertices_groups;
-		public readonly IReadOnlyList<int> FrameIndexes;
-		public readonly IReadOnlyList<IReadOnlyList<Matrix4x4>> Frames;
-
-		public AnimationDataPSX(int boneCount, IReadOnlyList<int> frameIndexes, IReadOnlyList<IReadOnlyList<Matrix4x4>> frames)
-		{
-			n_vertices_groups = boneCount;
-			FrameIndexes=frameIndexes;
-			Frames = frames;
-		}
+		public readonly int n_vertices_groups = boneCount;
+		public readonly IReadOnlyList<int> FrameIndexes = frameIndexes;
+		public readonly IReadOnlyList<IReadOnlyList<Matrix4x4>> Frames = frames;
 
 		public static unsafe AnimationDataPSX Parse(AnimationPSX animation)
 		{

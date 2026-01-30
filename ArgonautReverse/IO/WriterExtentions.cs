@@ -40,6 +40,19 @@
 					array[i].Write(that);
 				}
 			}
+			public void WriteArray<T>(ReadOnlySpan<T> array) where T : IWritable
+			{
+				for(int i = 0; i < array.Length; i++)
+				{
+					array[i].Write(that);
+				}
+			}
+			public void WriteSizedArray<T>(int size, IReadOnlyList<T> array) where T : IWritable
+			{
+				if(size != array.Count){throw new Exception();}
+
+				that.WriteArray(array);
+			}
 			#endregion
 			#region IWritable<T,A>
 			public void Write<T,A>(A arg, T value) where T : IWritable<A>
@@ -57,6 +70,8 @@
 
 			public void WriteArray<T,A>(IList<A> args, IReadOnlyList<T> array) where T : IWritable<A>
 			{
+				if(args.Count != array.Count){throw new Exception();}
+
 				for(int i = 0; i < array.Count; i++)
 				{
 					array[i].Write(that, args[i]);
@@ -82,6 +97,16 @@
 					array[i].WriteStruct(that);
 					array[i].WriteData(that);
 				}
+			}
+			public void WriteSizedArrayMultipass<T>(int size, IReadOnlyList<T> array) where T:class,IWritableArrayMultipass
+			{
+				if(size != array.Count){throw new Exception();}
+				that.WriteArrayMultipass(array);
+			}
+			public void WriteArrayWithoutMultipass<T>(int size, IReadOnlyList<T> array) where T:class,IWritableArrayMultipass
+			{
+				if(size != array.Count){throw new Exception();}
+				that.WriteArrayWithoutMultipass(array);
 			}
 			#endregion
 

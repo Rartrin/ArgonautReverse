@@ -4,7 +4,7 @@ using ArgonautReverse.Universal.StratLang;
 
 namespace ArgonautReverse.PSX
 {
-	public sealed class ActorDataPSX
+	public sealed class ActorDataPSX:IReadable<ActorDataPSX>
 	{
 		public readonly int DataChunkAddress;
 		public readonly int DataChunkLength;

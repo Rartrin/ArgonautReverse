@@ -27,6 +27,6 @@ namespace ArgonautReverse.WadChunks.PC
 	}
 	public sealed class VERSChunk(BaseWADChunkInfo info, byte[]? data = null):BaseWadChunk(info, data)
 	{
-		protected override void WriteData(WadWriter writer) => writer.WriteBytes(Data!);
+		protected override void WriteData(ChunkWriter writer) => writer.WriteBytes(Data!);
 	}
 }

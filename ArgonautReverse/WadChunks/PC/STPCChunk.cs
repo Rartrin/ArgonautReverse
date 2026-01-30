@@ -50,9 +50,20 @@ namespace ArgonautReverse.WadChunks.PC
 			throw new Exception("StratObject for given addr was not found");
 		}
 
-		protected override void WriteData(WadWriter writer)
+		protected override void WriteData(ChunkWriter writer)
 		{
-			throw new NotImplementedException();
+			writer.Write<int>(Models.Count);
+			writer.WriteArrayWithoutMultipass<StratObject2PC>(Models);
+
+			writer.Write<int>(Animations.Count);
+			writer.WriteArrayWithoutMultipass<AnimationStructPC>(Animations);
+
+			var wadFlags = writer.WadFile.GetChunk(WFPCChunkInfo.Instance).WadFlags;
+			if((wadFlags & WadFlagPC.WAD_FLAG_100) != 0)
+			{
+				writer.Write<int>(Cutscenes!.Count);
+				writer.WriteArray<Cutscene>(Cutscenes);
+			}
 		}
 	}
 }

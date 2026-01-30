@@ -68,7 +68,7 @@ namespace ArgonautReverse
 					}
 					case "--ignore-warnings":parsedArgs.IgnoreWarnings = true;break;
 
-					default:throw new Exception("Unknown argument: " + args[i]);
+					default:throw new Exception($"Unknown argument: {args[i]}");
 				}
 			}
 			if(parsedArgs.ReadFormat == null)
@@ -142,15 +142,22 @@ namespace ArgonautReverse
 
 			if(args.WriteFormat != null)
 			{
-				Console.WriteLine("--Converting WADs--");
+				Console.WriteLine("--Converting to OSE--");
+				var convertedWads = new List<WADFile>();
 				RunOnFiles(parsedSuccessfully, datFile =>
 				{
 					if(datFile is not WADFile wadFile){return;}
-					//wadFile.Serialize()
+					//TODO: Convert
+				});
+
+				Console.WriteLine("--Writing WADs--");
+				RunOnFiles(convertedWads, wadFile =>
+				{
+					wadFile.Write(args, conf);
 				});
 			}
 		}
-		private static void RunOnFiles(IReadOnlyList<DATFile> files, Action<DATFile> action)
+		private static void RunOnFiles<T>(IReadOnlyList<T> files, Action<T> action) where T:DATFile
 		{
 			var n_digits = files.Count.ToString().Length;
 			for(int i=0; i<files.Count; i++)

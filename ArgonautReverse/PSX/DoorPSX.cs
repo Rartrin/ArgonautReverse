@@ -6,7 +6,7 @@ using ArgonautReverse.Universal;
 
 namespace ArgonautReverse.PSX
 {
-	public sealed class DoorPSX:IReadable<DoorPSX>,IConvertibleOSE<DoorOSE>
+	public sealed class DoorPSX:IReadable<DoorPSX>,IConvertibleToOSE<DoorOSE>
 	{
 		public uint X, Y, Z;
 		public uint GotoX, GotoY, GotoZ, LevelType;

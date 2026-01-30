@@ -24,11 +24,11 @@ namespace ArgonautReverse.WadChunks.PC
 	}
 	public sealed class WFPCChunk(BaseWADChunkInfo info, WadFlagPC wadFlags):BaseWadChunk(info)
 	{
-		public WadFlagPC WadFlags{get;} = wadFlags;
+		public readonly WadFlagPC WadFlags = wadFlags;
 
-		protected override void WriteData(WadWriter writer)
+		protected override void WriteData(ChunkWriter writer)
 		{
-			throw new NotImplementedException();
+			writer.Write((uint)WadFlags);
 		}
 	}
 }

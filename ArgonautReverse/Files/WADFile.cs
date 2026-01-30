@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using ArgonautReverse.Engine;
 using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
+using ArgonautReverse.OpenStratEngine;
 using ArgonautReverse.PC;
 using ArgonautReverse.PSX;
 using ArgonautReverse.WadChunks;
@@ -16,7 +17,7 @@ namespace ArgonautReverse.Files
 		WAD_TYPE_SECRET = 2,
 		WAD_TYPE_INTERFACE = 3,
 	}
-	public abstract class WADFile(WadVersion version, string stem, byte[] data):DATFile(stem, data)
+	public abstract class WADFile(WadVersion version, string stem, byte[] data):DATFile(stem, data),IConvertibleToOSE<WadFileOSE>
 	{
 		private readonly List<BaseWadChunk> chunks = new List<BaseWadChunk>();
 
@@ -33,7 +34,10 @@ namespace ArgonautReverse.Files
 
 		public abstract bool TryGetChunkInfo(ChunkType chunkType, [MaybeNullWhen(false)]out BaseWADChunkInfo info);
 		
-		public abstract void AddChunk(BaseWadChunk chunk);
+		public virtual void AddChunk(BaseWadChunk chunk)
+		{
+			chunks.Add(chunk);
+		}
 
 		public abstract T GetChunk<T>(BaseWADChunkInfo<T> info) where T:BaseWadChunk;
 
@@ -44,11 +48,11 @@ namespace ArgonautReverse.Files
 			public int DataLength = dataLength;
 		}
 
-		private unsafe IEnumerable<ChunkLocation> LocateChunks(WadReader reader)
+		private unsafe List<ChunkLocation> LocateChunks(WadReader reader)
 		{
 			var chunkLocations = new List<ChunkLocation>();
 			
-			//This should be the length of the WAD's data but it is wrong in some cases so can't rely on it.
+			//This should be the length of the WAD's data but it is wrong in some cases so we can't rely on it.
 			_ = reader.Read<int>();
 
 			ChunkType prevChunk = ChunkType.Unknown;
@@ -139,7 +143,6 @@ namespace ArgonautReverse.Files
 				}
 				var chunk = chunkLocation.Info.Parse(chunkReader);
 				this.AddChunk(chunk);
-				this.chunks.Add(chunk);
 				if(chunkReader.Remaining != 0)
 				{
 					Console.WriteLine($"WARNING: There were {chunkReader.Remaining} bytes of unparsed data in {chunkLocation.Info.ChunkType}!");
@@ -148,15 +151,28 @@ namespace ArgonautReverse.Files
 			}
 		}
 
+		public WadFileOSE ToOSE()
+		{
+			var ose = new WadFileOSE(Stem);
+			foreach(var chunk in chunks)
+			{
+				foreach(var oseChunk in chunk.ToOSE())
+				{
+					ose.AddChunk(oseChunk);
+				}
+			}
+			return ose;
+		}
+
 		public void Write(ProgramArgs args, Configuration conf)
 		{
-			var writer = new WadWriter(conf, new());
+			var writer = new WadWriter(this, conf, conf.WriteVersion!.GetWadVersion(null), new());
 			var wadStart = writer.Position;
 			var wadSize = writer.WriteHold<int>();
 
 			foreach(var chunk in chunks)
 			{
-				chunk.Write(writer);
+				chunk.Write(writer.GetChunkWriter());
 			}
 
 			var wadEnd = writer.Position;

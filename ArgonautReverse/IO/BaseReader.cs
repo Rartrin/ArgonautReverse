@@ -33,10 +33,10 @@ namespace ArgonautReverse.IO
 
 		public unsafe T[] ReadArray<T>(int length) where T : unmanaged, IBinaryNumber<T>
 		{
-			if(length == 0){return Array.Empty<T>();}
+			if(length == 0){return [];}
 
 			var ret = new T[length];
-			ReadData<T>(ret);
+			ReadData(ret);
 			return ret;
 		}
 
@@ -70,7 +70,7 @@ namespace ArgonautReverse.IO
 		public string ReadString(int length)
 		{
 			Span<byte> str = stackalloc byte[length];
-			ReadArray(str);
+			ReadData(str);
 			return Encoding.Latin1.GetString(str);
 		}
 

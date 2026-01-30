@@ -2,7 +2,7 @@
 
 namespace ArgonautReverse.PC
 {
-	public readonly struct Fixed32:IReadable<Fixed32>
+	public readonly struct Fixed32:IReadable<Fixed32>,IWritable
 	{
 		private readonly int raw;
 
@@ -36,18 +36,18 @@ namespace ArgonautReverse.PC
 			var raw = reader.Read<int>();
 			return new Fixed32(raw);
 		}
+
+		public readonly void Write(WadWriter writer)
+		{
+			writer.Write<int>(raw);
+		}
 	}
 
-	public struct Vector3Fx:IReadable<Vector3Fx>
+	public struct Vector3Fx(Fixed32 x, Fixed32 y, Fixed32 z):IReadable<Vector3Fx>,IWritable
 	{
-		public Fixed32 X,Y,Z;
-
-		public Vector3Fx(Fixed32 x, Fixed32 y, Fixed32 z)
-		{
-			X = x;
-			Y = y;
-			Z = z;
-		}
+		public Fixed32 X = x;
+		public Fixed32 Y = y;
+		public Fixed32 Z = z;
 
 		public static Vector3Fx Parse(WadReader reader)
 		{
@@ -56,24 +56,31 @@ namespace ArgonautReverse.PC
 			var z = reader.Read<Fixed32>();
 			return new Vector3Fx(x, y, z);
 		}
+
+		public readonly void Write(WadWriter writer)
+		{
+			writer.Write<Fixed32>(X);
+			writer.Write<Fixed32>(Y);
+			writer.Write<Fixed32>(Z);
+		}
 	}
 
-	public struct RotPos3Fx:IReadable<RotPos3Fx>
+	public struct RotPos3Fx(Vector3Fx rotation, Vector3Fx position):IReadable<RotPos3Fx>,IWritable
 	{
-		public Vector3Fx Rotation;
-		public Vector3Fx Position;
-
-		public RotPos3Fx(Vector3Fx rotation, Vector3Fx position)
-		{
-			Rotation = rotation;
-			Position = position;
-		}
+		public Vector3Fx Rotation = rotation;
+		public Vector3Fx Position = position;
 
 		public static RotPos3Fx Parse(WadReader reader)
 		{
 			var rotation = reader.Read<Vector3Fx>();
 			var position = reader.Read<Vector3Fx>();
 			return new RotPos3Fx(rotation, position);
+		}
+
+		public readonly void Write(WadWriter writer)
+		{
+			writer.Write<Vector3Fx>(Rotation);
+			writer.Write<Vector3Fx>(Position);
 		}
 	}
 }

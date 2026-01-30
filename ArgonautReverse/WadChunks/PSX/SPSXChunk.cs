@@ -164,7 +164,7 @@ namespace ArgonautReverse.WadChunks.PSX
 
 		public int end_gap => level_sfx_groups.Groups.Sum(group => Utils.RoundUpPadding(group.size));
 
-		protected override void WriteData(WadWriter writer)
+		protected override void WriteData(ChunkWriter writer)
 		{
 			throw new NotImplementedException();
 		}

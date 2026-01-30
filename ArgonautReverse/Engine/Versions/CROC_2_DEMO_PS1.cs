@@ -19,7 +19,7 @@ namespace ArgonautReverse.Engine.Versions
 			public override string FilenameDIR => "CROCII.DIR";
 			public override DirFormat DirFormat => CROC_2_DEMO_PS1.DirFormat;
 
-			public override WadVersion GetWadVersion(string wadName) => WadVersion;
+			public override WadVersion GetWadVersion(string? wadName) => WadVersion;
 
 			public override IReadOnlyList<WadVersion> WadVersions{get;} = [WadVersion];
 		}

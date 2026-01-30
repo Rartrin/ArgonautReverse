@@ -28,9 +28,10 @@ namespace ArgonautReverse.WadChunks.PC
 	{
 		public readonly IReadOnlyList<StratObjectPC> Models = models;
 
-		protected override void WriteData(WadWriter writer)
+		protected override void WriteData(ChunkWriter writer)
 		{
-			throw new NotImplementedException();
+			writer.Write<int>(Models.Count);
+			writer.WriteArrayMultipass(Models);
 		}
 	}
 }

@@ -3,19 +3,19 @@ using ArgonautReverse.Universal;
 
 namespace ArgonautReverse.PC
 {
-	public sealed class WaypointPC : IReadable<WaypointPC>
+	public sealed class WaypointPC:IReadable<WaypointPC>,IWritable
 	{
 		//union
-		public WaypointPC Next;
+		public WaypointPC? Next;
 		public int NextRawValue;
 
 		//union
-		public WaypointPC Prev;
+		public WaypointPC? Prev;
 		public int PrevRawValue;
 
 		public RotPos3I Pos;
 
-		public uint LinkFlag => (Prev==null?2u:0u) | (Next==null?1u:0u);
+		public uint LinkFlag => (Prev==null ? 2u : 0u) | (Next==null ? 1u : 0u);
 		public uint Value;
 
 		public static WaypointPC Parse(WadReader reader)
@@ -32,15 +32,25 @@ namespace ArgonautReverse.PC
 			return waypoint;
 		}
 
+		public void Write(WadWriter writer)
+		{
+			writer.Write<int>(NextRawValue);
+			if(PrevRawValue != 0){throw new Exception();}
+			writer.Write<int>(PrevRawValue);
+			writer.Write<Vector3<ushort>>(new((ushort)Pos.Rotation.X, (ushort)Pos.Rotation.Y, (ushort)Pos.Rotation.Z));
+			writer.Write<Vector3I>(Pos.Position);
+			writer.Write<uint>(Value);
+		}
+
 		public static IReadOnlyList<WaypointPC> ParseWaypoints(WadReader reader)
 		{
 			var count = reader.Read<int>();
 			var waypoints = reader.ReadArray<WaypointPC>(count);
 
-			for (int i = 0; i < count; i++)
+			for(int i = 0; i < count; i++)
 			{
 				var waypoint = waypoints[i];
-				if (waypoint.NextRawValue == 0)
+				if(waypoint.NextRawValue == 0)
 				{
 					waypoint.Next = null;
 				}
@@ -51,6 +61,21 @@ namespace ArgonautReverse.PC
 				}
 			}
 			return waypoints;
+		}
+
+		public static void WriteWaypoints(WadWriter writer, IReadOnlyList<WaypointPC> waypoints)
+		{
+			writer.Write<int>(waypoints.Count);
+			writer.WriteArray(waypoints);
+			//TODO: Rebuild NextRawValue? May not be needed. PrevRawValue should always be 0.
+			for(int i = 0; i < waypoints.Count; i++)
+			{
+				var waypoint = waypoints[i];
+				if(waypoint.NextRawValue == 0 && waypoint.Next != null)
+				{
+					throw new Exception();
+				}
+			}
 		}
 	}
 }

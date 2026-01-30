@@ -1,5 +1,7 @@
 ﻿using ArgonautReverse.Engine;
 using ArgonautReverse.IO;
+using ArgonautReverse.OpenStratEngine;
+using ArgonautReverse.OpenStratEngine.Chunks;
 using ArgonautReverse.PC;
 
 namespace ArgonautReverse.WadChunks.PC
@@ -19,13 +21,19 @@ namespace ArgonautReverse.WadChunks.PC
 			return new FONTChunk(this, fontLookup, reader.GetAllWadData());
 		}
 	}
-	public sealed class FONTChunk(BaseWADChunkInfo info, IReadOnlyList<FontStructPC> fontLookup, byte[]? data = null):BaseWadChunk(info, data)
+	public sealed class FONTChunk(BaseWADChunkInfo info, IReadOnlyList<FontStructPC> fontLookup, byte[]? data = null):BaseWadChunk(info, data),IConvertibleFromOSE<FontChunkOSE,FONTChunk>
 	{
 		public IReadOnlyList<FontStructPC> FontLookup{get;} = fontLookup;
 
-		protected override void WriteData(WadWriter writer)
+		protected override void WriteData(ChunkWriter writer)
 		{
-			throw new NotImplementedException();
+			writer.WriteArray(FontLookup);
 		}
+
+		public static FONTChunk FromOSE(FontChunkOSE ose) => new
+		(
+			FONTChunkInfo.Instance,
+			ose.Fonts.FromOSE<FontOSE,FontStructPC>()
+		);
 	}
 }

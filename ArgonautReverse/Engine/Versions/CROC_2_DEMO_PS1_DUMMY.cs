@@ -21,7 +21,14 @@ namespace ArgonautReverse.Engine.Versions
 			public override string? FilenameDIR => null;
 			public override DirFormat? DirFormat => null;
 
-			public override WadVersion GetWadVersion(string wadName) => CROC_2_DEMO_PS1_DUMMY_Wad.wadVersions.GetValueOrDefault(wadName, WadVersion_Latest);
+			public override WadVersion GetWadVersion(string? wadName)
+			{
+				if(wadName!=null && CROC_2_DEMO_PS1_DUMMY_Wad.wadVersions.TryGetValue(wadName, out var wadVerion))
+				{
+					return wadVerion;
+				}
+				return WadVersion_Latest;
+			}
 
 			public override IReadOnlyCollection<WadVersion> WadVersions => CROC_2_DEMO_PS1_DUMMY_Wad.wadVersions.Values;
 		}

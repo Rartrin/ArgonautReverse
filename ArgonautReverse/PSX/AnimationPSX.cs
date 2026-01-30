@@ -5,18 +5,8 @@ using ArgonautReverse.Universal;
 
 namespace ArgonautReverse.PSX
 {
-	public readonly struct QuatPSX:IReadable<QuatPSX>,IConvertibleOSE<QuatOSE>
+	public readonly record struct QuatPSX(short W, short X, short Y, short Z):IReadable<QuatPSX>,IConvertibleToOSE<QuatOSE>
 	{
-		public readonly short W,X,Y,Z;
-
-		public QuatPSX(short w, short x, short y, short z)
-		{
-			W = w;
-			X = x;
-			Y = y;
-			Z = z;
-		}
-
 		public static QuatPSX Parse(WadReader reader)
 		{
 			var w = reader.Read<short>();
@@ -26,19 +16,13 @@ namespace ArgonautReverse.PSX
 			return new QuatPSX(w, x, y, z);
 		}
 
-		public QuatOSE ToOSE() => new QuatOSE(W, X, Y, Z);
+		public QuatOSE ToOSE() => new(W, X, Y, Z);
 	}
 
-	public sealed class AnimTriggerPSX:IReadable<AnimTriggerPSX>, IConvertibleOSE<AnimTriggerOSE>
+	public sealed class AnimTriggerPSX(ushort frame, ushort trigger):IReadable<AnimTriggerPSX>, IConvertibleToOSE<AnimTriggerOSE>
 	{
-		public readonly ushort Frame;
-		public readonly ushort Trigger;
-
-		public AnimTriggerPSX(ushort frame, ushort trigger)
-		{
-			Frame = frame;
-			Trigger = trigger;
-		}
+		public readonly ushort Frame = frame;
+		public readonly ushort Trigger = trigger;
 
 		public static AnimTriggerPSX Parse(WadReader reader)
 		{
@@ -50,18 +34,11 @@ namespace ArgonautReverse.PSX
 		public AnimTriggerOSE ToOSE() => new AnimTriggerOSE(Frame, Trigger);
 	}
 
-	public sealed class KeydataPSX:IReadable<KeydataPSX>,IConvertibleOSE<KeydataOSE>
+	public sealed class KeydataPSX(QuatPSX rotation, Vector3<short> position, ushort frame):IReadable<KeydataPSX>,IConvertibleToOSE<KeydataOSE>
 	{
-		public readonly QuatPSX Rotation;
-		public readonly Vector3<short> Position;
-		public readonly ushort Frame;
-
-		public KeydataPSX(QuatPSX rotation, Vector3<short> position, ushort frame)
-		{
-			Rotation = rotation;
-			Position = position;
-			Frame = frame;
-		}
+		public readonly QuatPSX Rotation = rotation;
+		public readonly Vector3<short> Position = position;
+		public readonly ushort Frame = frame;
 
 		public static KeydataPSX Parse(WadReader reader)
 		{
@@ -79,7 +56,7 @@ namespace ArgonautReverse.PSX
 		);
 	}
 
-	public sealed class AnimationPSX:IReadableArrayMultipass<AnimationPSX>,IConvertibleOSE<AnimationOSE>
+	public sealed class AnimationPSX:IReadableArrayMultipass<AnimationPSX>,IConvertibleToOSE<AnimationOSE>
 	{
 		public int TriggerCount;//n_flags
 		public IReadOnlyList<AnimTriggerPSX> Triggers;

@@ -45,6 +45,7 @@ namespace ArgonautReverse.PSX
 		}
 		public override void AddChunk(BaseWadChunk chunk)
 		{
+			base.AddChunk(chunk);
 			switch(chunk.Info.ChunkType)
 			{
 				case ChunkType.ID_PSX_DATA:DPSX = (DPSXChunk)chunk;break;
@@ -59,55 +60,26 @@ namespace ArgonautReverse.PSX
 		{
 			output.Write("Game level");
 
-			if(this.titles != null)
+			if(TPSX != null)
 			{
-				output.Write($" ({string.Join(", ", this.titles.Select(titles => titles.Trim(' ')))})");
+				output.Write($" ({string.Join(", ", TPSX.Titles.Select(title => title.Trim(' ')))})");
 			}
 			
 			output.WriteLine();
-			if(this.TPSX != null)
+			if(TPSX != null)
 			{
-				output.Write($" {this.n_textures} texture(s)");
+				output.Write($" {TPSX.TextureFile.Textures.Count} texture(s)");
 			}
-			if(this.SPSX != null)
+			if(SPSX != null)
 			{
-				output.Write($" {this.n_sounds} audio file(s)");
+				output.Write($" {SPSX.n_sounds} audio file(s)");
 			}
-			if(this.DPSX != null)
+			if(DPSX != null)
 			{
-				output.Write($" {this.n_models} model(s) {this.n_animations} animation(s) {this.n_filled_chunks} chunk(s)");
+				output.Write($" {DPSX.Models3D.Count} model(s) {DPSX.Animations.Count} animation(s) {DPSX.LevelFile.chunks_matrix.n_filled_chunks} chunk(s)");
 			}
 			output.WriteLine();
 		}
-
-		// TPSX
-
-		public IReadOnlyList<string> titles => this.TPSX?.Titles ?? Array.Empty<string>();
-
-		public IReadOnlyList<TextureDataPSX> textures => this.TPSX?.TextureFile?.Textures;
-
-		public int n_textures => this.TPSX?.TextureFile?.Textures?.Count ?? 0;
-
-		// SPSX
-
-		public int n_sounds => this.SPSX?.n_sounds ?? 0;
-
-		// DPSX
-		public IReadOnlyList<ObjectDataPSX> models_3d => this.DPSX?.models_3d;
-
-		public int n_models => this.DPSX?.models_3d.Count ?? 0;
-
-		public IReadOnlyList<AnimationDataPSX> animations => this.DPSX?.animations;
-
-		public int n_animations => this.DPSX?.animations?.Count ?? 0;
-
-		public IReadOnlyList<ActorDataPSX> actors => this.DPSX?.actors;
-
-		public int n_scripts => this.DPSX?.actors?.Count ?? 0;
-
-		public ChunksMatrixPSX chunks_matrix => this.DPSX?.level_file?.chunks_matrix;
-
-		public int n_filled_chunks => this.DPSX?.level_file?.chunks_matrix?.n_filled_chunks ?? 0;
 
 		/// <summary>Exports the material (MTL) and texture (PNG) files that are needed by the OBJ Wavefront file.</summary>
 		public void _prepare_obj_export(string folder_path, string wad_filename)
@@ -124,20 +96,20 @@ namespace ArgonautReverse.PSX
 		/// </summary>
 		public void export_experimental_models(string folder_path, string wad_filename)
 		{
-			var n_models = this.n_models;
-			var n_animations = this.n_animations;
+			var n_models = DPSX.Models3D.Count;
+			var n_animations = DPSX.Animations.Count;
 
 			int? guess_compatible_animation(int position, int n_vertices_groups)
 			{
 				//EXPERIMENTAL: Band-aid, will be removed when animations' model id is found & reversed.
-				position = n_animations * position / n_models;
-				int a = (int)position;
-				int b = (int)Math.Ceiling((double)position);
+				float position2 = n_animations * position / (float)n_models;
+				int a = (int)position2;
+				int b = (int)MathF.Ceiling(position2);
 				while(a > -1 || b < n_animations)
 				{
 					if(a > -1)
 					{
-						if(this.animations[a].n_vertices_groups == n_vertices_groups)
+						if(DPSX.Animations[a].n_vertices_groups == n_vertices_groups)
 						{
 							return a;
 						}
@@ -145,7 +117,7 @@ namespace ArgonautReverse.PSX
 					}
 					if(b < n_animations)
 					{
-						if(this.animations[b].n_vertices_groups == n_vertices_groups)
+						if(DPSX.Animations[b].n_vertices_groups == n_vertices_groups)
 						{
 							return b;
 						}
@@ -164,27 +136,26 @@ namespace ArgonautReverse.PSX
 			}
 
 			this._prepare_obj_export(folder_path, wad_filename);
-			for(int i=0; i<this.DPSX.models_3d.Count; i++)
+			for(int i=0; i<DPSX.Models3D.Count; i++)
 			{
-				var model_3d = this.DPSX.models_3d[i];
+				var model_3d = this.DPSX.Models3D[i];
 				var obj_filename = $"{wad_filename}_{i}";
-				using(var obj_file = new StreamWriter(Path.Join(folder_path, obj_filename + ".OBJ"), false, Encoding.ASCII))
+				using var obj_file = new StreamWriter(Path.Join(folder_path, obj_filename + ".OBJ"), false, Encoding.ASCII);
+				var textures = TPSX.TextureFile.Textures;
+				if(model_3d.Data.n_vertices_groups == 1)
 				{
-					if(model_3d.Data.n_vertices_groups == 1)
+					model_3d.Data.ToSingleObj(obj_file, obj_filename, textures, wad_filename);
+				}
+				else
+				{
+					var animation_id = guess_compatible_animation(i, DPSX.Models3D[i].Data.n_vertices_groups);
+					if(animation_id == null)
 					{
-						model_3d.Data.ToSingleObj(obj_file, obj_filename, this.textures, wad_filename);
+						model_3d.Data.ToSingleObj(obj_file, obj_filename, textures, wad_filename);
 					}
 					else
 					{
-						var animation_id = guess_compatible_animation(i, this.models_3d[i].Data.n_vertices_groups);
-						if(animation_id == null)
-						{
-							model_3d.Data.ToSingleObj(obj_file, obj_filename, this.textures, wad_filename);
-						}
-						else
-						{
-							model_3d.Animate(this.animations[animation_id.Value]).Data.ToSingleObj(obj_file, obj_filename, this.textures, wad_filename);
-						}
+						model_3d.Animate(DPSX.Animations[animation_id.Value]).Data.ToSingleObj(obj_file, obj_filename, textures, wad_filename);
 					}
 				}
 			}
@@ -197,12 +168,9 @@ namespace ArgonautReverse.PSX
 		public void export_model_3d(int model_id, string folder_path, string filename)
 		{
 			this._prepare_obj_export(folder_path, filename);
-			using(var obj_file = new StreamWriter(Path.Join(folder_path, filename + ".OBJ"), false, Encoding.ASCII))
-			{
-				var obj = new StringWriter();
-				this.models_3d[model_id].Data.ToSingleObj(obj, filename, this.textures, filename);
-				obj_file.Write(obj.ToString());
-			}
+			var obj = new StringWriter();
+			DPSX.Models3D[model_id].Data.ToSingleObj(obj, filename, TPSX.TextureFile.Textures, filename);
+			File.WriteAllText(Path.Join(folder_path, filename + ".OBJ"), obj.ToString(), Encoding.ASCII);
 		}
 
 		public void export_audio(string folder_path, string wad_filename, string fmt)
@@ -280,19 +248,19 @@ namespace ArgonautReverse.PSX
 			obj.WriteLine(string.Format(Model3DDataPSX.mtl_header, wad_filename));
 			int vio = 0;
 			int sub_chunk_id = 0;
-			foreach(var texture in this.textures)
+			foreach(var texture in TPSX.TextureFile.Textures)
 			{
 				foreach(var coord in texture.output_coords)
 				{
 					obj.WriteLine($"vt {coord.X / 1024.0} {(1024 - coord.Y) / 1024.0}");
 				}
 			}
-			for(int i=0; i<this.DPSX.level_file.chunks_matrix.ChunkHolders.Count; i++)
+			for(int i=0; i<this.DPSX.LevelFile.chunks_matrix.ChunkHolders.Count; i++)
 			{
-				var chunk_holder = this.DPSX.level_file.chunks_matrix.ChunkHolders[i];
+				var chunk_holder = this.DPSX.LevelFile.chunks_matrix.ChunkHolders[i];
 				if(chunk_holder!=null)
 				{
-					var (x, z) = this.DPSX.level_file.chunks_matrix.x_z_coords(i);
+					var (x, z) = this.DPSX.LevelFile.chunks_matrix.x_z_coords(i);
 					foreach(var chunk in chunk_holder.Subchunks)
 					{
 						var cm = chunk.model_3d_data.Data;
@@ -315,8 +283,8 @@ namespace ArgonautReverse.PSX
 
 		public void ExportActors(string folder_path, string wad_filename)
 		{
-			var scriptData = new (string? baseFilePath,AsmParser? parser,StackAnalyzer? stackAnalyzer,FlowAnalyzer? flowAnalyzer)[this.n_scripts];
-			for(int i=0; i<this.n_scripts; i++)
+			var scriptData = new (string? baseFilePath,AsmParser? parser,StackAnalyzer? stackAnalyzer,FlowAnalyzer? flowAnalyzer)[DPSX.Actors.Count];
+			for(int i=0; i<scriptData.Length; i++)
 			{
 				ref var data = ref scriptData[i];
 				var baseFilePath = Path.Join(folder_path, $"{wad_filename}_{i}");
@@ -337,7 +305,7 @@ namespace ArgonautReverse.PSX
 
 
 
-				var script = this.actors[i];
+				var script = DPSX.Actors[i];
 				
 				
 				//TODO: Make exporting ASM an argument
@@ -353,13 +321,13 @@ namespace ArgonautReverse.PSX
 				data.baseFilePath = baseFilePath;
 			}
 
-			for(int i=0; i<this.n_scripts; i++)
+			for(int i=0; i<scriptData.Length; i++)
 			{
 				ref var data = ref scriptData[i];
 				if(data.baseFilePath == null){continue;}
 				try
 				{
-					var lines = this.actors[i].parser!.GetInstructions();
+					var lines = DPSX.Actors[i].parser!.GetInstructions();
 
 					var parser = new AsmParser();
 					var start = parser.ParseAndSetupInstructions(lines);
@@ -374,7 +342,7 @@ namespace ArgonautReverse.PSX
 				}
 			}
 
-			for(int i=0; i<this.n_scripts; i++)
+			for(int i=0; i<scriptData.Length; i++)
 			{
 				ref var data = ref scriptData[i];
 				if(data.parser == null){continue;}
@@ -398,7 +366,7 @@ namespace ArgonautReverse.PSX
 
 				File.WriteAllLines($"{data.baseFilePath}.stack.strat", stackOutputLines);
 			}
-			for(int i=0; i<this.n_scripts; i++)
+			for(int i=0; i<scriptData.Length; i++)
 			{
 				ref var data = ref scriptData[i];
 				if(data.stackAnalyzer == null){continue;}

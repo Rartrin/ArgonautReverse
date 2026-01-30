@@ -49,7 +49,7 @@ namespace ArgonautReverse.PSX
 		}
 	}
 
-	public unsafe struct SMATRIX:IReadable<SMATRIX>,IConvertibleOSE<Matrix4x4F>
+	public unsafe struct SMATRIX:IReadable<SMATRIX>,IConvertibleToOSE<Matrix4x4F>
 	{
 		public fixed short m[3*3];//Rotation
 		public fixed short t[3];//Translation
@@ -62,7 +62,7 @@ namespace ArgonautReverse.PSX
 			return matrix;
 		}
 
-		readonly Matrix4x4F IConvertibleOSE<Matrix4x4F>.ToOSE()
+		readonly Matrix4x4F IConvertibleToOSE<Matrix4x4F>.ToOSE()
 		{
 			const float fixedPointConversion = 1/4096f;
 			Matrix4x4F matrix;

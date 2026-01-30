@@ -1,4 +1,5 @@
-﻿using ArgonautReverse.IO;
+﻿using System.Drawing;
+using ArgonautReverse.IO;
 
 namespace ArgonautReverse.Universal
 {
@@ -68,7 +69,7 @@ namespace ArgonautReverse.Universal
 		}
 	}
 
-	public struct ColorABGR555(ushort data):IReadable<ColorABGR555>
+	public struct ColorABGR555(ushort data):IReadable<ColorABGR555>,IWritable
 	{
 		public ushort Data = data;
 
@@ -106,40 +107,44 @@ namespace ArgonautReverse.Universal
 		private const int Max5Bit = (1 << 5) - 1;
 		public byte Red8
 		{
-			readonly get => (byte)(Red5 * 255 / Max5Bit);
-			set => Red5 = (byte)(Red5 * Max5Bit / 255);
+			readonly get => (byte)(Red5 * byte.MaxValue / Max5Bit);
+			set => Red5 = (byte)(value * Max5Bit / byte.MaxValue);
 		}
 		public byte Green8
 		{
-			readonly get => (byte)(Green5 * 255 / Max5Bit);
-			set => Green5 = (byte)(Green5 * Max5Bit / 255);
+			readonly get => (byte)(Green5 * byte.MaxValue / Max5Bit);
+			set => Green5 = (byte)(value * Max5Bit / byte.MaxValue);
 		}
 		public byte Blue8
 		{
-			readonly get => (byte)(Blue5 * 255 / Max5Bit);
-			set => Blue5 = (byte)(Blue5 * Max5Bit / 255);
+			readonly get => (byte)(Blue5 * byte.MaxValue / Max5Bit);
+			set => Blue5 = (byte)(value * Max5Bit / byte.MaxValue);
 		}
 		public readonly byte Alpha8 => Alpha1 ? (byte)0xFF : (byte)0;
 
 		public float RedF
 		{
-			readonly get => Red5 / 31f;
-			set => Red5 = (byte)(Red5 * 31);
+			readonly get => Red5 / (float)Max5Bit;
+			set => Red5 = (byte)(value * Max5Bit);
 		}
 		public float GreenF
 		{
-			readonly get => Green5 / 31f;
-			set => Green5 = (byte)(Green5 * 31);
+			readonly get => Green5 / (float)Max5Bit;
+			set => Green5 = (byte)(value * Max5Bit);
 		}
 		public float BlueF
 		{
-			readonly get => Blue5 / 31f;
-			set => Blue5 = (byte)(Blue5 * 31);
+			readonly get => Blue5 / (float)Max5Bit;
+			set => Blue5 = (byte)(value * Max5Bit);
 		}
 
 		public static ColorABGR555 Parse(WadReader reader)
 		{
 			return new ColorABGR555(reader.Read<ushort>());
+		}
+		public readonly void Write(WadWriter writer)
+		{
+			writer.Write<ushort>(Data);
 		}
 
 		public readonly ColorARGB555 ToRGB555()
@@ -149,6 +154,14 @@ namespace ArgonautReverse.Universal
 			data |= (ushort)((Data&0x7C00)>>10);//Move Blue
 			return new(data);
 		}
+
+		public readonly Color ToSystem() => Color.FromArgb
+		(
+			alpha:Alpha8,
+			red:Red8,
+			green:Green8,
+			blue:Blue8
+		);
 	}
 
 	public struct ColorARGB555(ushort data)
@@ -189,35 +202,43 @@ namespace ArgonautReverse.Universal
 		private const int Max5Bit = (1 << 5) - 1;
 		public byte Red8
 		{
-			readonly get => (byte)(Red5 * 255 / Max5Bit);
-			set => Red5 = (byte)(Red5 * Max5Bit / 255);
+			readonly get => (byte)(Red5 * byte.MaxValue / Max5Bit);
+			set => Red5 = (byte)(value * Max5Bit / byte.MaxValue);
 		}
 		public byte Green8
 		{
-			readonly get => (byte)(Green5 * 255 / Max5Bit);
-			set => Green5 = (byte)(Green5 * Max5Bit / 255);
+			readonly get => (byte)(Green5 * byte.MaxValue / Max5Bit);
+			set => Green5 = (byte)(value * Max5Bit / byte.MaxValue);
 		}
 		public byte Blue8
 		{
-			readonly get => (byte)(Blue5 * 255 / Max5Bit);
-			set => Blue5 = (byte)(Blue5 * Max5Bit / 255);
+			readonly get => (byte)(Blue5 * byte.MaxValue / Max5Bit);
+			set => Blue5 = (byte)(value * Max5Bit / byte.MaxValue);
 		}
-		public readonly byte Alpha8 => Alpha1 ? (byte)0xFF : (byte)0;
+		public readonly byte Alpha8 => Alpha1 ? byte.MaxValue : (byte)0;
 
 		public float RedF
 		{
-			readonly get => Red5 / 31f;
-			set => Red5 = (byte)(Red5 * 31);
+			readonly get => Red5 / (float)Max5Bit;
+			set => Red5 = (byte)(value * Max5Bit);
 		}
 		public float GreenF
 		{
-			readonly get => Green5 / 31f;
-			set => Green5 = (byte)(Green5 * 31);
+			readonly get => Green5 / (float)Max5Bit;
+			set => Green5 = (byte)(value * Max5Bit);
 		}
 		public float BlueF
 		{
-			readonly get => Blue5 / 31f;
-			set => Blue5 = (byte)(Blue5 * 31);
+			readonly get => Blue5 / (float)Max5Bit;
+			set => Blue5 = (byte)(value * Max5Bit);
 		}
+
+		public readonly Color ToSystem() => Color.FromArgb
+		(
+			alpha:Alpha8,
+			red:Red8,
+			green:Green8,
+			blue:Blue8
+		);
 	}
 }

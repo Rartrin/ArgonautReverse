@@ -69,7 +69,7 @@ namespace ArgonautReverse.PSX.LibGTE
 	}
 	
 	/// <summary>Short word type 3D vector</summary>
-	public readonly struct SVECTOR:IReadable<SVECTOR>,IConvertibleOSE<Vector3I>
+	public readonly struct SVECTOR:IReadable<SVECTOR>,IConvertibleToOSE<Vector3I>
 	{
 		public const int ByteSize = 8;
 
@@ -111,7 +111,7 @@ namespace ArgonautReverse.PSX.LibGTE
 			return new SVECTOR(vx, vy, vz, pad);
 		}
 
-		readonly Vector3I IConvertibleOSE<Vector3I>.ToOSE()
+		readonly Vector3I IConvertibleToOSE<Vector3I>.ToOSE()
 		{
 			if(pad != 0)
 			{

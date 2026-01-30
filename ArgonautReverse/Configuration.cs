@@ -38,7 +38,6 @@ namespace ArgonautReverse
 
 		public static readonly DatVersion[] ALL_PARSABLE_GAMES = [..PSX_PARSABLE_GAMES, ..PC_PARSABLE_GAMES];
 
-		
 		public static readonly WadVersion[] ALL_WADS = SUPPORTED_GAMES.Values.SelectMany(game => game.WadVersions).ToArray();
 		
 		public static readonly WadVersion[] PSX_PARSABLE_WADS = PSX_PARSABLE_GAMES.SelectMany(game => game.WadVersions).ToArray();

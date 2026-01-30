@@ -23,7 +23,7 @@ namespace ArgonautReverse.PC
 		POLYGON_FLAG_8000 = 0x8000,
 	}
 
-	public sealed class PolygonPointPC:IReadable<PolygonPointPC,WadFlagPC>
+	public sealed class PolygonPointPC:IReadable<PolygonPointPC,WadFlagPC>,IWritable<WadFlagPC>
 	{
 		//public PolygonPoint prev;
 		//public PolygonPoint next;
@@ -51,19 +51,25 @@ namespace ArgonautReverse.PC
 			polygonPoint.wField3 = reader.Read<short>();
 			return polygonPoint;
 		}
+
+		public void Write(WadWriter writer, WadFlagPC wadFlags)
+		{
+			writer.Write<int>(X);
+			writer.Write<int>(Z);
+			if((wadFlags & WadFlagPC.WAD_FLAG_4000000) != 0)
+			{
+				writer.Write<int>(someY);
+			}
+			writer.Write<ushort>(wField2);
+			writer.Write<short>(wField3);
+		}
 	}
 
-	public sealed class PolygonStructPC:IReadable<PolygonStructPC, WadFlagPC>
+	public sealed class PolygonStructPC(PolygonFlagsPC flags, IReadOnlyList<PolygonPointPC> points):IReadable<PolygonStructPC,WadFlagPC>,IWritable<WadFlagPC>
 	{
 		//public ushort pointCount;
-		public PolygonFlagsPC Flags{get;}
-		public IReadOnlyList<PolygonPointPC> Points{get;}
-
-		public PolygonStructPC(PolygonFlagsPC flags, IReadOnlyList<PolygonPointPC> points)
-		{
-			Flags = flags;
-			Points = points;
-		}
+		public readonly PolygonFlagsPC Flags = flags
+		public readonly IReadOnlyList<PolygonPointPC> Points = points;
 
 		public static PolygonStructPC Parse(WadReader reader, WadFlagPC wadFlags)
 		{
@@ -100,23 +106,31 @@ namespace ArgonautReverse.PC
 			//}
 			return new PolygonStructPC(flags, points);
 		}
+
+		public void Write(WadWriter writer, WadFlagPC wadFlags)
+		{
+			writer.Write((ushort)Points.Count);
+			writer.Write((ushort)Flags);
+			writer.WriteArray(wadFlags, Points);
+		}
 	}
 
-	public sealed class PolygonArrayPC:IReadable<PolygonArrayPC, WadFlagPC>
+	public sealed class PolygonArrayPC(IReadOnlyList<PolygonStructPC> polygons):IReadable<PolygonArrayPC, WadFlagPC>,IWritable<WadFlagPC>
 	{
 		//public int count;
-		public IReadOnlyList<PolygonStructPC> Polygons{get;}
-
-		public PolygonArrayPC(IReadOnlyList<PolygonStructPC> polygons)
-		{
-			Polygons = polygons;
-		}
+		public readonly IReadOnlyList<PolygonStructPC> Polygons = polygons;
 
 		public static PolygonArrayPC Parse(WadReader reader, WadFlagPC wadFlags)
 		{
 			var polygonArrayCount = reader.Read<int>();
 			var polygons = reader.ReadArray<PolygonStructPC, WadFlagPC>(wadFlags, polygonArrayCount);
 			return new PolygonArrayPC(polygons);
+		}
+
+		public void Write(WadWriter writer, WadFlagPC wadFlags)
+		{
+			writer.Write<int>(Polygons.Count);
+			writer.WriteArray(wadFlags, Polygons);
 		}
 	}
 }

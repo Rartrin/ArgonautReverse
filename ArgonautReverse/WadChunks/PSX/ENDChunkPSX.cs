@@ -43,7 +43,7 @@ namespace ArgonautReverse.WadChunks.PSX
 	{
 		public readonly SPSXChunk? spsxChunk = spsxChunk;
 
-		protected override void WriteData(WadWriter writer)
+		protected override void WriteData(ChunkWriter writer)
 		{
 			if(spsxChunk==null){return;}
 			throw new NotImplementedException();

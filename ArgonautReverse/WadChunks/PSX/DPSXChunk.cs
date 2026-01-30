@@ -10,7 +10,7 @@ namespace ArgonautReverse.WadChunks.PSX
 	{
 		public static readonly DPSXChunkInfo Instance = new DPSXChunkInfo();
 		public override ChunkType ChunkType => ChunkType.ID_PSX_DATA;
-		public override WadVersion[] SupportedWadVersions { get; } = new[]
+		public override WadVersion[] SupportedWadVersions{get;} = new[]
 		{
 			CROC_2_PS1.DatVersion,
 			CROC_2_DEMO_PS1_DUMMY.DatVersion,
@@ -28,11 +28,7 @@ namespace ArgonautReverse.WadChunks.PSX
 			//TODO: Why are these also in TPSX?
 			var spriteOffset = data_in.Read<int>();
 
-			var fontLookup = new FontPSX[256];
-			for(var i = 0; i < 256; i++)
-			{
-				fontLookup[i] = FontPSX.Parse(data_in);
-			}
+			var fontLookup = data_in.ReadArray<FontPSX>(256);
 
 			if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
@@ -42,11 +38,7 @@ namespace ArgonautReverse.WadChunks.PSX
 			}
 
 			var n_models_3d = data_in.Read<int>();
-			var models_3d = new ObjectDataPSX[n_models_3d];
-			for(int i = 0; i < n_models_3d; i++)
-			{
-				models_3d[i] = ObjectDataPSX.Parse(data_in);
-			}
+			var models_3d = data_in.ReadArray<ObjectDataPSX>(n_models_3d);
 
 			var n_animations = data_in.Read<int>();
 			var animations = data_in.ReadArrayWithoutMultipass<AnimationPSX>(n_animations);
@@ -70,11 +62,7 @@ namespace ArgonautReverse.WadChunks.PSX
 			}
 
 			var n_actors = data_in.Read<int>();
-			var actors = new ActorDataPSX[n_actors];
-			for(int i = 0; i < n_actors; i++)
-			{
-				actors[i] = ActorDataPSX.Parse(data_in);
-			}
+			var actors = data_in.ReadArray<ActorDataPSX>(n_actors);
 
 			var level_file = LevelFilePSX.Parse(data_in, wadFlag);
 
@@ -87,32 +75,24 @@ namespace ArgonautReverse.WadChunks.PSX
 		}
 	}
 
-	public sealed class DPSXChunk:BaseWadChunk
+	public sealed class DPSXChunk(ObjectDataPSX[] models3D, AnimationDataPSX[] animations, ActorDataPSX[] actors, LevelFilePSX levelFile, byte[]? fallback_data = null):BaseWadChunk(DPSXChunkInfo.Instance, fallback_data)
 	{
-		public readonly IReadOnlyList<ObjectDataPSX> models_3d;
-		public readonly IReadOnlyList<AnimationDataPSX> animations;
-		public readonly IReadOnlyList<ActorDataPSX> actors;
-		public readonly LevelFilePSX level_file;
-
-		public DPSXChunk(ObjectDataPSX[] models_3d, AnimationDataPSX[] animations, ActorDataPSX[] actors, LevelFilePSX level_file, byte[] fallback_data = null) : base(DPSXChunkInfo.Instance, fallback_data)
-		{
-			this.models_3d = models_3d;
-			this.animations = animations;
-			this.actors = actors;
-			this.level_file = level_file;
-		}
+		public readonly IReadOnlyList<ObjectDataPSX> Models3D = models3D;
+		public readonly IReadOnlyList<AnimationDataPSX> Animations = animations;
+		public readonly IReadOnlyList<ActorDataPSX> Actors = actors;
+		public readonly LevelFilePSX LevelFile = levelFile;
 
 		public override void PostParseSetup(WADFile wadFile)
 		{
 			var wadFilePSX = (WadFilePSX)wadFile;
 
 			//Setup strat scripts
-			if(level_file.map==null)
+			if(LevelFile.map==null)
 			{
-				Utils.Assert(actors.Count == 0);
+				Utils.Assert(Actors.Count == 0);
 				return;
 			}
-			foreach(var strat in level_file.map.Strats)
+			foreach(var strat in LevelFile.map.Strats)
 			{
 				strat.Script = GetScript(strat.AddrOffset);
 			}
@@ -123,7 +103,7 @@ namespace ArgonautReverse.WadChunks.PSX
 			while(processedStrats)
 			{
 				processedStrats = false;
-				foreach(var script in actors)
+				foreach(var script in Actors)
 				{
 					if(script.ProcessScript(wadFilePSX))
 					{
@@ -131,9 +111,9 @@ namespace ArgonautReverse.WadChunks.PSX
 					}
 				}
 			}
-			for(int i=0; i<actors.Count; i++)
+			for(int i=0; i<Actors.Count; i++)
 			{
-				var script = actors[i];
+				var script = Actors[i];
 				if(script.EntryPointAddrs.Count == 0)
 				{
 					Console.WriteLine($"WARNING: Script {wadFile.Name}_{i} missing entrypoint");
@@ -143,7 +123,7 @@ namespace ArgonautReverse.WadChunks.PSX
 
 		public ActorDataPSX GetScript(int rawEntryPoint)
 		{
-			foreach(var curScript in actors)
+			foreach(var curScript in Actors)
 			{
 				if(curScript.DataChunkAddress<=rawEntryPoint && rawEntryPoint<curScript.DataChunkAddress+curScript.DataChunkLength)
 				{
@@ -158,7 +138,7 @@ namespace ArgonautReverse.WadChunks.PSX
 			throw new Exception("Entry point outside of known scripts");
 		}
 
-		protected override void WriteData(WadWriter writer)
+		protected override void WriteData(ChunkWriter writer)
 		{
 			throw new NotImplementedException();
 		}

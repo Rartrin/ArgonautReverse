@@ -18,6 +18,7 @@
 
 		public abstract IReadOnlyCollection<WadVersion> WadVersions{get;}
 
-		public abstract WadVersion GetWadVersion(string wadName);
+		//Null for latest
+		public abstract WadVersion GetWadVersion(string? wadName);
 	}
 }

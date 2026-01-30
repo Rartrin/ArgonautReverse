@@ -4,9 +4,9 @@ using ArgonautReverse.WadChunks;
 
 namespace ArgonautReverse.Files
 {
-	public sealed class DIR_DAT
+	public sealed class DIR_DAT(IReadOnlyList<DATFile> files)
 	{
-		public IReadOnlyList<DATFile> Files{get;}
+		public readonly IReadOnlyList<DATFile> Files = files;
 
 		public static DATFile ParseDatFile(Configuration conf, string name, byte[] data)
 		{
@@ -14,11 +14,6 @@ namespace ArgonautReverse.Files
 			var stem = Path.ChangeExtension(name, null);
 
 			return DATFileType.ParseDatFile(conf, stem, suffix, data);
-		}
-
-		public DIR_DAT(IReadOnlyList<DATFile> files)
-		{
-			Files = files;
 		}
 
 		private static void FindDirDatFiles(string inputPath, Configuration conf, out string? dirPath, out string datPath)
@@ -158,19 +153,22 @@ namespace ArgonautReverse.Files
 				Directory.CreateDirectory(outputFolder);
 			}
 
-			var dirOutput = new WadWriter(conf, new());
-			var datOutput = new WadWriter(conf, new());
+			var dirStream = new MemoryStream();
+			var datStream = new MemoryStream();
 
-			if(dirOutput.DatVersion != CROC_1_PS1.DatVersion)
+			if(conf.WriteVersion != CROC_1_PS1.DatVersion)
 			{
+				var dirOutput = new IO.StreamWriter(dirStream, (int)dirStream.Position);
 				//TODO: Make this part of DirFormat
 				dirOutput.WriteInt32(Files.Count);
+
 			}
 			foreach(var file in Files)
 			{
-				var wadVerion = conf.WriteVersion.GetWadVersion(file.Stem);
-				dirOutput.WriteVersion = wadVerion;
-				datOutput.WriteVersion = wadVerion;
+				var writeVersion = conf.WriteVersion!.GetWadVersion(file.Stem);
+
+				var dirOutput = new WadWriter(null, conf, writeVersion, dirStream, (int)dirStream.Position);
+				var datOutput = new WadWriter(null, conf, writeVersion, datStream, (int)datStream.Position);
 
 				var start = datOutput.Position;
 				file.Serialize(datOutput);
@@ -178,8 +176,8 @@ namespace ArgonautReverse.Files
 				Utils.PadOut2048Bytes(datOutput);
 				conf.WriteVersion.DirFormat!.Pack(dirOutput, file.Name, size, start);
 			}
-			dirOutput.Stream.CopyTo(File.OpenWrite(Path.Join(outputFolder, conf.WriteVersion.FilenameDIR)));
-			datOutput.Stream.CopyTo(File.OpenWrite(Path.Join(outputFolder, conf.WriteVersion.FilenameDAT)));
+			dirStream.CopyTo(File.OpenWrite(Path.Join(outputFolder, conf.WriteVersion!.FilenameDIR)));
+			datStream.CopyTo(File.OpenWrite(Path.Join(outputFolder, conf.WriteVersion.FilenameDAT)));
 		}
 	}
 }

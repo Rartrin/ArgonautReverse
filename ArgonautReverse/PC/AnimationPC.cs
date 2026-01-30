@@ -39,10 +39,9 @@ namespace ArgonautReverse.PC
 		}
 	}
 
-	public sealed class AnimationStructPC:IReadableArrayMultipass<AnimationStructPC>
+	public sealed class AnimationStructPC:IReadableArrayMultipass<AnimationStructPC>,IWritableArrayMultipass
 	{
-		public int TriggerCount;
-		public IReadOnlyList<AnimTriggerPC> Triggers;
+		public AnimTriggerPC[] Triggers;
 		public int FrameCount;
 		
 		public bool Flag;//Unioned with PositionDeltas
@@ -57,8 +56,10 @@ namespace ArgonautReverse.PC
 		{
 			var animation = new AnimationStructPC();
 			
-			animation.TriggerCount = reader.Read<int>();
+			var triggerCount = reader.Read<int>();
+			animation.Triggers = new AnimTriggerPC[triggerCount];
 			reader.AssertRead<uint>(0);//Triggers placeholder
+
 			animation.FrameCount = reader.Read<int>();
 			animation.Flag = reader.Read<int>() switch
 			{
@@ -76,7 +77,7 @@ namespace ArgonautReverse.PC
 
 		public static void ParseData(WadReader reader, AnimationStructPC animation)
 		{
-			animation.Triggers = reader.ReadArray<AnimTriggerPC>(animation.TriggerCount);
+			reader.ReadArray<AnimTriggerPC>(animation.Triggers);
 			if(!animation.Flag)
 			{
 				animation.PositionDeltas = reader.ReadArray<AnimationStruct1_PC>(animation.FrameCount);
@@ -85,14 +86,14 @@ namespace ArgonautReverse.PC
 			if(animation.MorphCount!=0 && animation.FrameCount!=0)
 			{
 				//Morphs array placeholder
-				reader.AssertEmptyReadData<int>(animation.FrameCount);//Type would actually be a short*
+				reader.AssertEmptyReadData<int>(animation.FrameCount);//Type would actually be short*[]
 				morphs = new short[animation.FrameCount][];
 			}
 			Matrix4x4F[][]? bones = null;
 			if(animation.FrameCount!=0)
 			{
 				//Bones array placeholder
-				reader.AssertEmptyReadData<int>(animation.FrameCount);//Type would actually be a Matrix4x4F*
+				reader.AssertEmptyReadData<int>(animation.FrameCount);//Type would actually be Matrix4x4F*[]
 				bones = new Matrix4x4F[animation.FrameCount][];
 			}
 			for(int frameIndex=0; frameIndex<animation.FrameCount; frameIndex++)
@@ -120,6 +121,60 @@ namespace ArgonautReverse.PC
 			}
 			animation.Morphs = morphs;
 			animation.Bones = bones;
+		}
+
+		public void WriteStruct(WadWriter writer)
+		{
+			writer.Write<int>(Triggers.Length);
+			writer.Write<uint>(0);//Triggers placeholder
+			writer.Write<int>(FrameCount);
+			writer.Write<int>(Flag ? 1 : 0);
+			writer.Write<int>(MorphCount);
+			writer.Write<uint>(0);//Morphs placeholder
+			writer.Write<int>(BoneCount);
+			writer.Write<uint>(0);//Bones placeholder
+		}
+
+		public void WriteData(WadWriter writer)
+		{
+			writer.WriteArray<AnimTriggerPC>(Triggers);
+			if(!Flag)
+			{
+				writer.WriteSizedArray<AnimationStruct1_PC>(FrameCount, PositionDeltas!);
+			}
+			if(MorphCount!=0 && FrameCount!=0)
+			{
+				//Morphs array placeholder
+				writer.WriteEmptyArray<int>(FrameCount);//Type would actually be short*[]
+			}
+			if(FrameCount!=0)
+			{
+				//Bones array placeholder
+				writer.WriteEmptyArray<int>(FrameCount);//Type would actually be a Matrix4x4F*[]
+			}
+			for(int frameIndex=0; frameIndex<FrameCount; frameIndex++)
+			{
+				if(MorphCount != 0 && MorphCount != -1)
+				{
+					if(frameIndex == 0)
+					{
+						//First value is a Vector4<short>
+						writer.WriteSizedArray<short>(4 * MorphCount, Morphs![frameIndex]);
+					}
+					else
+					{
+						writer.WriteSizedArray<short>(MorphCount, Morphs![frameIndex]);
+						if((MorphCount & 1) != 0)
+						{
+							writer.Write<short>(0);//Padding?
+						}
+					}
+				}
+				if(BoneCount>0)
+				{
+					writer.WriteSizedArray<Matrix4x4F>(BoneCount, Bones![frameIndex]);
+				}
+			}
 		}
 	}
 }

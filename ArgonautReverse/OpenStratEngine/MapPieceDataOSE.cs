@@ -1,30 +1,18 @@
 ﻿namespace ArgonautReverse.OpenStratEngine
 {
-	public sealed class MapPieceOSE
+	public sealed class MapPieceOSE(in Vector3F pos, int rotYFx, int n)
 	{
-		public Vector3F Pos;
-		public int RotYFx;//Value is 0-1 in 24bit (0 to 0xFF0). Also, the lowest nibble is ignored.
-		public int CellIndex;
+		public Vector3F Pos = pos;
+		public int RotYFx = rotYFx;//Value is 0-1 in 24bit (0 to 0xFF0). Also, the lowest nibble is ignored.
+		public int CellIndex = n;
 		public bool bVisible = false;
 		public int gapField6;
 		public int field7 = 0;
-
-		public MapPieceOSE(in Vector3F pos, int rotYFx, int n)
-		{
-			Pos = pos;
-			RotYFx = rotYFx;
-			CellIndex = n;
-		}
 	}
 
-	public sealed class MapPieceListOSE
+	public sealed class MapPieceListOSE(MapPieceOSE piece)
 	{
-		public MapPieceOSE Piece;
-		public MapPieceListOSE Next;
-
-		public MapPieceListOSE(MapPieceOSE piece)
-		{
-			Piece = piece;
-		}
+		public MapPieceOSE Piece = piece;
+		public MapPieceListOSE? Next = null;
 	}
 }

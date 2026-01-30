@@ -37,9 +37,19 @@ namespace ArgonautReverse.WadChunks.PC
 		public readonly IReadOnlyList<SpriteStructPC> Sprites = sprites;
 		public readonly IReadOnlyList<EffectPC> Effects = effects;
 
-		protected override void WriteData(WadWriter writer)
+		protected override void WriteData(ChunkWriter writer)
 		{
-			throw new NotImplementedException();
+			writer.Write(Palettes.Count);
+			writer.WriteArray(Palettes);
+
+			writer.Write(Textures.Count);
+			writer.WriteArray(Textures);
+
+			writer.Write(Sprites.Count);
+			writer.WriteArray(Sprites);
+
+			writer.Write(Effects.Count);
+			writer.WriteArray(Effects);
 		}
 	}
 }

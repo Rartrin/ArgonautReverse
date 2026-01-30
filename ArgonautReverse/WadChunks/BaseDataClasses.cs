@@ -1,6 +1,7 @@
 using ArgonautReverse.Engine;
 using ArgonautReverse.Files;
 using ArgonautReverse.IO;
+using ArgonautReverse.OpenStratEngine.Chunks;
 
 namespace ArgonautReverse.WadChunks
 {
@@ -16,7 +17,7 @@ namespace ArgonautReverse.WadChunks
 
 	public abstract class BaseWADChunkInfo<T>:BaseWADChunkInfo where T:BaseWadChunk;
 
-	public abstract class BaseWadChunk(BaseWADChunkInfo info, byte[]? data = null)
+	public abstract class BaseWadChunk(BaseWADChunkInfo info, byte[]? data = null):IConvertibleToOSE<IReadOnlyList<ChunkOSE>>
 	{
 		public readonly BaseWADChunkInfo Info = info;
 
@@ -24,7 +25,7 @@ namespace ArgonautReverse.WadChunks
 
 		public virtual void PostParseSetup(WADFile wadFile){}
 
-		public void Write(WadWriter writer)
+		public void Write(ChunkWriter writer)
 		{
 			writer.Write((uint)Info.ChunkType);
 			var sizeHold = writer.WriteHold<int>();
@@ -34,7 +35,7 @@ namespace ArgonautReverse.WadChunks
 			sizeHold.Set(endPosition-startPosition);
 		}
 
-		protected abstract void WriteData(WadWriter writer);
+		protected abstract void WriteData(ChunkWriter writer);
 
 		public virtual void Serialize(WadWriter data_out)
 		{
@@ -61,6 +62,8 @@ namespace ArgonautReverse.WadChunks
 			data_out.WriteInt32(size);
 			data_out.Position = end;
 		}
+
+		public virtual IReadOnlyList<ChunkOSE> ToOSE() => throw new NotImplementedException();
 	}
 
 	public sealed class UnsupportedChunkInfo(BaseWADChunkInfo unsuppportedType):BaseWADChunkInfo
@@ -82,7 +85,7 @@ namespace ArgonautReverse.WadChunks
 
 	public sealed class UnsupportedChunk(BaseWADChunkInfo info, byte[]? data = null):BaseWadChunk(info, data)
 	{
-		protected override void WriteData(WadWriter writer) => writer.WriteBytes(Data!);
+		protected override void WriteData(ChunkWriter writer) => writer.WriteBytes(Data!);
 	}
 
 	public sealed class UnknownChunkInfo(ChunkType chunkType):BaseWADChunkInfo
@@ -102,6 +105,6 @@ namespace ArgonautReverse.WadChunks
 
 	public sealed class UnknownChunk(BaseWADChunkInfo info, byte[]? data = null):BaseWadChunk(info, data)
 	{
-		protected override void WriteData(WadWriter writer) => writer.WriteBytes(Data!);
+		protected override void WriteData(ChunkWriter writer) => writer.WriteBytes(Data!);
 	}
 }

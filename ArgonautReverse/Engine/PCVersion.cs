@@ -11,6 +11,6 @@
 		public sealed override Platform Platform => Platform.PC;
 
 		public sealed override IReadOnlyCollection<WadVersion> WadVersions => [WadVersion];
-		public sealed override WadVersion GetWadVersion(string wadName) => WadVersion;
+		public sealed override WadVersion GetWadVersion(string? wadName) => WadVersion;
 	}
 }

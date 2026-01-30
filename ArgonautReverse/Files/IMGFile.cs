@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Drawing.Imaging;
+using ArgonautReverse.Universal;
 
 namespace ArgonautReverse.Files
 {
@@ -70,7 +71,7 @@ namespace ArgonautReverse.Files
 		public static readonly ImageType WIZ = new ImageType(2080, (64, 64), 16);
 		public static readonly ImageType WIZPAGE = new ImageType(2080, (128, 32), 16);
 
-		public static ImageType[] lookup =
+		public static readonly ImageType[] lookup =
 		[
 			LOAD,
 			STORY,
@@ -151,7 +152,7 @@ namespace ArgonautReverse.Files
 					{
 						image_type = ImageType.guess_from_bytes_size(image_data.Count);
 					}
-					Color[] palette;
+					ColorARGB555[] palette;
 					if(image_type.n_palette_colors != 0)
 					{
 						palette = Utils.parse_palette(image_data, image_type.n_palette_colors, image_type.has_alpha);
@@ -160,8 +161,7 @@ namespace ArgonautReverse.Files
 					{
 						palette = null;
 					}
-					images.Add(
-						IMGFile.to_full_colorized(
+					images.Add(to_full_colorized(
 							image_data,
 							image_type.dimensions,
 							palette,
@@ -195,12 +195,12 @@ namespace ArgonautReverse.Files
 			}
 		}
 
-		public static unsafe Bitmap to_full_colorized(ArraySegment<byte> data, XY dimensions, Color[] palette, int n_palette_colors, bool has_alpha)
+		public static unsafe Bitmap to_full_colorized(ArraySegment<byte> data, XY dimensions, ColorARGB555[] palette, int n_palette_colors, bool has_alpha)
 		{
 			var pixels_data = data.AsSpan(0, 2*n_palette_colors);
-			fixed(byte* pixels_data0 = pixels_data)
+			if(n_palette_colors != 0)
 			{
-				if(n_palette_colors != 0)
+				fixed(byte* pixels_data0 = pixels_data)
 				{
 					Bitmap image;
 					if(n_palette_colors == 16)
@@ -209,31 +209,31 @@ namespace ArgonautReverse.Files
 						fixed(byte* pixels_data_4bit0 = pixels_data_4bit)
 						{
 							//TODO: Y,X? Notice stride
-							image = new Bitmap(dimensions.Y, dimensions.X, dimensions.Y, PixelFormat.Format4bppIndexed, (IntPtr)pixels_data_4bit0);
+							image = new Bitmap(dimensions.Y, dimensions.X, dimensions.Y*sizeof(byte), PixelFormat.Format4bppIndexed, (IntPtr)pixels_data_4bit0);
 							//var pixels = np.reshape(np.array(Utils.parse_4bits_paletted(pixels_data), dtype:np.uint8), (dimensions.Y, dimensions.X));
 						}
 					}
 					else
 					{
-						image = new Bitmap(dimensions.X, dimensions.Y, dimensions.X, PixelFormat.Format8bppIndexed, (IntPtr)pixels_data0);
+						image = new Bitmap(dimensions.X, dimensions.Y, dimensions.X*sizeof(byte), PixelFormat.Format8bppIndexed, (IntPtr)pixels_data0);
 					}
 					var imagePalette = image.Palette;
 					for(int i=0; i<n_palette_colors; i++)
 					{
-						imagePalette.Entries[i] = palette[i];
+						imagePalette.Entries[i] = palette[i].ToSystem();
 					}
 					image.Palette = imagePalette;
 					return image;
 				}
-				else
+			}
+			else
+			{
+				var highColor = Utils.parse_high_color(pixels_data, has_alpha);
+				fixed(ColorARGB555* highColor0 = highColor)
 				{
-					var highColor = Utils.parse_high_color(pixels_data, has_alpha);
-					fixed(Color* highColor0 = highColor)
-					{
-						return new Bitmap(dimensions.Y, dimensions.X, dimensions.Y, PixelFormat.Format32bppArgb, (IntPtr)highColor0);
-						//var pixels = np.reshape(np.array(Utils.parse_high_color(pixels_data, has_alpha), dtype:np.uint8),(dimensions.Y, dimensions.X, has_alpha?4:3));
-						//return Image.fromarray(pixels, mode);
-					}
+					return new Bitmap(dimensions.Y, dimensions.X, dimensions.Y*sizeof(ColorARGB555), PixelFormat.Format16bppArgb1555, (IntPtr)highColor0);
+					//var pixels = np.reshape(np.array(Utils.parse_high_color(pixels_data, has_alpha), dtype:np.uint8),(dimensions.Y, dimensions.X, has_alpha?4:3));
+					//return Image.fromarray(pixels, mode);
 				}
 			}
 		}

@@ -2,20 +2,12 @@
 
 namespace ArgonautReverse.OpenStratEngine
 {
-	public sealed class FontOSE:IWritable
+	public sealed class FontOSE(ushort textureId, ushort charOffsetY, ushort charWidth, ushort charHeight):IWritable
 	{
-		public readonly ushort TextureId;
-		public readonly ushort CharOffsetY;
-		public readonly ushort CharWidth;
-		public readonly ushort CharHeight;
-
-		public FontOSE(ushort textureId, ushort charOffsetY, ushort charWidth, ushort charHeight)
-		{
-			TextureId = textureId;
-			CharOffsetY = charOffsetY;
-			CharWidth = charWidth;
-			CharHeight = charHeight;
-		}
+		public readonly ushort TextureId = textureId;
+		public readonly ushort CharOffsetY = charOffsetY;
+		public readonly ushort CharWidth = charWidth;
+		public readonly ushort CharHeight = charHeight;
 
 		public void Write(WadWriter writer)
 		{

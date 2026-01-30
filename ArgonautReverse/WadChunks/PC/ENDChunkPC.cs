@@ -19,6 +19,6 @@ namespace ArgonautReverse.WadChunks.PC
 	}
 	public sealed class ENDChunkPC():BaseWadChunk(ENDChunkPCInfo.Instance)
 	{
-		protected override void WriteData(WadWriter writer){}
+		protected override void WriteData(ChunkWriter writer){}
 	}
 }

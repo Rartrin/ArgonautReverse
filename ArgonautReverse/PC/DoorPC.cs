@@ -13,7 +13,7 @@ namespace ArgonautReverse.PC
 		DOOR_START = 0x8,
 	}
 
-	public sealed class DoorPC:IReadable<DoorPC>
+	public sealed class DoorPC:IReadable<DoorPC>,IWritable
 	{
 		public Vector3I Position;
 		/// <summary>
@@ -83,6 +83,43 @@ namespace ArgonautReverse.PC
 			door.MusicTrack = reader.Read<int>();
 
 			return door;
+		}
+
+		public void Write(WadWriter writer)
+		{
+			writer.Write<Vector3I>(Position);
+			writer.Write<Vector3I>(Goto);
+			writer.Write((int)LevelType);
+			writer.Write((int)GotoRotY);
+			writer.Write((int)ThisRotY);
+			writer.Write<int>(Fade);
+			
+			if(Background != null && BackgroundOffset == 0)
+			{
+				throw new NotImplementedException();
+			}
+
+			if(BackgroundOffset != 0)
+			{
+				if(Background == null)
+				{
+					throw new Exception();
+				}
+				writer.Write<int>(BackgroundOffset);
+			}
+			writer.Write<int>(BackgroundAddYRotation);
+			writer.Write<int>(BackgroundHeightAdjust);
+			writer.Write<int>(DrawMode);
+			writer.Write<short>(MoveForward);
+			writer.Write<int>(rt_from);
+			writer.Write<int>(rt_val);
+			writer.Write<int>(rt_obj_from);
+			writer.Write<int>(rt_obj_val);
+			writer.Write<ColorBGRA32>(AmbientLight);
+			writer.Write<ColorBGRA32>(BackColor);
+			writer.Write<ushort>(EffectFlags);
+			writer.Write<ushort>(ReverbType);
+			writer.Write<int>(MusicTrack);
 		}
 	}
 }

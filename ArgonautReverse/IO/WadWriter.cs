@@ -1,23 +1,16 @@
 ﻿using ArgonautReverse.Engine;
+using ArgonautReverse.Files;
 
 namespace ArgonautReverse.IO
 {
-	public class WadWriter:StreamWriter
+	public class WadWriter(WADFile wadFile, Configuration configuration, WadVersion writeVersion, MemoryStream stream, int offset = 0):StreamWriter(stream, offset)
 	{
-		public readonly Configuration Configuration;
-		public readonly DatVersion DatVersion;
-		public WadVersion WriteVersion{get;set;}
+		public readonly WADFile WadFile = wadFile;
 
-		public WadWriter(Configuration configuration, MemoryStream stream):base(stream, 0)
-		{
-			DatVersion = configuration.WriteVersion;
-		}
+		public readonly Configuration Configuration = configuration;
+		public readonly DatVersion DatVersion = configuration.WriteVersion!;
+		public readonly WadVersion WriteVersion = writeVersion;
 
-		protected WadWriter(Configuration configuration, MemoryStream stream, int offset):base(stream, offset)
-		{
-			DatVersion = configuration.WriteVersion;
-		}
-
-		public ChunkWriter GetChunkWriter() => new ChunkWriter(Configuration, WriteVersion, Stream, Position);
+		public ChunkWriter GetChunkWriter() => new ChunkWriter(WadFile, Configuration, WriteVersion, Stream, Position);
 	}
 }

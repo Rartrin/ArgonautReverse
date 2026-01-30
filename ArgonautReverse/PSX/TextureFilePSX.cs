@@ -16,7 +16,7 @@ namespace ArgonautReverse.PSX
 		public readonly byte[] textures_data;
 		public readonly bool legacy_alpha;
 		public readonly bool has_alpha;
-		public IReadOnlyList<TextureDataPSX> Textures { get; }
+		public IReadOnlyList<TextureDataPSX> Textures{get;}
 
 		private TextureFilePSX(int n_rows, byte[] textures_data, bool legacy_alpha, IReadOnlyList<TextureDataPSX> textures)
 		{
@@ -178,7 +178,7 @@ namespace ArgonautReverse.PSX
 
 						for(int p = 0; p < palette.Entries.Length; p++)
 						{
-							palette.Entries[p] = paletteColors[p];
+							palette.Entries[p] = paletteColors[p].ToSystem();
 						}
 						texture_image.Palette = palette;
 					}

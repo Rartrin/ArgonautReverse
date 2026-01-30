@@ -50,9 +50,9 @@ namespace ArgonautReverse.WadChunks.PC
 	{
 		public readonly MapPC Map = map;
 
-		protected override void WriteData(WadWriter writer)
+		protected override void WriteData(ChunkWriter writer)
 		{
-			throw new NotImplementedException();
+			writer.Write(Map);
 		}
 	}
 }
