@@ -133,7 +133,7 @@ namespace ArgonautReverse.PSX
 		{
 			foreach(var group in Groups)
 			{
-				data_in.AbsolutePosition = 2048 * (int)Math.Ceiling(data_in.AbsolutePosition / 2048.0);
+				data_in.AbsolutePosition = 2048 * (int)MathF.Ceiling(data_in.AbsolutePosition / 2048f);
 				group.parse_vags(data_in);
 			}
 		}
@@ -153,7 +153,7 @@ namespace ArgonautReverse.PSX
 		{
 			foreach(var sound in Sounds)
 			{
-				data_in.AbsolutePosition = 2048 * (int)Math.Ceiling(data_in.AbsolutePosition / 2048.0);
+				data_in.AbsolutePosition = 2048 * (int)MathF.Ceiling(data_in.AbsolutePosition / 2048f);
 				sound.parse_vag(data_in);
 			}
 		}

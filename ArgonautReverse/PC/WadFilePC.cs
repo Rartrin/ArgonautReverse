@@ -17,15 +17,15 @@ namespace ArgonautReverse.PC
 		public MAPChunk MapChunk{get;private set;}
 		public TRAKChunk TrackChunk{get;private set;}
 		public TEXTChunk TextChunk{get;private set;}
-		//public LGHTChunk LightChunk{get;private set;}
+		public LGHTChunk LightChunk{get;private set;}
 		public STPCChunk StratChunk{get;private set;}
 		public WFPCChunk WadflagsChunk{get;private set;}
-		//public SMPCChunk SampleChunk{get;private set;}
-		//public LANGChunk LanguageChunk{get;private set;}
-		//public AMPCChunk AMPCChunk{get;private set;}
+		public SMPCChunk SampleChunk{get;private set;}
+		public LGPCChunk LanguageChunk{get;private set;}
+		public AMPCChunk AMPCChunk{get;private set;}
 		public FONTChunk FontChunk{get;private set;}
-		//public SPRTChunk SpriteChunk{get;private set;}
-		//public RIMGChunk RIMGChunk{get;private set;}
+		public SPRTChunk SpriteChunk{get;private set;}
+		public RIMGChunk RIMGChunk{get;private set;}
 		public ENDChunkPC EndChunk{get;private set;}
 
 		public override bool TryGetChunkInfo(ChunkType chunkType, [MaybeNullWhen(false)]out BaseWADChunkInfo info)
@@ -37,17 +37,17 @@ namespace ArgonautReverse.PC
 				ChunkType.ID_PC_MAP => MAPChunkInfo.Instance,
 				ChunkType.ID_PC_TRACK => TRAKChunkInfo.Instance,
 				ChunkType.ID_PC_TEXT => TEXTChunkInfo.Instance,
-				//ChunkType.ID_PC_LIGHT => LGHTChunkInfo.Instance,
+				ChunkType.ID_PC_LIGHT => LGHTChunkInfo.Instance,
 				ChunkType.ID_PC_STRAT => STPCChunkInfo.Instance,
 				ChunkType.ID_PC_WADFLAGS => WFPCChunkInfo.Instance,
 
-				//ChunkType.ID_PC_SAMPLE => SMPCChunkInfo.Instance,
-				//ChunkType.ID_PC_LANG => LANGChunkInfo.Instance,
+				ChunkType.ID_PC_SAMPLE => SMPCChunkInfo.Instance,
+				ChunkType.ID_PC_LANG => LGPCChunkInfo.Instance,
 
-				//ChunkType.ID_PC_AMPC => AMPCChunkInfo.Instance,
+				ChunkType.ID_PC_AMPC => AMPCChunkInfo.Instance,
 				ChunkType.ID_PC_FONT => FONTChunkInfo.Instance,
-				//ChunkType.ID_PC_SPRITE => SPRTChunkInfo.Instance,
-				//ChunkType.ID_PC_RIMG => RIMGChunkInfo.Instance,
+				ChunkType.ID_PC_SPRITE => SPRTChunkInfo.Instance,
+				ChunkType.ID_PC_RIMG => RIMGChunkInfo.Instance,
 
 				ChunkType.ID_END => ENDChunkPCInfo.Instance,
 				_ => null
@@ -63,17 +63,17 @@ namespace ArgonautReverse.PC
 				ChunkType.ID_PC_MAP => MapChunk,
 				ChunkType.ID_PC_TRACK => TrackChunk,
 				ChunkType.ID_PC_TEXT => TextChunk,
-				//ChunkType.ID_PC_LIGHT => LightChunk,
+				ChunkType.ID_PC_LIGHT => LightChunk,
 				ChunkType.ID_PC_STRAT => StratChunk,
 				ChunkType.ID_PC_WADFLAGS => WadflagsChunk,
 
-				//ChunkType.ID_PC_SAMPLE => SampleChunk,
-				//ChunkType.ID_PC_LANG => LanguageChunk,
+				ChunkType.ID_PC_SAMPLE => SampleChunk,
+				ChunkType.ID_PC_LANG => LanguageChunk,
 
-				//ChunkType.ID_PC_AMPC => AMPCChunk,
+				ChunkType.ID_PC_AMPC => AMPCChunk,
 				ChunkType.ID_PC_FONT => FontChunk,
-				//ChunkType.ID_PC_SPRITE => SpriteChunk,
-				//ChunkType.ID_PC_RIMG => RIMGChunk,
+				ChunkType.ID_PC_SPRITE => SpriteChunk,
+				ChunkType.ID_PC_RIMG => RIMGChunk,
 
 				ChunkType.ID_END => EndChunk,
 				_ => throw new Exception($"Unknown type: {info.ChunkType}")
@@ -98,17 +98,17 @@ namespace ArgonautReverse.PC
 				case ChunkType.ID_PC_MAP:EnsureEmpty(MapChunk);MapChunk = (MAPChunk)chunk;break;
 				case ChunkType.ID_PC_TRACK:EnsureEmpty(TrackChunk);TrackChunk = (TRAKChunk)chunk;break;
 				case ChunkType.ID_PC_TEXT:EnsureEmpty(TextChunk);TextChunk = (TEXTChunk)chunk;break;
-				//case ChunkType.ID_PC_LIGHT:EnsureEmpty(LightChunk);LightChunk = (LGHTChunk)chunk;break;
+				case ChunkType.ID_PC_LIGHT:EnsureEmpty(LightChunk);LightChunk = (LGHTChunk)chunk;break;
 				case ChunkType.ID_PC_STRAT:EnsureEmpty(StratChunk);StratChunk = (STPCChunk)chunk;break;
 				case ChunkType.ID_PC_WADFLAGS:EnsureEmpty(WadflagsChunk);WadflagsChunk = (WFPCChunk)chunk;break;
 
-				//case ChunkType.ID_PC_SAMPLE:EnsureEmpty(SampleChunk);SampleChunk = (SMPCChunk)chunk;break;
-				//case ChunkType.ID_PC_LANG:EnsureEmpty(LanguageChunk);LanguageChunk = (LANGChunk)chunk;break;
+				case ChunkType.ID_PC_SAMPLE:EnsureEmpty(SampleChunk);SampleChunk = (SMPCChunk)chunk;break;
+				case ChunkType.ID_PC_LANG:EnsureEmpty(LanguageChunk);LanguageChunk = (LGPCChunk)chunk;break;
 
-				//case ChunkType.ID_PC_AMPC:EnsureEmpty(AMPCChunk);AMPCChunk = (AMPCChunk)chunk;break;
+				case ChunkType.ID_PC_AMPC:EnsureEmpty(AMPCChunk);AMPCChunk = (AMPCChunk)chunk;break;
 				case ChunkType.ID_PC_FONT:EnsureEmpty(FontChunk);FontChunk = (FONTChunk)chunk;break;
-				//case ChunkType.ID_PC_SPRITE:EnsureEmpty(SpriteChunk);SpriteChunk = (SPRTChunk)chunk;break;
-				//case ChunkType.ID_PC_RIMG:EnsureEmpty(RIMGChunk);RIMGChunk = (RIMGChunk)chunk;break;
+				case ChunkType.ID_PC_SPRITE:EnsureEmpty(SpriteChunk);SpriteChunk = (SPRTChunk)chunk;break;
+				case ChunkType.ID_PC_RIMG:EnsureEmpty(RIMGChunk);RIMGChunk = (RIMGChunk)chunk;break;
 
 				case ChunkType.ID_END:EnsureEmpty(EndChunk);EndChunk = (ENDChunkPC)chunk;break;
 				default:
@@ -148,7 +148,7 @@ namespace ArgonautReverse.PC
 			//ExportAMPC(args, conf);
 			//ExportFONT(args, conf);
 			//ExportSPRITE(args, conf);
-			//ExportRIMG(args, conf);
+			RIMGChunk.Export(this, args, conf);
 			//Skip END
 			throw new NotImplementedException();
 		}
@@ -185,7 +185,7 @@ namespace ArgonautReverse.PC
 			ret.Save(path, ImageFormat.Png);
 		}
 
-		public void ExtractSprites(SpriteStructPC sprite, string path)
+		public void ExtractSPRITE(SpriteStructPC sprite, string path)
 		{
 			throw new NotImplementedException();
 		}

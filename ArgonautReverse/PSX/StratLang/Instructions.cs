@@ -21,7 +21,7 @@ namespace ArgonautReverse.PSX.StratLang
 		{
 			return $"{OpCode} $ UNIMPLEMENTED";
 		}
-	};
+	}
 
 	//Unimplemented but also used in game
 	public sealed class UsedUnimplementedInstruction:BaseInstruction

@@ -68,7 +68,7 @@ namespace ArgonautReverse.PC
 	public sealed class PolygonStructPC(PolygonFlagsPC flags, IReadOnlyList<PolygonPointPC> points):IReadable<PolygonStructPC,WadFlagPC>,IWritable<WadFlagPC>
 	{
 		//public ushort pointCount;
-		public readonly PolygonFlagsPC Flags = flags
+		public readonly PolygonFlagsPC Flags = flags;
 		public readonly IReadOnlyList<PolygonPointPC> Points = points;
 
 		public static PolygonStructPC Parse(WadReader reader, WadFlagPC wadFlags)

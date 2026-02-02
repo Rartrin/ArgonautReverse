@@ -32,7 +32,7 @@ namespace ArgonautReverse.WadChunks.PC
 			return new STPCChunk(Instance, models, animations, cutscenes, reader.GetAllWadData());
 		}
 	}
-	public sealed class STPCChunk(BaseWADChunkInfo info, IReadOnlyList<StratObject2PC> models, IReadOnlyList<AnimationStructPC> animations, IReadOnlyList<Cutscene>? cutscenes, byte[]? data = null):BaseWadChunk(info, data)
+	public sealed class STPCChunk(BaseWADChunkInfo info, IReadOnlyList<StratObject2PC> models, IReadOnlyList<AnimationStructPC> animations, IReadOnlyList<Cutscene>? cutscenes, byte[]? data):BaseWadChunk(info, data)
 	{
 		public readonly IReadOnlyList<StratObject2PC> Models = models;
 		public readonly IReadOnlyList<AnimationStructPC> Animations = animations;

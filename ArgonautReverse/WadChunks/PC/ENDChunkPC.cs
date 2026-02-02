@@ -11,9 +11,9 @@ namespace ArgonautReverse.WadChunks.PC
 		public override string ChunkDescription => "END";
 		public override WadVersion[] SupportedWadVersions{get;} = Configuration.PC_PARSABLE_WADS;
 
-		public override ENDChunkPC Parse(WadReader data_in)
+		public override ENDChunkPC Parse(WadReader reader)
 		{
-			data_in.AssertEndOfChunk(ChunkType);
+			reader.AssertEndOfChunk(ChunkType);
 			return new ENDChunkPC();
 		}
 	}

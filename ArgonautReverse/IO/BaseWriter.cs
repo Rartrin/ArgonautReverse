@@ -105,7 +105,7 @@ namespace ArgonautReverse.IO
 			if(length != str.Length){throw new Exception();}
 
 			Span<byte> bytes = stackalloc byte[length];
-			Encoding.Latin1.GetBytes(str, bytes);
+			Encoding.ASCII.GetBytes(str, bytes);
 			WriteData(bytes);
 		}
 	}

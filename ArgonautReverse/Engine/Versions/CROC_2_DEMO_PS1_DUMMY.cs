@@ -59,6 +59,11 @@ namespace ArgonautReverse.Engine.Versions
 
 			public override InstructionOpcode MapOpcode(int value)
 			{
+				if(this != Instance_Latest)
+				{
+					//TODO Early dummy WAD opcode mapping.
+					//Console.WriteLine("WARNING: Parsing script on earlier dummy WAD, may nto be compatible with regular dummy WAD mapping.");
+				}
 				if(value <= (int)InstructionOpcode.Spawn)
 				{
 					return (InstructionOpcode)value;
@@ -219,7 +224,6 @@ namespace ArgonautReverse.Engine.Versions
 				};
 			}
 
-			//Version used in: 00BD7800, 01864000
 			public static readonly WadVersion Instance_Early = new CROC_2_DEMO_PS1_DUMMY_Wad(100,
 				"00BD7800",//Dino Fight
 				"01864000",//Early snow hub

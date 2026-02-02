@@ -9,7 +9,7 @@ namespace ArgonautReverse.PC
 		public Vector3F Pos = pos;
 		public int RawRotY = rawRotY;//Value is 0-1 in 24bit (0 to 0xFF0). Also, the lowest nibble is ignored.
 		public float RotY = Utils.Deg2Rad(rotY);
-		public int N = n, CellIndex = cellIndex;//Same field. Alladin uses n, everything else uses CellIndex.
+		public int N = n, CellIndex = cellIndex;//Same field. Alladin uses n, everything else uses CellIndex. The values are not the same either.
 		public bool bVisible = false;
 		public int gapField6;
 		public int field7 = 0;
@@ -179,9 +179,9 @@ namespace ArgonautReverse.PC
 		}
 	}
 
-	public sealed class MapPC:IWritable
+	public sealed class MapPC:IReadable<MapPC>,IWritable
 	{
-		public StratObjectPC Background;
+		//public StratObjectPC Background;
 
 		public IReadOnlyList<MapPiecePC> AllMapPieces;
 		public IReadOnlyList<IReadOnlyList<MapPieceListPC>> MapPieceArray;
@@ -189,8 +189,6 @@ namespace ArgonautReverse.PC
 		public int MapWidth;
 		public int MapHeight;
 
-		//public int NumLights;
-		public IReadOnlyList<LightPC> Lights;
 		//public StrategyList strategy_list;
 
 		public IReadOnlyList<ZonePC> ZoneData;
@@ -263,11 +261,6 @@ namespace ArgonautReverse.PC
 					1 => true,
 					_ => throw new Exception()
 				};
-
-				if(cellIndex != n)
-				{
-					throw new Exception("Theory failed");
-				}
 				// Conversion from 0.0-1.0 angle in fixed point 24bit to floating point degrees.
 				var worldCellInfo = new MapPiecePC(chunkPos, rawRotY:rotY, rotY:((rotY&0xFF0) * 360f) / 4096f, n:n, cellIndex:cellIndex, hasOtherPiece);
 				allMapPieces.Add(worldCellInfo);

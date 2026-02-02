@@ -2,7 +2,7 @@
 
 namespace ArgonautReverse.PSX.StratLang
 {
-	public unsafe class StratParser
+	public unsafe class StratParser(WadFilePSX wadFile, ActorDataPSX script)
 	{
 		private readonly Queue<AsmInstruction> needsSetup = new Queue<AsmInstruction>();
 
@@ -12,16 +12,9 @@ namespace ArgonautReverse.PSX.StratLang
 
 		private readonly Dictionary<int,AsmInstruction> triggers = new Dictionary<int,AsmInstruction>();
 
-		public readonly WadFilePSX WadFile;
-		public readonly ActorDataPSX Script;
-		private readonly int[] data;
-
-		public StratParser(WadFilePSX wadFile, ActorDataPSX script)
-		{
-			WadFile = wadFile;
-			Script = script;
-			data = script.data;
-		}
+		public readonly WadFilePSX WadFile = wadFile;
+		public readonly ActorDataPSX Script = script;
+		private readonly int[] data = script.data;
 
 		public AsmInstruction ParseInstruction(InstructionAddress instrAddr, AsmInstruction? prev, AsmInstruction? jumpFrom)
 		{

@@ -4,21 +4,13 @@ using ArgonautReverse.WadChunks;
 
 namespace ArgonautReverse.IO
 {
-	public class WadReader:DataReader
+	public class WadReader(WADFile wadFile, Configuration conf, WadVersion wadVersion, byte[] data, int offset = 0, int? length = null):DataReader(data, offset, length ?? data.Length)
 	{
-		public readonly WADFile WadFile;
+		public readonly WADFile WadFile = wadFile;
 		
-		public readonly Configuration Configuration;
-		public readonly DatVersion DatVersion;
-		public readonly WadVersion ReadVersion;
-
-		public WadReader(WADFile wadFile, Configuration conf, WadVersion wadVersion, byte[] data, int offset = 0, int? length = null) : base(data, offset, length ?? data.Length)
-		{
-			WadFile = wadFile;
-			Configuration = conf;
-			DatVersion = conf.ReadVersion;
-			ReadVersion = wadVersion;
-		}
+		public readonly Configuration Configuration = conf;
+		public readonly DatVersion DatVersion = conf.ReadVersion;
+		public readonly WadVersion ReadVersion = wadVersion;
 
 		public ChunkReader ReadChunk(int length)
 		{

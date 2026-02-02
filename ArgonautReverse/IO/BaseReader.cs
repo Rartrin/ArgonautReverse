@@ -71,7 +71,7 @@ namespace ArgonautReverse.IO
 		{
 			Span<byte> str = stackalloc byte[length];
 			ReadData(str);
-			return Encoding.Latin1.GetString(str);
+			return Encoding.ASCII.GetString(str);
 		}
 
 		//public T ReadEmptyReference<T>() where T:class
