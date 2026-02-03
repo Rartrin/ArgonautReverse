@@ -4,7 +4,9 @@ namespace ArgonautReverse.PSX.StratLang
 {
 	public abstract class AsmInstruction
 	{
-		public InstructionOpcode OpCode;
+		public readonly Script Script;
+
+		public readonly InstructionOpcode OpCode;
 
 		//Operands that are part of the instruction
 		public int OperandCount;
@@ -51,12 +53,13 @@ namespace ArgonautReverse.PSX.StratLang
 			_ => throw new NotImplementedException($"Unimplemented subroutine type: {SubroutineType}")
 		};
 
-		public AsmInstruction(InstructionAddress address, InstructionOpcode opcode, int operandCount,int popCount,int pushCount)
+		public AsmInstruction(Script script, InstructionAddress address, InstructionOpcode opcode, int operandCount,int popCount,int pushCount)
 		{
-			this.OpCode = opcode;
-			this.OperandCount = operandCount;
-			this.PopCount = popCount;
-			this.PushCount = pushCount;
+			Script = script;
+			OpCode = opcode;
+			OperandCount = operandCount;
+			PopCount = popCount;
+			PushCount = pushCount;
 
 			InstrAddr = address;
 

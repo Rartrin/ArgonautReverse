@@ -5,6 +5,8 @@ using ArgonautReverse.WadChunks.PSX;
 using ArgonautReverse.WadChunks;
 using System.Diagnostics.CodeAnalysis;
 using ArgonautReverse.Universal.StratLang.Decompiler;
+using ArgonautReverse.PSX.StratLang;
+using ArgonautReverse.Universal.StratLang;
 
 namespace ArgonautReverse.PSX
 {
@@ -314,7 +316,7 @@ namespace ArgonautReverse.PSX
 
 
 
-				if(script.Failed || script.parser==null)
+				if(script.Failed || !script.Processed)
 				{
 					continue;
 				}
@@ -327,10 +329,8 @@ namespace ArgonautReverse.PSX
 				if(data.baseFilePath == null){continue;}
 				try
 				{
-					var lines = DPSX.Actors[i].parser!.GetInstructions();
-
 					var parser = new AsmParser();
-					var start = parser.ParseAndSetupInstructions(lines);
+					parser.ParseAndSetupInstructions(DPSX.Actors[i]);
 
 					data.parser = parser;
 				}
@@ -351,7 +351,7 @@ namespace ArgonautReverse.PSX
 					//TODO: StackAanalyzer likely should be consistant across all scripts.
 					//Failing during analysis could invalidate the values in the analyzer though.
 					var stackAnalyzer = new StackAnalyzer();
-					stackAnalyzer.Analyze(data.parser.GetSubroutines());
+					stackAnalyzer.Analyze(data.parser.GetSubroutines(DPSX.Actors[i]));
 
 					data.stackAnalyzer = stackAnalyzer;
 				}
@@ -393,7 +393,7 @@ namespace ArgonautReverse.PSX
 		{
 			if(!DPSXChunkInfo.Instance.SupportedWadVersions.Intersect(conf.ReadVersion.WadVersions).Any()){return;}
 
-			if(args.ExtractActors)
+			if(args.ExtractScripts)
 			{
 				var wad_actors_folder_path = args.GetExtractDirectory(Stem, "Actors");
 				ExportActors(wad_actors_folder_path, Stem);
@@ -442,5 +442,14 @@ namespace ArgonautReverse.PSX
 			ExportSPSX(args, conf);
 			ExportDPSX(args, conf);
 		}
+
+		public override (Script script, InstructionAddress address) GetStratProcAddr(int dataOffset)
+		{
+			//On PSX, this is a DATA chunk offset
+			var script = DPSX.GetScript(dataOffset);
+			return (script, (InstructionAddress)(dataOffset - script.DataChunkAddress));
+		}
+
+		public override void ProcessScripts(){}
 	}
 }

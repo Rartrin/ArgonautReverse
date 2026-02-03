@@ -84,8 +84,6 @@ namespace ArgonautReverse.WadChunks.PSX
 
 		public override void PostParseSetup(WADFile wadFile)
 		{
-			var wadFilePSX = (WadFilePSX)wadFile;
-
 			//Setup strat scripts
 			if(LevelFile.map==null)
 			{
@@ -105,7 +103,7 @@ namespace ArgonautReverse.WadChunks.PSX
 				processedStrats = false;
 				foreach(var script in Actors)
 				{
-					if(script.ProcessScript(wadFilePSX))
+					if(script.ProcessScript())
 					{
 						processedStrats = true;
 					}

@@ -1,22 +1,15 @@
-﻿using ArgonautReverse.Universal.StratLang;
+﻿using ArgonautReverse.Files;
+using ArgonautReverse.Universal.StratLang;
 
 namespace ArgonautReverse.PSX.StratLang
 {
-	public sealed class StratReader
+	public sealed class StratReader(WADFile wadFile, Script script, InstructionAddress position)
 	{
-		public readonly WadFilePSX WadFile;
-		public readonly ActorDataPSX Script;
+		public readonly WADFile WadFile = wadFile;
+		public readonly Script Script = script;
 
-		private readonly int[] data;
-		public InstructionAddress Position = 0;
-
-		public StratReader(WadFilePSX wadFile, ActorDataPSX script, int[] data, InstructionAddress position)
-		{
-			WadFile = wadFile;
-			Script = script;
-			this.data = data;
-			Position = position;
-		}
+		private readonly int[] data = script.Data;
+		public InstructionAddress Position = position;
 
 		private static void AssertAlligned(InstructionAddress bytePosition)
 		{

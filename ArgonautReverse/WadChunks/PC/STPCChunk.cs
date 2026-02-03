@@ -1,4 +1,5 @@
 ﻿using ArgonautReverse.Engine;
+using ArgonautReverse.Files;
 using ArgonautReverse.IO;
 using ArgonautReverse.PC;
 
@@ -24,19 +25,26 @@ namespace ArgonautReverse.WadChunks.PC
 
 			IReadOnlyList<Cutscene>? cutscenes = null;
 			var wadFlags = reader.WadFile.GetChunk(WFPCChunkInfo.Instance).WadFlags;
-			if((wadFlags & WadFlagPC.WAD_FLAG_100) != 0)
+			if((wadFlags & WadFlagPC.WAD_FLAG_HAS_CUTSCENES) != 0)
 			{
 				var cutsceneCount = reader.Read<int>();
 				cutscenes = reader.ReadArray<Cutscene>(cutsceneCount);
 			}
-			return new STPCChunk(Instance, models, animations, cutscenes, reader.GetAllWadData());
+
+			//There is no guarentee that there couldn't be other data before or after this. It just happened to work.
+			var scriptCount = reader.Read<int>();
+			var scripts = reader.ReadArray<ScriptPC>(scriptCount);
+
+			reader.AssertEndOfChunk(ChunkType);
+			return new(Instance, models, animations, cutscenes, scripts, reader.GetAllWadData());
 		}
 	}
-	public sealed class STPCChunk(BaseWADChunkInfo info, IReadOnlyList<StratObject2PC> models, IReadOnlyList<AnimationStructPC> animations, IReadOnlyList<Cutscene>? cutscenes, byte[]? data):BaseWadChunk(info, data)
+	public sealed class STPCChunk(BaseWADChunkInfo info, IReadOnlyList<StratObject2PC> models, IReadOnlyList<AnimationStructPC> animations, IReadOnlyList<Cutscene>? cutscenes, IReadOnlyList<ScriptPC> scripts, byte[]? data):BaseWadChunk(info, data)
 	{
 		public readonly IReadOnlyList<StratObject2PC> Models = models;
 		public readonly IReadOnlyList<AnimationStructPC> Animations = animations;
 		public readonly IReadOnlyList<Cutscene>? Cutscenes = cutscenes;
+		public readonly IReadOnlyList<ScriptPC> Scripts = scripts;
 
 		public StratObject2PC GetStratObject(int addr)
 		{
@@ -59,10 +67,54 @@ namespace ArgonautReverse.WadChunks.PC
 			writer.WriteArrayWithoutMultipass<AnimationStructPC>(Animations);
 
 			var wadFlags = writer.WadFile.GetChunk(WFPCChunkInfo.Instance).WadFlags;
-			if((wadFlags & WadFlagPC.WAD_FLAG_100) != 0)
+			if((wadFlags & WadFlagPC.WAD_FLAG_HAS_CUTSCENES) != 0)
 			{
 				writer.Write<int>(Cutscenes!.Count);
 				writer.WriteArray<Cutscene>(Cutscenes);
+			}
+		}
+
+		public ScriptPC GetScript(int rawEntryPoint)
+		{
+			foreach(var curScript in Scripts)
+			{
+				if(curScript.DataChunkAddress<=rawEntryPoint && rawEntryPoint<curScript.DataChunkAddress+curScript.DataChunkLength)
+				{
+					var entryPoint = rawEntryPoint-curScript.DataChunkAddress;
+					if(!curScript.EntryPointAddrs.Contains(entryPoint))
+					{
+						curScript.EntryPointAddrs.Add(entryPoint);
+					}
+					return curScript;
+				}
+			}
+			throw new Exception("Entry point outside of known scripts");
+		}
+
+		public void ProcessScipts(WADFile wadFile)
+		{
+            //TODO: Validate this theory
+			//In theory, some strats entry points may be within others, so we need to loop over multiple times
+			bool processedStrats = true;
+			while(processedStrats)
+			{
+				processedStrats = false;
+				for(int i=0; i<Scripts.Count; i++)
+				{
+					var script = Scripts[i];
+					if(script.ProcessScript())
+					{
+						processedStrats = true;
+					}
+				}
+			}
+			for(int i=0; i<Scripts.Count; i++)
+			{
+				var script = Scripts[i];
+				if(script.EntryPointAddrs.Count == 0)
+				{
+					Console.WriteLine($"WARNING: Script {wadFile.Name}_{i} missing entrypoint");
+				}
 			}
 		}
 	}

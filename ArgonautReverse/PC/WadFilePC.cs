@@ -7,6 +7,8 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using ArgonautReverse.Universal;
 using ArgonautReverse.OpenStratEngine;
+using ArgonautReverse.Universal.StratLang;
+using ArgonautReverse.Universal.StratLang.Decompiler;
 
 namespace ArgonautReverse.PC
 {
@@ -139,18 +141,17 @@ namespace ArgonautReverse.PC
 			//Skip VERSION
 			//ExportMAP(args, conf);
 			//ExportTRACK(args, conf);
-			ExportTEXT(args, conf);
+			//ExportTEXT(args, conf);
 			//ExportLIGHT(args, conf);
-			//ExportSTRAT(args, conf);
+			ExportSTRAT(args, conf);
 			//Skip WADFLAGS
 			//ExportSAMPLE(args, conf);
 			//ExportLANG(args, conf);
 			//ExportAMPC(args, conf);
 			//ExportFONT(args, conf);
 			//ExportSPRITE(args, conf);
-			RIMGChunk.Export(this, args, conf);
+			//RIMGChunk.Export(this, args, conf);
 			//Skip END
-			throw new NotImplementedException();
 		}
 
 		private void ExportTEXT(ProgramArgs args, Configuration conf)
@@ -192,7 +193,121 @@ namespace ArgonautReverse.PC
 
 		private void ExportSTRAT(ProgramArgs args, Configuration conf)
 		{
-			throw new NotImplementedException();
+			ExportScripts(args, conf);
+		}
+
+		public void ExportScripts(ProgramArgs args, Configuration conf)
+		{
+			if(!args.ExtractScripts){return;}
+
+			var scriptsDirectory = args.GetExtractDirectory(Stem, "Scripts");
+
+
+			var scriptData = new (string? baseFilePath,bool parsingSucceeded,StackAnalyzer? stackAnalyzer,FlowAnalyzer? flowAnalyzer)[StratChunk.Scripts.Count];
+			for(int i=0; i<scriptData.Length; i++)
+			{
+				ref var data = ref scriptData[i];
+				var baseFilePath = Path.Join(scriptsDirectory, $"STRAT_{i}");
+
+				//TODO: SKIP EVERYTHING EXCEPT for this WalkingCroc for testing
+				//if((Stem, i) != ("0015F800",4)){continue;}
+
+				var script = StratChunk.Scripts[i];
+				
+				
+				//TODO: Make exporting ASM an argument
+				script.ExportAsm(baseFilePath);
+
+				if(script.Failed || !script.Processed)
+				{
+					continue;
+				}
+				data.baseFilePath = baseFilePath;
+			}
+
+			var parser = new AsmParser();
+			for(int i=0; i<scriptData.Length; i++)
+			{
+				ref var data = ref scriptData[i];
+				if(data.baseFilePath == null){continue;}
+				parser.AddScript(StratChunk.Scripts[i]);
+			}
+
+			for(int i=0; i<scriptData.Length; i++)
+			{
+				ref var data = ref scriptData[i];
+				if(data.baseFilePath == null){continue;}
+				try
+				{
+					parser.ParseAndSetupInstructions(StratChunk.Scripts[i]);
+					data.parsingSucceeded = true;
+				}
+				catch(Exception e)
+				{
+					//TODO: This could possibly break parsing.
+					Console.WriteLine($"Failed to setup asm parser {data.baseFilePath}:");
+					Console.WriteLine(e.Message);
+					continue;
+				}
+			}
+
+			for(int i=0; i<scriptData.Length; i++)
+			{
+				ref var data = ref scriptData[i];
+				if(!data.parsingSucceeded){continue;}
+				try
+				{
+					//TODO: StackAanalyzer likely should be consistant across all scripts.
+					//Failing during analysis could invalidate the values in the analyzer though.
+					var stackAnalyzer = new StackAnalyzer();
+					stackAnalyzer.Analyze(parser.GetSubroutines(StratChunk.Scripts[i]));
+
+					data.stackAnalyzer = stackAnalyzer;
+				}
+				catch(Exception e)
+				{
+					Console.WriteLine($"Failed to analyze stack {data.baseFilePath}:");
+					Console.WriteLine(e.Message);
+					continue;
+				}
+				var stackOutputLines = new List<string>();
+				data.stackAnalyzer.Write(stackOutputLines);
+
+				File.WriteAllLines($"{data.baseFilePath}.stack.strat", stackOutputLines);
+			}
+			for(int i=0; i<scriptData.Length; i++)
+			{
+				ref var data = ref scriptData[i];
+				if(data.stackAnalyzer == null){continue;}
+				try
+				{
+					var flowAnalyzer = new FlowAnalyzer();
+					flowAnalyzer.Analyze(data.stackAnalyzer.Subroutines);
+					data.flowAnalyzer = flowAnalyzer;
+				}
+				catch(Exception e)
+				{
+					Console.WriteLine($"Failed to analyze flow {data.baseFilePath}:");
+					Console.WriteLine(e.Message);
+					continue;
+				}
+				var flowWriter = new Writer();
+				data.flowAnalyzer.Write(flowWriter);
+
+				File.WriteAllLines($"{data.baseFilePath}.flow.strat", flowWriter.GetLines());
+			}
+		}
+
+		public override (Script script, InstructionAddress address) GetStratProcAddr(int dataOffset)
+		{
+			//On PC, this is a STPC chunk offset.
+			var script = StratChunk.GetScript(dataOffset);
+			return (script, (InstructionAddress)(dataOffset - script.DataChunkAddress));
+		}
+
+		public override void ProcessScripts()
+		{
+			StratChunk.ProcessScipts(this);
 		}
 	}
 }

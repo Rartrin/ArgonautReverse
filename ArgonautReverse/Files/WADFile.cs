@@ -5,6 +5,7 @@ using ArgonautReverse.IO;
 using ArgonautReverse.OpenStratEngine;
 using ArgonautReverse.PC;
 using ArgonautReverse.PSX;
+using ArgonautReverse.Universal.StratLang;
 using ArgonautReverse.WadChunks;
 
 namespace ArgonautReverse.Files
@@ -200,5 +201,9 @@ namespace ArgonautReverse.Files
 			data_out.WriteInt32(wad_size);
 			data_out.Position = end_offset;
 		}
+
+		public abstract (Script script, InstructionAddress address) GetStratProcAddr(int dataOffset);
+
+		public abstract void ProcessScripts();
 	}
 }

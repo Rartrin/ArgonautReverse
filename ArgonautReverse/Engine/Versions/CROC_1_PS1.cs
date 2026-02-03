@@ -32,8 +32,8 @@ namespace ArgonautReverse.Engine.Versions
 
 			public override DateTime BuildDate => new DateTime(1997, 9, 29);
 			
-			public override bool NEW_COLLISION => throw new NotSupportedException();
-			public override bool KEYFRAME_STUFF => throw new NotSupportedException();
+			public override bool NEW_COLLISION => throw new Exception();
+			public override bool KEYFRAME_STUFF => throw new Exception();
 
 			public override InstructionOpcode MapOpcode(int value) => throw new NotImplementedException();
 		}

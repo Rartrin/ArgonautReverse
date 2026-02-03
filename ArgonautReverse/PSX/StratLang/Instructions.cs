@@ -3,17 +3,17 @@ using ArgonautReverse.Universal.StratLang;
 
 namespace ArgonautReverse.PSX.StratLang
 {
-	public abstract class BaseInstruction(int opCount,int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):AsmInstruction(address, opcode, opCount, popCount, pushCount);
+	public abstract class BaseInstruction(Script script, int opCount,int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):AsmInstruction(script, address, opcode, opCount, popCount, pushCount);
 
 	/// <summary>Non-terminal instruction that without any extra operands that can pop and push any number of args.</summary>
-	public class BasicInstruction(int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(0, popCount, pushCount, address, opcode)
+	public class BasicInstruction(Script script, int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 0, popCount, pushCount, address, opcode)
 	{
 		public override string ToAsmString(bool exportForParsing) => OpCode.ToString();
 	}
 
 	public sealed class UnimplementedInstruction:BaseInstruction
 	{
-		public UnimplementedInstruction(int opCount,int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):base(opCount, popCount, pushCount, address, opcode)
+		public UnimplementedInstruction(Script script, int opCount,int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):base(script, opCount, popCount, pushCount, address, opcode)
 		{
 		}
 
@@ -26,7 +26,7 @@ namespace ArgonautReverse.PSX.StratLang
 	//Unimplemented but also used in game
 	public sealed class UsedUnimplementedInstruction:BaseInstruction
 	{
-		public UsedUnimplementedInstruction(int opCount,int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):base(opCount, popCount, pushCount, address, opcode)
+		public UsedUnimplementedInstruction(Script script, int opCount,int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):base(script, opCount, popCount, pushCount, address, opcode)
 		{
 		}
 
@@ -36,7 +36,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class AddressInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
+	public sealed class AddressInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 0, 1, address, opcode)
 	{
 		//It appears that stAddress is used in:
 		// - Loading animation data
@@ -74,7 +74,14 @@ namespace ArgonautReverse.PSX.StratLang
 				IsAnimLoad = true;
 				AnimationIndex = ~arg;
 
-				if(arg >= reader.WadFile.DPSX.Animations.Count)
+				var animationCount = reader.WadFile switch
+				{
+					WadFilePSX psx => psx.DPSX.Animations.Count,
+					PC.WadFilePC pc => pc.StratChunk.Animations.Count,
+					_ => throw new NotImplementedException(),
+				};
+
+				if(arg >= animationCount)
 				{
 					throw new Exception("Animation index out of range");
 				}
@@ -93,20 +100,13 @@ namespace ArgonautReverse.PSX.StratLang
 		//	return &Wad.currentWadPtr.chunkData.data.fileData[DataOffset];
 		//}
 
-		public (ActorDataPSX script, InstructionAddress address) GetStratProcAddr(StratReader reader)
+		public (Script script, InstructionAddress address) GetStratProcAddr(StratReader reader)
 		{
 			if(!IsDataLoad)
 			{
 				throw new Exception("Wrong address type");
 			}
-			//On PC, this is a STPC chunk offset.
-			//On PSX, this is a DATA chunk offset
-			var script = reader.WadFile.DPSX.GetScript(DataOffset);
-			//if(script != reader.Script)
-			//{
-			//	throw new Exception();
-			//}
-			return (script, (InstructionAddress)(DataOffset - script.DataChunkAddress));
+			return reader.WadFile.GetStratProcAddr(DataOffset);
 		}
 
 		public override bool Export => !Consumed;
@@ -138,7 +138,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class BinocsInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class BinocsInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 0, 0, address, opcode)
 	{
 		public int State;
 
@@ -153,7 +153,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class BlinkInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 1, 0, address, opcode)
+	public sealed class BlinkInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 1, 0, address, opcode)
 	{
 		public int Count;
 
@@ -168,7 +168,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class BranchInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 1, 0, address, opcode)
+	public sealed class BranchInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 1, 0, address, opcode)
 	{
 		public InstructionAddress ConditionalDestPtr;
 		public AsmInstruction ConditionalDest;
@@ -191,7 +191,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class CollisionFlagInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class CollisionFlagInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 0, 0, address, opcode)
 	{
 		//TODO: Check enum values
 		public uint CollisionType;
@@ -207,12 +207,12 @@ namespace ArgonautReverse.PSX.StratLang
 			{
 				InstructionOpcode.CollisionOn => $"CollisionOn {CollisionType}",
 				InstructionOpcode.CollisionOff => $"CollisionOff {CollisionType}",
-				_ => throw new NotSupportedException("Unsupported opcode"),
+				_ => throw new Exception("Unsupported opcode"),
 			};
 		}
 	}
 
-	public sealed class CommandErrorInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(0, 0, 0, address, opcode)
+	public sealed class CommandErrorInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 0, 0, 0, address, opcode)
 	{
 		public override void Parse(StratReader reader)
 		{
@@ -225,7 +225,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class CreditInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class CreditInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 0, 0, address, opcode)
 	{
 		public int Operand;
 
@@ -240,7 +240,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class CwgInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class CwgInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 0, 0, address, opcode)
 	{
 		public int Value;
 
@@ -255,7 +255,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class DialogSayInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class DialogSayInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 0, 0, address, opcode)
 	{
 		public int StringId;
 		public string EnglishString;
@@ -275,7 +275,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class DialogSetInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class DialogSetInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 0, 0, address, opcode)
 	{
 		public int Operand;
 
@@ -291,7 +291,7 @@ namespace ArgonautReverse.PSX.StratLang
 	}
 
 
-	public sealed class DebugNameInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(2, 0, 0, address, opcode)
+	public sealed class DebugNameInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 2, 0, 0, address, opcode)
 	{
 		public string Name;
 
@@ -312,7 +312,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class EndStratInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(0, 0, 0, address, opcode)
+	public sealed class EndStratInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 0, 0, 0, address, opcode)
 	{
 		//Deletes strat
 
@@ -327,7 +327,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class FlagInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class FlagInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 0, 0, address, opcode)
 	{
 		//Operand
 		public bool NewState;
@@ -349,7 +349,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class FadeSetUnknownInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class FadeSetUnknownInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 0, 0, address, opcode)
 	{
 		public int Value;
 
@@ -364,7 +364,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class IndexJumpInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 1, 0, address, opcode)
+	public sealed class IndexJumpInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 1, 0, address, opcode)
 	{
 		public int CaseCount;
 		public int[] CaseComparands;
@@ -424,7 +424,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class ItemCountInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
+	public sealed class ItemCountInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 0, 1, address, opcode)
 	{
 		//TODO: Check enum values
 		public int Item;
@@ -440,7 +440,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class ItemChangeInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class ItemChangeInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 0, 0, address, opcode)
 	{
 		//Give/take item from inventory
 
@@ -458,7 +458,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class JumpInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class JumpInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 0, 0, address, opcode)
 	{
 		public InstructionAddress DestinationPtr;
 		public AsmInstruction Destination;
@@ -480,7 +480,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class JumpSubroutineInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class JumpSubroutineInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 0, 0, address, opcode)
 	{
 		//Technically pushes a value but we aren't counting it because it's popped outside the subroutine.
 		//Special: Function call
@@ -504,7 +504,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class NumberInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
+	public sealed class NumberInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 0, 1, address, opcode)
 	{
 		public int Value;
 
@@ -519,7 +519,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class PrintInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(-1, 0, 0, address, opcode)
+	public sealed class PrintInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, -1, 0, 0, address, opcode)
 	{
 		public IReadOnlyList<(InstructionOpcode type, object value,bool negate)> Elements;
 
@@ -675,7 +675,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class ReturnInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(0, 0, 0, address, opcode)
+	public sealed class ReturnInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 0, 0, 0, address, opcode)
 	{
 		//Technically pop a values but we aren't counting it because it is pushed outisde the subroutine.
 	
@@ -692,7 +692,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class SoundAddressInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
+	public sealed class SoundAddressInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 0, 1, address, opcode)
 	{
 		public int Value;
 
@@ -707,7 +707,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public abstract class BaseSpawnInstruction(int opCount, InstructionAddress address, InstructionOpcode opcode):AsmInstruction(address, opcode, opCount, 1, 0)
+	public abstract class BaseSpawnInstruction(Script script, int opCount, InstructionAddress address, InstructionOpcode opcode):AsmInstruction(script, address, opcode, opCount, 1, 0)
 	{
 		public int LocalVarsToPop;
 		public int LocalCount;
@@ -715,12 +715,12 @@ namespace ArgonautReverse.PSX.StratLang
 		public int CollisionSize;
 		public int CollisionBoneCount;
 		
-		public ActorDataPSX SpawnStratProcScript;
+		public Script SpawnStratProcScript;
 		public InstructionAddress SpawnStratProcAddr;
-		public AsmInstruction SpawnStratProc;
+		public AsmInstruction? SpawnStratProc;
 	}
 
-	public class SpawnInstruction(InstructionAddress address, InstructionOpcode opcode):BaseSpawnInstruction(5, address, opcode)
+	public class SpawnInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseSpawnInstruction(script, 5, address, opcode)
 	{
 		public override void Parse(StratReader reader)
 		{
@@ -741,19 +741,28 @@ namespace ArgonautReverse.PSX.StratLang
 			{
 				throw new Exception("Unsupported spawn instruction");
 			}
-			SpawnStratProc = parser.ParseStrat(SpawnStratProcAddr, this, false);
+
+			//TODO: We can't parse the strat because it exists in a different script.
+			//SpawnStratProcAddr is entry point address within SpawnStratProcScript, not neccessarily in THIS script.
+			SpawnStratProc = SpawnStratProcScript.Parser.ParseStrat(SpawnStratProcAddr, this, false);
 		}
 
 		public override string ToAsmString(bool exportForParsing)
 		{
-			//return $"{OpCode} {((AddressInstruction)Prev!).DataOffset:X8} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount}";
-			return $"{OpCode} {SpawnStratProc.SubroutineName()} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount}";
+			if(SpawnStratProc != null)
+			{
+				return $"{OpCode} {SpawnStratProc.SubroutineName()} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount}";
+			}
+			else
+			{
+				return $"{OpCode} {((AddressInstruction)Prev!).DataOffset:X8} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount}";
+			}
 		}
 	}
 
-	public sealed class SpawnAfterInstruction(InstructionAddress address, InstructionOpcode opcode):SpawnInstruction(address,opcode);
+	public sealed class SpawnAfterInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):SpawnInstruction(script, address,opcode);
 
-	public sealed class SpawnFromInstruction(InstructionAddress address, InstructionOpcode opcode):BaseSpawnInstruction(6, address, opcode)
+	public sealed class SpawnFromInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseSpawnInstruction(script, 6, address, opcode)
 	{
 		public int BoneToSpawnFrom;
 
@@ -778,13 +787,22 @@ namespace ArgonautReverse.PSX.StratLang
 			{
 				throw new Exception("Unsupported spawn instruction");
 			}
-			SpawnStratProc = parser.ParseStrat(SpawnStratProcAddr, this, false);
+
+			//TODO: We can't parse the strat because it exists in a different script.
+			//SpawnStratProcAddr is entry point address within SpawnStratProcScript, not neccessarily in THIS script.
+			SpawnStratProc = SpawnStratProcScript.Parser.ParseStrat(SpawnStratProcAddr, this, false);
 		}
 
 		public override string ToAsmString(bool exportForParsing)
 		{
-			//return $"{OpCode} {((AddressInstruction)Prev!).DataOffset:X8} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount} {BoneToSpawnFrom}";
-			return $"{OpCode} {SpawnStratProc.SubroutineName()} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount} {BoneToSpawnFrom}";
+			if(SpawnStratProc != null)
+			{
+				return $"{OpCode} {SpawnStratProc.SubroutineName()} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount} {BoneToSpawnFrom}";
+			}
+			else
+			{
+				return $"{OpCode} {((AddressInstruction)Prev!).DataOffset:X8} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount} {BoneToSpawnFrom}";
+			}
 		}
 	}
 
@@ -797,11 +815,11 @@ namespace ArgonautReverse.PSX.StratLang
 		//Special: Uses Peek on stack
 		public int Comparand;
 
-		public StackCompareInstruction(InstructionAddress address, InstructionOpcode opcode):base(1, 0, 1, address, opcode)
+		public StackCompareInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):base(script, 1, 0, 1, address, opcode)
 		{
 			//Peeking values or pushing multiple values would make stack analysis and reconstruction very difficult.
 			//Since it isn't even used in any code I've seen, we are not going to support it.
-			throw new NotSupportedException();
+			throw new Exception();
 		}
 
 		public override void Parse(StratReader reader)
@@ -815,7 +833,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class TriggerCreateInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(2, 0, 0, address, opcode)
+	public sealed class TriggerCreateInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 2, 0, 0, address, opcode)
 	{
 		//Special: Extra data
 
@@ -849,7 +867,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class TriggerUpdateInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 0, address, opcode)
+	public sealed class TriggerUpdateInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 0, 0, address, opcode)
 	{
 		public int TriggerIndex;
 		public AsmInstruction TriggerProc;
@@ -871,7 +889,7 @@ namespace ArgonautReverse.PSX.StratLang
 		}
 	}
 
-	public sealed class VarInstruction(InstructionAddress address, InstructionOpcode opcode):BaseInstruction(1, 0, 1, address, opcode)
+	public sealed class VarInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 0, 1, address, opcode)
 	{
 		public enum SourceStrat
 		{

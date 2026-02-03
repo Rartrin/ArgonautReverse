@@ -1775,7 +1775,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			}
 		}
 
-		//public override string ToStatement() => throw new NotSupportedException();
+		//public override string ToStatement() => throw new Exception();
 
 		public override string ToStatement()
 		{

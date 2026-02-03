@@ -18,7 +18,7 @@ namespace ArgonautReverse
 		public bool UnpackAudio = false;//Extract and unpacked PS1 WAG audio
 		public bool ExtractLevels = false;
 		public bool ExtractIMGs = false;
-		public bool ExtractActors = false;
+		public bool ExtractScripts = false;
 					
 		public bool IgnoreWarnings;
 
@@ -54,12 +54,12 @@ namespace ArgonautReverse
 						{
 							switch(extraction)
 							{
-								case "actors":parsedArgs.ExtractActors = true;break;
 								case "audio":parsedArgs.ExtractAudio = true;break;
 								case "audioUnpacked":parsedArgs.UnpackAudio = true;break;
 								case "imgs":parsedArgs.ExtractIMGs = true;break;
 								case "levels":parsedArgs.ExtractLevels = true;break;
 								case "models":parsedArgs.ExtractModels = true;break;
+								case "scripts":parsedArgs.ExtractScripts = true;break;
 								case "textures":parsedArgs.ExtractTextures = true;break;
 								default:throw new Exception($"Unknown excration type: {extraction}");
 							}
@@ -129,6 +129,13 @@ namespace ArgonautReverse
 				datFile.Parse(args, conf);
 				datFile.PrintInfo(Console.Out);
 				parsedSuccessfully.Add(datFile);
+			});
+
+			Console.WriteLine("--Processing Strats--");
+			RunOnFiles(parsedSuccessfully, datFile =>
+			{
+				if(datFile is not WADFile wadFile){return;}
+				wadFile.ProcessScripts();
 			});
 
 			if(args.ExtractPath != null)

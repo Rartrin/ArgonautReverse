@@ -35,6 +35,7 @@ namespace ArgonautReverse.PC
 	{
 		public RotPos3I RotPos;
 
+		public ScriptPC Instructions;
 		public int instructionStreamOffset;
 		
 		//public int NumberParameters;
@@ -58,7 +59,7 @@ namespace ArgonautReverse.PC
 			mapStrat.RotPos.Rotation.Z = mapStratRotation.Z;
 
 			mapStrat.RotPos.Position = reader.Read<Vector3I>();
-			mapStrat.instructionStreamOffset = reader.Read<int>();//Add to data.fileData to get the address of the instructionStream;
+			mapStrat.instructionStreamOffset = reader.Read<int>();//Add to data.fileData (STPC chunk) to get the address of the instructionStream;
 
 			int numberParameters = reader.Read<int>();
 			int ptrOffset = reader.Read<int>();
@@ -89,6 +90,8 @@ namespace ArgonautReverse.PC
 			}
 			reader.AssertRead<uint>(0);//was a LastWP placeholder originally I think
 			mapStrat.flags = (MapFlagsPC)reader.Read<uint>();
+
+			mapStrat.Instructions = reader.WadFile.GetChunk(STPCChunkInfo.Instance).GetScript(mapStrat.instructionStreamOffset);
 
 			return mapStrat;
 		}

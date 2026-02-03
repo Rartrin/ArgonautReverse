@@ -967,8 +967,8 @@
 		{
 			var breakKeyword = Start.StackStatement.FirstInstruction.SubroutineType switch
 			{
-				SubroutineType.Strat => throw new NotSupportedException("Strat does not support break"),
-				SubroutineType.Trigger => "return # This is wrong",//throw new NotSupportedException("Trigger does not support break"),
+				SubroutineType.Strat => throw new Exception("Strat does not support break"),
+				SubroutineType.Trigger => "return # This is wrong",//throw new Exception("Trigger does not support break"),
 				SubroutineType.Proc => "procbreak",
 				_ => throw new Exception("Unknown subroutine type")
 			};
