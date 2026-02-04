@@ -1,6 +1,6 @@
 ﻿using ArgonautReverse.Universal.StratLang;
 
-namespace ArgonautReverse.PSX.StratLang
+namespace ArgonautReverse.Universal.StratLang.Disassembler
 {
 	public abstract class AsmInstruction
 	{

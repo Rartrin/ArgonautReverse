@@ -1,6 +1,8 @@
-﻿namespace ArgonautReverse.PSX
+﻿namespace ArgonautReverse.Universal.StratLang
 {
-	public enum TriggerTypePSX : int
+	//Valid for Croc 2 PC, Croc 2 PSX
+	[Flags]
+	public enum TriggerType:int
 	{
 		None = 0,
 
@@ -13,5 +15,5 @@
 		WhenNear = 1<<7,
 		WhenFar = 1<<8,
 		WhenHitWall = 1<<9,
-	};
+	}
 }

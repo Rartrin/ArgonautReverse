@@ -1,7 +1,7 @@
 ﻿using ArgonautReverse.Files;
 using ArgonautReverse.Universal.StratLang;
 
-namespace ArgonautReverse.PSX.StratLang
+namespace ArgonautReverse.Universal.StratLang.Disassembler
 {
 	public sealed class StratReader(WADFile wadFile, Script script, InstructionAddress position)
 	{

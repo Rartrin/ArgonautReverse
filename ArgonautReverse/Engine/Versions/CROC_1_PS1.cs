@@ -36,6 +36,7 @@ namespace ArgonautReverse.Engine.Versions
 			public override bool KEYFRAME_STUFF => throw new Exception();
 
 			public override InstructionOpcode MapOpcode(int value) => throw new NotImplementedException();
+            public override TriggerType MapTriggerType(int value) => throw new NotImplementedException();
 		}
 
 		private sealed class CROC_1_PS1_DirFormat:DirFormat

@@ -1,4 +1,5 @@
 ﻿using ArgonautReverse.Files;
+using ArgonautReverse.Universal.StratLang.Disassembler;
 
 namespace ArgonautReverse.Universal.StratLang
 {
@@ -11,9 +12,9 @@ namespace ArgonautReverse.Universal.StratLang
 
 		public readonly List<int> EntryPointAddrs = new List<int>();
 
-		public IReadOnlyList<PSX.StratLang.AsmInstruction> EntryPoints;
+		public IReadOnlyList<AsmInstruction> EntryPoints;
 
-		public readonly PSX.StratLang.StratParser Parser;
+		public readonly StratParser Parser;
 		public bool Processed = false;
 
 		public bool Failed = false;
@@ -24,7 +25,7 @@ namespace ArgonautReverse.Universal.StratLang
 			DataChunkAddress = dataChunkAddress;
 			DataChunkLength = data.Length * sizeof(int);
 
-			Parser = new PSX.StratLang.StratParser(wadFile, this);
+			Parser = new StratParser(wadFile, this);
 		}
 
 		public bool ProcessScript()
@@ -44,7 +45,7 @@ namespace ArgonautReverse.Universal.StratLang
 			try
 			{
 				//This needs to be a list in case new stuff gets added while iterating.
-				var entryPoints = new List<PSX.StratLang.AsmInstruction>();
+				var entryPoints = new List<AsmInstruction>();
 				for(int i=0; i<EntryPointAddrs.Count; i++)
 				{
 					entryPoints.Add(Parser.ParseAndSetup((InstructionAddress)EntryPointAddrs[i]));

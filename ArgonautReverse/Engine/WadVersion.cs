@@ -22,5 +22,6 @@ namespace ArgonautReverse.Engine
 		#endregion
 
 		public abstract InstructionOpcode MapOpcode(int value);
+		public abstract TriggerType MapTriggerType(int value);
 	}
 }

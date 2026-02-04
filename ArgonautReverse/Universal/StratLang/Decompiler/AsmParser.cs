@@ -1,14 +1,16 @@
 ﻿using System.Collections.Immutable;
-using ArgonautReverse.PSX.StratLang;
+using ArgonautReverse.Universal.StratLang.Disassembler;
 
 namespace ArgonautReverse.Universal.StratLang.Decompiler
 {
-	public sealed class AsmParser
+	public sealed class AsmParser(IReadOnlyList<Script> scripts)
 	{
 		public readonly Dictionary<AsmInstruction,Instruction> PsxInstructions = new();
 		private readonly Dictionary<Script,Dictionary<AsmInstruction,Instruction>> PsxSubroutines = new();
 
 		private readonly Queue<Instruction> NeedsSetup = new();
+
+		private readonly IReadOnlyList<Script> scripts = scripts;
 
 		private Instruction CreateInstruction(AsmInstruction psxLabel, AsmInstruction psxOperation)
 		{
@@ -92,8 +94,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			}
 		}
 
-		public void AddScript(Script script)
+		private void AddScript(Script script)
 		{
+			//Already added
+			if(PsxSubroutines.ContainsKey(script)){return;}
+
 			PsxSubroutines.Add(script, new());
 
 			var lines = script.Parser.GetInstructions();
@@ -123,6 +128,107 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public IReadOnlyList<Instruction> GetSubroutines(Script script)
 		{
 			return PsxSubroutines[script].Values.OrderBy(i => i.Index).ToImmutableList();
+		}
+
+		public void Process(string scriptsDirectory)
+		{
+			var scriptData = new (string? baseFilePath,bool parsingSucceeded,StackAnalyzer? stackAnalyzer,FlowAnalyzer? flowAnalyzer)[scripts.Count];
+			for(int i=0; i<scriptData.Length; i++)
+			{
+				ref var data = ref scriptData[i];
+				var baseFilePath = Path.Join(scriptsDirectory, $"STRAT_{i}");
+
+				//TODO: SKIP EVERYTHING EXCEPT for this WalkingCroc for testing
+				//if((Stem, i) != ("0015F800",4)){continue;}
+
+				var script = scripts[i];
+				
+				
+				//TODO: Make exporting ASM an argument
+				script.ExportAsm(baseFilePath);
+
+				if(script.Failed || !script.Processed)
+				{
+					continue;
+				}
+				data.baseFilePath = baseFilePath;
+			}
+			for(int i=0; i<scriptData.Length; i++)
+			{
+				ref var data = ref scriptData[i];
+				if(data.baseFilePath == null){continue;}
+				AddScript(scripts[i]);
+			}
+
+			for(int i=0; i<scriptData.Length; i++)
+			{
+				ref var data = ref scriptData[i];
+				if(data.baseFilePath == null){continue;}
+				try
+				{
+					ParseAndSetupInstructions(scripts[i]);
+					data.parsingSucceeded = true;
+				}
+				catch(Exception e)
+				{
+					//TODO: This could possibly break parsing.
+					Console.WriteLine($"Failed to setup asm parser {data.baseFilePath}:");
+					Console.WriteLine(e.Message);
+					continue;
+				}
+			}
+
+			for(int i=0; i<scriptData.Length; i++)
+			{
+				ref var data = ref scriptData[i];
+				if(!data.parsingSucceeded){continue;}
+				try
+				{
+					//TODO: StackAanalyzer likely should be consistant across all scripts.
+					//Failing during analysis could invalidate the values in the analyzer though.
+					var stackAnalyzer = new StackAnalyzer();
+					stackAnalyzer.Analyze(GetSubroutines(scripts[i]));
+
+					data.stackAnalyzer = stackAnalyzer;
+				}
+				catch(Exception e)
+				{
+					Console.WriteLine($"Failed to analyze stack {data.baseFilePath}:");
+					Console.WriteLine(e.Message);
+					continue;
+				}
+				var stackOutputLines = new List<string>();
+				data.stackAnalyzer.Write(stackOutputLines);
+
+				File.WriteAllLines($"{data.baseFilePath}.stack.strat", stackOutputLines);
+			}
+			for(int i=0; i<scriptData.Length; i++)
+			{
+				ref var data = ref scriptData[i];
+				if(data.stackAnalyzer == null){continue;}
+				try
+				{
+					var flowAnalyzer = new FlowAnalyzer();
+					flowAnalyzer.Analyze(data.stackAnalyzer.Subroutines);
+					data.flowAnalyzer = flowAnalyzer;
+				}
+				catch(Exception e)
+				{
+					Console.WriteLine($"Failed to analyze flow {data.baseFilePath}:");
+					Console.WriteLine(e.Message);
+					continue;
+				}
+			}
+			for(int i=0; i<scriptData.Length; i++)
+			{
+				ref var data = ref scriptData[i];
+				if(data.flowAnalyzer == null){continue;}
+
+				var flowWriter = new Writer();
+				data.flowAnalyzer.Write(flowWriter);
+
+				File.WriteAllLines($"{data.baseFilePath}.flow.strat", flowWriter.GetLines());
+			}
 		}
 	}
 }

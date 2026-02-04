@@ -32,6 +32,7 @@ namespace ArgonautReverse.Engine.Versions
 			public override bool KEYFRAME_STUFF => true;
 
 			public override InstructionOpcode MapOpcode(int value) => throw new NotImplementedException();
+			public override TriggerType MapTriggerType(int value) => throw new NotImplementedException();
 		}
 	}
 }

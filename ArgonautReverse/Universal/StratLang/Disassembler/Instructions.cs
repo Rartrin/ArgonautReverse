@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using ArgonautReverse.Universal.StratLang;
 
-namespace ArgonautReverse.PSX.StratLang
+namespace ArgonautReverse.Universal.StratLang.Disassembler
 {
 	public abstract class BaseInstruction(Script script, int opCount,int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):AsmInstruction(script, address, opcode, opCount, popCount, pushCount);
 
@@ -76,7 +76,7 @@ namespace ArgonautReverse.PSX.StratLang
 
 				var animationCount = reader.WadFile switch
 				{
-					WadFilePSX psx => psx.DPSX.Animations.Count,
+					PSX.WadFilePSX psx => psx.DPSX.Animations.Count,
 					PC.WadFilePC pc => pc.StratChunk.Animations.Count,
 					_ => throw new NotImplementedException(),
 				};
@@ -839,7 +839,7 @@ namespace ArgonautReverse.PSX.StratLang
 
 		public int TriggerIndex;
 
-		public TriggerTypePSX Type;
+		public TriggerType Type;
 		public int Arg;
 		public InstructionAddress StreamPtr;
 		public AsmInstruction Stream;
@@ -847,7 +847,8 @@ namespace ArgonautReverse.PSX.StratLang
 		public override void Parse(StratReader reader)
 		{
 			var dataOffset = reader.ReadRelativeAddress();
-			Type = (TriggerTypePSX)reader.ReadAt(dataOffset, 0);
+			//TODO: Account for other Trigger Types
+			Type = reader.WadFile.Version.MapTriggerType(reader.ReadAt(dataOffset, 0));
 			Arg = reader.ReadAt(dataOffset, 1);
 
 			var streamOffset = reader.ReadAt(dataOffset, 2) * sizeof(int);

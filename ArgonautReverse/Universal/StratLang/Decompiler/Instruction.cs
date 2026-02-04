@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using ArgonautReverse.PSX.StratLang;
+using ArgonautReverse.Universal.StratLang.Disassembler;
 
 namespace ArgonautReverse.Universal.StratLang.Decompiler
 {

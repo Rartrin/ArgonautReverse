@@ -2,8 +2,7 @@ using ArgonautReverse.IO;
 
 namespace ArgonautReverse.PSX
 {
-	public enum SoundEffectsAmbientFlagsPSX:uint{}
-
+	public enum SoundEffectsAmbientFlagsPSX:uint;
 
 	public enum DialoguesBGMsSoundFlagsPSX:ushort
 	{
@@ -15,10 +14,10 @@ namespace ArgonautReverse.PSX
 	public abstract class SoundPSX
 	{
 		public readonly uint sampling_rate;
-		public VAGSoundDataPSX vag;
+		public VAGSoundDataPSX? vag;
 		protected int? _size;
 
-		public SoundPSX(uint sampling_rate, VAGSoundDataPSX vag = null, int? size = null)
+		public SoundPSX(uint sampling_rate, VAGSoundDataPSX? vag = null, int? size = null)
 		{
 			this.sampling_rate = sampling_rate;
 			_size = size;
@@ -39,8 +38,8 @@ namespace ArgonautReverse.PSX
 
 	public abstract class _AmbientOrEffectSoundPSX:SoundPSX
 	{
-		public static uint[] known_values_1st_flags_byte = { 0x00000000, 0x00000001 };
-		public static uint[] known_values_2nd_2rd_flags_bytes = { 0x00000000, 0x00010100 };
+		public static uint[] known_values_1st_flags_byte = [0x00000000, 0x00000001];
+		public static uint[] known_values_2nd_2rd_flags_bytes = [0x00000000, 0x00010100];
 
 		public readonly SoundEffectsAmbientFlagsPSX flagsAndLoop;
 		public readonly int volume_level;

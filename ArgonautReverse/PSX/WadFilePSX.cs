@@ -4,9 +4,8 @@ using ArgonautReverse.Files;
 using ArgonautReverse.WadChunks.PSX;
 using ArgonautReverse.WadChunks;
 using System.Diagnostics.CodeAnalysis;
-using ArgonautReverse.Universal.StratLang.Decompiler;
-using ArgonautReverse.PSX.StratLang;
 using ArgonautReverse.Universal.StratLang;
+using ArgonautReverse.Universal.StratLang.Decompiler;
 
 namespace ArgonautReverse.PSX
 {
@@ -86,11 +85,10 @@ namespace ArgonautReverse.PSX
 		/// <summary>Exports the material (MTL) and texture (PNG) files that are needed by the OBJ Wavefront file.</summary>
 		public void _prepare_obj_export(string folder_path, string wad_filename)
 		{
-			using(var mtl_file = new System.IO.StreamWriter(Path.Join(folder_path, wad_filename+".MTL"), false, Encoding.ASCII))
-			{
-				mtl_file.WriteLine($"newmtl mtl1\nmap_Kd {wad_filename}.PNG");
-			}
-			this.TPSX.TextureFile.to_colorized_texture().Save(Path.Join(folder_path, wad_filename + ".PNG"), System.Drawing.Imaging.ImageFormat.Png);
+			var mtl_file = new StringWriter();
+			mtl_file.WriteLine($"newmtl mtl1\nmap_Kd {wad_filename}.png");
+			File.WriteAllText(Path.Join(folder_path, wad_filename+".mtl"), mtl_file.ToString());
+			this.TPSX.TextureFile.to_colorized_texture().Save(Path.Join(folder_path, wad_filename + ".png"), System.Drawing.Imaging.ImageFormat.Png);
 		}
 		/// <summary>
 		/// Tries to find one compatible animation for each model in the WAD, animates it to make it clean
@@ -142,7 +140,7 @@ namespace ArgonautReverse.PSX
 			{
 				var model_3d = this.DPSX.Models3D[i];
 				var obj_filename = $"{wad_filename}_{i}";
-				using var obj_file = new StreamWriter(Path.Join(folder_path, obj_filename + ".OBJ"), false, Encoding.ASCII);
+				var obj_file = new StringWriter();
 				var textures = TPSX.TextureFile.Textures;
 				if(model_3d.Data.n_vertices_groups == 1)
 				{
@@ -160,6 +158,7 @@ namespace ArgonautReverse.PSX
 						model_3d.Animate(DPSX.Animations[animation_id.Value]).Data.ToSingleObj(obj_file, obj_filename, textures, wad_filename);
 					}
 				}
+				File.WriteAllText(Path.Join(folder_path, obj_filename + ".obj"), obj_file.ToString());
 			}
 		}
 		/// <summary>
@@ -172,12 +171,17 @@ namespace ArgonautReverse.PSX
 			this._prepare_obj_export(folder_path, filename);
 			var obj = new StringWriter();
 			DPSX.Models3D[model_id].Data.ToSingleObj(obj, filename, TPSX.TextureFile.Textures, filename);
-			File.WriteAllText(Path.Join(folder_path, filename + ".OBJ"), obj.ToString(), Encoding.ASCII);
+			File.WriteAllText(Path.Join(folder_path, filename + ".obj"), obj.ToString(), Encoding.ASCII);
 		}
 
-		public void export_audio(string folder_path, string wad_filename, string fmt)
+		private enum AudioFormat
 		{
-			if(fmt!="VAG" && fmt!="WAV")
+			WAV,
+			VAG,
+		}
+		private void ExportAudio(string folder_path, string wad_filename, AudioFormat fmt)
+		{
+			if(fmt!=AudioFormat.VAG && fmt!=AudioFormat.WAV)
 			{
 				throw new Exception("Only VAG and WAV export is supported at the moment");
 			}
@@ -196,8 +200,13 @@ namespace ArgonautReverse.PSX
 					foreach(var vag in vags)
 					{
 						var filename = $"{wad_filename}_{prefix}_{i}";
-						var audio_bytes = fmt == "VAG" ? vag.to_vag()[0] : vag.to_wav(filename);
-						File.WriteAllBytes(Path.Join(folder_path, $"{filename}.{fmt}"), audio_bytes);
+						(var audio_bytes, var extension) = fmt switch
+						{
+							AudioFormat.VAG => (vag.to_vag()[0], "vag"),
+							AudioFormat.WAV => (vag.to_wav(), "wav"),
+							_ => throw new NotImplementedException(),
+						};
+						File.WriteAllBytes(Path.Join(folder_path, $"{filename}.{extension}"), audio_bytes);
 						i++;
 					}
 				}
@@ -216,23 +225,37 @@ namespace ArgonautReverse.PSX
 						filename = $"{wad_filename}_dialogue_{dialogue_index}";
 						dialogue_index += 1;
 					}
-					var audio_bytes = (fmt == "VAG") ? sound.vag.to_vag() : new[]{sound.vag.to_wav(filename)};
-					if(fmt == "VAG" && audio_bytes.Length == VAGSoundDataPSX.STEREO)
+					switch(fmt)
 					{
-						File.WriteAllBytes(Path.Join(folder_path, $"{filename}_L.VAG"), audio_bytes[0]);
-						File.WriteAllBytes(Path.Join(folder_path, $"{filename}_R.VAG"), audio_bytes[1]);
-					}
-					else
-					{
-						File.WriteAllBytes(Path.Join(folder_path, $"{filename}.{fmt}"), audio_bytes[0]);
+						case AudioFormat.VAG:
+						{
+							var audio_bytes = sound.vag.to_vag();
+							if(fmt == AudioFormat.VAG && audio_bytes.Length == VAGSoundDataPSX.STEREO)
+							{
+								File.WriteAllBytes(Path.Join(folder_path, $"{filename}_L.vag"), audio_bytes[0]);
+								File.WriteAllBytes(Path.Join(folder_path, $"{filename}_R.vag"), audio_bytes[1]);
+							}
+							else
+							{
+								File.WriteAllBytes(Path.Join(folder_path, $"{filename}.vag"), audio_bytes[0]);
+							}
+							break;
+						}
+						case AudioFormat.WAV:
+						{
+							var audio_bytes = sound.vag.to_wav();
+							File.WriteAllBytes(Path.Join(folder_path, $"{filename}.wav"), audio_bytes);
+							break;
+						}
+						default:throw new NotImplementedException();
 					}
 				}
 			}
 		}
 
-		public void export_audio_to_wav(string folder_path, string wad_filename) => this.export_audio(folder_path, wad_filename, "WAV");
+		public void export_audio_to_wav(string folder_path, string wad_filename) => this.ExportAudio(folder_path, wad_filename, AudioFormat.WAV);
 
-		public void export_audio_to_vag(string  folder_path, string wad_filename) => this.export_audio(folder_path, wad_filename, "VAG");
+		public void export_audio_to_vag(string  folder_path, string wad_filename) => this.ExportAudio(folder_path, wad_filename, AudioFormat.VAG);
 
 		public void export_level(string folder_path, string wad_filename)
 		{
@@ -254,7 +277,7 @@ namespace ArgonautReverse.PSX
 			{
 				foreach(var coord in texture.output_coords)
 				{
-					obj.WriteLine($"vt {coord.X / 1024.0} {(1024 - coord.Y) / 1024.0}");
+					obj.WriteLine($"vt {coord.X / 1024f} {(1024 - coord.Y) / 1024f}");
 				}
 			}
 			for(int i=0; i<this.DPSX.LevelFile.chunks_matrix.ChunkHolders.Count; i++)
@@ -283,121 +306,20 @@ namespace ArgonautReverse.PSX
 			File.WriteAllText(Path.Join(folder_path, wad_filename + ".OBJ"), obj.ToString(), Encoding.ASCII);
 		}
 
-		public void ExportActors(string folder_path, string wad_filename)
+		public void ExportActors(ProgramArgs args, Configuration conf)
 		{
-			var scriptData = new (string? baseFilePath,AsmParser? parser,StackAnalyzer? stackAnalyzer,FlowAnalyzer? flowAnalyzer)[DPSX.Actors.Count];
-			for(int i=0; i<scriptData.Length; i++)
-			{
-				ref var data = ref scriptData[i];
-				var baseFilePath = Path.Join(folder_path, $"{wad_filename}_{i}");
+			if(!args.ExtractScripts){return;}
 
-
-
-
-
-
-				//TODO: SKIP EVERYTHING EXCEPT for this WalkingCroc for testing
-				//if(!baseFilePath.EndsWith("0015F800_4")){continue;}
-
-
-
-
-
-
-
-
-
-				var script = DPSX.Actors[i];
-				
-				
-				//TODO: Make exporting ASM an argument
-				//script.ExportAsm(baseFilePath);
-
-
-
-
-				if(script.Failed || !script.Processed)
-				{
-					continue;
-				}
-				data.baseFilePath = baseFilePath;
-			}
-
-			for(int i=0; i<scriptData.Length; i++)
-			{
-				ref var data = ref scriptData[i];
-				if(data.baseFilePath == null){continue;}
-				try
-				{
-					var parser = new AsmParser();
-					parser.ParseAndSetupInstructions(DPSX.Actors[i]);
-
-					data.parser = parser;
-				}
-				catch(Exception e)
-				{
-					Console.WriteLine($"Failed to setup asm parser {data.baseFilePath}:");
-					Console.WriteLine(e.Message);
-					continue;
-				}
-			}
-
-			for(int i=0; i<scriptData.Length; i++)
-			{
-				ref var data = ref scriptData[i];
-				if(data.parser == null){continue;}
-				try
-				{
-					//TODO: StackAanalyzer likely should be consistant across all scripts.
-					//Failing during analysis could invalidate the values in the analyzer though.
-					var stackAnalyzer = new StackAnalyzer();
-					stackAnalyzer.Analyze(data.parser.GetSubroutines(DPSX.Actors[i]));
-
-					data.stackAnalyzer = stackAnalyzer;
-				}
-				catch(Exception e)
-				{
-					Console.WriteLine($"Failed to analyze stack {data.baseFilePath}:");
-					Console.WriteLine(e.Message);
-					continue;
-				}
-				var stackOutputLines = new List<string>();
-				data.stackAnalyzer.Write(stackOutputLines);
-
-				File.WriteAllLines($"{data.baseFilePath}.stack.strat", stackOutputLines);
-			}
-			for(int i=0; i<scriptData.Length; i++)
-			{
-				ref var data = ref scriptData[i];
-				if(data.stackAnalyzer == null){continue;}
-				try
-				{
-					var flowAnalyzer = new FlowAnalyzer();
-					flowAnalyzer.Analyze(data.stackAnalyzer.Subroutines);
-					data.flowAnalyzer = flowAnalyzer;
-				}
-				catch(Exception e)
-				{
-					Console.WriteLine($"Failed to analyze flow {data.baseFilePath}:");
-					Console.WriteLine(e.Message);
-					continue;
-				}
-				var flowWriter = new Writer();
-				data.flowAnalyzer.Write(flowWriter);
-
-				File.WriteAllLines($"{data.baseFilePath}.flow.strat", flowWriter.GetLines());
-			}
+			var scriptsDirectory = args.GetExtractDirectory(Stem, "Scripts");
+			var parser = new AsmParser(DPSX.Actors);
+			parser.Process(scriptsDirectory);
 		}
 
 		private void ExportDPSX(ProgramArgs args, Configuration conf)
 		{
 			if(!DPSXChunkInfo.Instance.SupportedWadVersions.Intersect(conf.ReadVersion.WadVersions).Any()){return;}
 
-			if(args.ExtractScripts)
-			{
-				var wad_actors_folder_path = args.GetExtractDirectory(Stem, "Actors");
-				ExportActors(wad_actors_folder_path, Stem);
-			}
+			ExportActors(args, conf);
 			if(args.ExtractModels)
 			{
 				var wad_models_3d_folder_path = args.GetExtractDirectory(Stem, "Models");

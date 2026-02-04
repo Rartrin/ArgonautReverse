@@ -1,4 +1,5 @@
-﻿using ArgonautReverse.Universal.StratLang;
+﻿using ArgonautReverse.Engine.Mappings;
+using ArgonautReverse.Universal.StratLang;
 
 namespace ArgonautReverse.Engine.Versions
 {
@@ -223,6 +224,8 @@ namespace ArgonautReverse.Engine.Versions
 					_ => throw new NotImplementedException($"Opcode {value} either does not exist or has not been implemented.")
 				};
 			}
+
+			public override TriggerType MapTriggerType(int value) => MapperCroc2.TriggerTypeMapper(value);
 
 			public static readonly WadVersion Instance_Early = new CROC_2_DEMO_PS1_DUMMY_Wad(100,
 				"00BD7800",//Dino Fight

@@ -133,7 +133,7 @@ namespace ArgonautReverse.PSX
 		}
 
 		/// <summary>Supports stereo export in a single file, unlike to_vag().</summary>
-		public byte[] to_wav(string filename)// TODO Poor performance
+		public byte[] to_wav()// TODO Poor performance
 		{
 			var vag = to_vag(false);
 

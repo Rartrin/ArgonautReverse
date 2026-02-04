@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using ArgonautReverse.PSX.StratLang;
+using ArgonautReverse.Universal.StratLang.Disassembler;
 
 namespace ArgonautReverse.Universal.StratLang.Decompiler
 {
@@ -7,16 +7,17 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	//Consumers pop values off the start
 	//Producers push values on the stack
 	//Pure Consumers/Producers only consume/produce
+	//A NoStack operation doesn't effect the stack
 
 	//Conjectures:
-	//The stack should be clear after a pure consumer is finished (a consumer that does not push).
-	//The stack should be clear before a NoStack operation (an operation that doesn't effect the stack).
+	//The stack should be clear after a pure consumer is finished.
+	//The stack should be clear before a NoStack operation.
 	//The stack should be clear before a jump/branch/switch/call (which the exception of call return address).
 	//The stack should be clear when returning (which the exception of call return address).
 	//Producers should have no side-effects. Exception for SoundPlayAssignments but the results MUST be used in assignment.
 	//Labels should only be on non-consumers.
 
-	//Only non-producers will appear as a statement, all other operations get condenced into these.
+	//Only non-producers will appear as a statement, all other operations get condensed into these.
 
 	public enum ExpressionType
 	{
@@ -24,6 +25,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		Integer,
 		FixedPoint,
 		Dereference,
+		Reference,
 	}
 
 	//This is not always a operand but can also indicate a statement that effects the analyzer
@@ -52,6 +54,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public string ToIntStr() => ToExpressionString(ExpressionType.Integer);
 		public string ToFxString() => ToExpressionString(ExpressionType.FixedPoint);
 		public string ToDerefStr() => ToExpressionString(ExpressionType.Dereference);
+		public abstract string ToConditionStr(bool checkTrue);
 	}
 	public interface IStackConsumer:IStackOperation
 	{

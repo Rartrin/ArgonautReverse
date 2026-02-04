@@ -7,7 +7,7 @@
       "commandName": "Project",
       "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-psx-dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --write-wads \"Extracted/DUMMY\""
     },
-    "Extract Croc 2": {
+    "Extract Croc 2 PSX": {
       "commandName": "Project",
       "commandLineArgs": "--read-format \"Croc 2 Demo PS1\" --read-psx-dirdat \"GameFiles/CROCII/Raw/CROCII.DIR\" --write-wads \"Extracted/CROCII\""
     },
@@ -29,7 +29,7 @@
     },
     "Export Croc 2 PC": {
       "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC\" --extract-path \"Extracted/Croc2PC\" --extract levels,textures,models"
+      "commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC\" --extract-path \"Extracted/Croc2PC\" --extract scripts,levels,textures,models"
     },
     "Export C2PC T1L1M001": {
       "commandName": "Project",

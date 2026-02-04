@@ -2,7 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text;
-using ArgonautReverse.PSX.StratLang;
+using ArgonautReverse.Universal.StratLang.Disassembler;
 
 namespace ArgonautReverse.Universal.StratLang.Decompiler
 {
@@ -201,6 +201,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override IEnumerable<IStackOperation> GetRootOperations(){yield return this;}
 
 		public abstract string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown);
+		public virtual string ToConditionStr(bool checkTrue) => checkTrue ? $"{ToExpressionString()} != 0" : $"{ToExpressionString()} = 0";
 
 		public override bool TryGetSubroutine(out AsmInstruction subroutine)
 		{
@@ -228,6 +229,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		}
 
 		public abstract string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown);
+		public virtual string ToConditionStr(bool checkTrue) => checkTrue ? $"{ToExpressionString()} != 0" : $"{ToExpressionString()} = 0";
 	}
 
 	/// <summary>Instructions that don't use the stack</summary>
@@ -327,7 +329,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		{
 			base.Setup(parser);
 
-			var branchAsmInstr = GetAsmInstruction<PSX.StratLang.BranchInstruction>();
+			var branchAsmInstr = GetAsmInstruction<Disassembler.BranchInstruction>();
 			ConditionalDest = parser.GetInstruction(branchAsmInstr.ConditionalDest, null, this);
 		}
 
@@ -353,7 +355,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var dialogSayAsmInstr = GetAsmInstruction<PSX.StratLang.DialogSayInstruction>();
+			var dialogSayAsmInstr = GetAsmInstruction<Disassembler.DialogSayInstruction>();
 
 			EnglishString = dialogSayAsmInstr.EnglishString;
 		}
@@ -366,7 +368,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var dialogSetAsmInstr = GetAsmInstruction<PSX.StratLang.DialogSetInstruction>();
+			var dialogSetAsmInstr = GetAsmInstruction<Disassembler.DialogSetInstruction>();
 
 			State = dialogSetAsmInstr.Operand switch
 			{
@@ -396,7 +398,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var flagAsmInstr = GetAsmInstruction<PSX.StratLang.FlagInstruction>();
+			var flagAsmInstr = GetAsmInstruction<Disassembler.FlagInstruction>();
 
 			NewState = flagAsmInstr.NewState;
 		}
@@ -417,7 +419,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var itemChangeAsmInstr = GetAsmInstruction<PSX.StratLang.ItemChangeInstruction>();
+			var itemChangeAsmInstr = GetAsmInstruction<Disassembler.ItemChangeInstruction>();
 
 			Item = itemChangeAsmInstr.Item;
 		}
@@ -441,7 +443,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var jumpAsmInstr = GetAsmInstruction<PSX.StratLang.JumpInstruction>();
+			var jumpAsmInstr = GetAsmInstruction<Disassembler.JumpInstruction>();
 			Destination = parser.GetInstruction(jumpAsmInstr.Destination, null, this);
 		}
 
@@ -469,7 +471,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var jumpSubroutineAsmInstr = GetAsmInstruction<PSX.StratLang.JumpSubroutineInstruction>();
+			var jumpSubroutineAsmInstr = GetAsmInstruction<Disassembler.JumpSubroutineInstruction>();
 			Proc = parser.GetProc(jumpSubroutineAsmInstr.Proc, this);
 		}
 	}
@@ -488,12 +490,12 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var printAsmInstr = GetAsmInstruction<PSX.StratLang.PrintInstruction>();
+			var printAsmInstr = GetAsmInstruction<Disassembler.PrintInstruction>();
 			//TODO: Handle PrintInstruction string args with spaces
 			Data = GetPrintString(printAsmInstr);
 		}
 
-		public static string GetPrintString(PSX.StratLang.PrintInstruction printAsmInstr)
+		public static string GetPrintString(Disassembler.PrintInstruction printAsmInstr)
 		{
 			var parts = new List<string>();
 			foreach((var type,var value,var negate) in printAsmInstr.Elements)
@@ -587,7 +589,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		{
 			base.Setup(parser);
 
-			var spawnAsmInstr = GetAsmInstruction<PSX.StratLang.BaseSpawnInstruction>();
+			var spawnAsmInstr = GetAsmInstruction<Disassembler.BaseSpawnInstruction>();
 			
 			SpawnStratProc = parser.GetStrat(spawnAsmInstr.SpawnStratProc, this);
 
@@ -606,7 +608,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var triggerUpdateAsmInstr = GetAsmInstruction<PSX.StratLang.TriggerUpdateInstruction>();
+			var triggerUpdateAsmInstr = GetAsmInstruction<Disassembler.TriggerUpdateInstruction>();
 			TriggerProc = parser.GetTrigger(triggerUpdateAsmInstr.TriggerProc, this);
 		}
 	}
@@ -637,7 +639,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var varAsmInstr = GetAsmInstruction<PSX.StratLang.VarInstruction>();
+			var varAsmInstr = GetAsmInstruction<Disassembler.VarInstruction>();
 			var varId = varAsmInstr.VarId;
 
 			ID = Type switch
@@ -764,7 +766,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var numberAsmInstr = GetAsmInstruction<PSX.StratLang.NumberInstruction>();
+			var numberAsmInstr = GetAsmInstruction<Disassembler.NumberInstruction>();
 
 			Value = numberAsmInstr.Value;
 		}
@@ -873,6 +875,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public VarInstruction Address => (VarInstruction)Operands[0];
 		public IStackProducer Value => Operands[1];
 
+		//TODO: Value isn't always fixed point, if it is a NumberInstruction, it generally will be.
 		public override string ToStatement() => $"{Address.ToExpressionString(ExpressionType.Dereference)} = {Value.ToFxString()}";
 	}
 
@@ -880,18 +883,21 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class CompareInstruction:BinaryOperationInstruction
 	{
 		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToFxString()} = {ValueB.ToFxString()})";
+		public override string ToConditionStr(bool checkTrue) => checkTrue ? $"({ValueA.ToFxString()} = {ValueB.ToFxString()})" : $"({ValueA.ToFxString()} != {ValueB.ToFxString()})";
 	}
 
 	[Opcode(InstructionOpcode.LessThan)]
 	public sealed class LessThanInstruction:BinaryOperationInstruction
 	{
 		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToFxString()} < {ValueB.ToFxString()})";
+		public override string ToConditionStr(bool checkTrue) => checkTrue ? $"({ValueA.ToFxString()} < {ValueB.ToFxString()})" : $"({ValueA.ToFxString()} >= {ValueB.ToFxString()})";
 	}
 
 	[Opcode(InstructionOpcode.GreaterThan)]
 	public sealed class GreaterThanInstruction:BinaryOperationInstruction
 	{
 		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToFxString()} > {ValueB.ToFxString()})";
+		public override string ToConditionStr(bool checkTrue) => checkTrue ? $"({ValueA.ToFxString()} > {ValueB.ToFxString()})" : $"({ValueA.ToFxString()} <= {ValueB.ToFxString()})";
 	}
 
 	[Opcode(InstructionOpcode.SetModel)]
@@ -901,7 +907,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackProducer Model => Operands[0];
 
-		public override string ToStatement() => $"setmodel {Model.ToExpressionString()}";
+		public override string ToStatement() => $"setmodel {Model.ToExpressionString(ExpressionType.Reference)}";
 	}
 
 	[Opcode(InstructionOpcode.Scale)]
@@ -954,7 +960,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackProducer ShadowSize => Operands[0];
 
-		public override string ToStatement() => $"ShadowSize {ShadowSize.ToExpressionString()}";
+		public override string ToStatement() => $"ShadowSize {ShadowSize.ToIntStr()}";
 	}
 
 	[Opcode(InstructionOpcode.ShadowType)]
@@ -1088,7 +1094,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public IStackProducer Z => Operands[2];
 		public IStackProducer MaxTurnSpeed => Operands[3];
 
-		public override string ToStatement() => $"TurnToX {X.ToExpressionString()}, {Y.ToExpressionString()}, {Z.ToExpressionString()}, {MaxTurnSpeed.ToFxString()}";
+		public override string ToStatement() => $"TurnToX {X.ToFxString()}, {Y.ToFxString()}, {Z.ToFxString()}, {MaxTurnSpeed.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.TurnToY)]
@@ -1101,7 +1107,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public IStackProducer Z => Operands[2];
 		public IStackProducer MaxTurnSpeed => Operands[3];
 
-		public override string ToStatement() => $"TurnToY {X.ToExpressionString()}, {Y.ToExpressionString()}, {Z.ToExpressionString()}, {MaxTurnSpeed.ToFxString()}";
+		public override string ToStatement() => $"TurnToY {X.ToFxString()}, {Y.ToFxString()}, {Z.ToFxString()}, {MaxTurnSpeed.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.TurnToXY)]
@@ -1114,7 +1120,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public IStackProducer Z => Operands[2];
 		public IStackProducer MaxTurnSpeed => Operands[3];
 
-		public override string ToStatement() => $"TurnToXY {X.ToExpressionString()}, {Y.ToExpressionString()}, {Z.ToExpressionString()}, {MaxTurnSpeed.ToFxString()}";
+		public override string ToStatement() => $"TurnToXY {X.ToFxString()}, {Y.ToFxString()}, {Z.ToFxString()}, {MaxTurnSpeed.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.Wobble)]
@@ -1206,7 +1212,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackProducer AnimationAddr => Operands[0];
 
-		public override string ToStatement() => $"AnimPlay {AnimationAddr.ToExpressionString()}";
+		public override string ToStatement() => $"AnimPlay {AnimationAddr.ToExpressionString(ExpressionType.Reference)}";
 	}
 
 	[Opcode(InstructionOpcode.AnimStop)]
@@ -1225,7 +1231,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackProducer CollisionType => Operands[0];
 
-		public override string ToStatement() => $"CollisionType {CollisionType.ToExpressionString()}";
+		//TODO: This may use custom values for it.
+		public override string ToStatement() => $"CollisionType {CollisionType.ToIntStr()}";
 	}
 
 	[Opcode(InstructionOpcode.CollRadius)]
@@ -1280,20 +1287,6 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	[Opcode(InstructionOpcode.CreateTrigger)]
 	public sealed class CreateTriggerInstruction:SimpleNoStackInstruction
 	{
-		[Flags]
-		public enum TriggerType
-		{
-			Every		= 1<<1,
-			WhenHit		= 1<<2,
-			EndFall		= 1<<3,
-			EndJump		= 1<<4,
-			In			= 1<<5,
-			Anim		= 1<<6,
-			WhenNear	= 1<<7,
-			WhenFar		= 1<<8,
-			WhenHitWall	= 1<<9,
-		};
-
 		public TriggerType Type;
 		public int Arg;
 		public Instruction TriggerProc;
@@ -1301,21 +1294,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var triggerCreateAsmInstr = GetAsmInstruction<PSX.StratLang.TriggerCreateInstruction>();
-			Type = triggerCreateAsmInstr.Type switch
-			{
-				PSX.TriggerTypePSX.None => 0,
-				PSX.TriggerTypePSX.Every => TriggerType.Every,
-				PSX.TriggerTypePSX.WhenHit => TriggerType.WhenHit,
-				PSX.TriggerTypePSX.EndFall => TriggerType.EndFall,
-				PSX.TriggerTypePSX.EndJump => TriggerType.EndJump,
-				PSX.TriggerTypePSX.In => TriggerType.In,
-				PSX.TriggerTypePSX.Anim => TriggerType.Anim,
-				PSX.TriggerTypePSX.WhenNear => TriggerType.WhenNear,
-				PSX.TriggerTypePSX.WhenFar => TriggerType.WhenFar,
-				PSX.TriggerTypePSX.WhenHitWall => TriggerType.WhenHitWall,
-				_ => throw new Exception()
-			};
+			var triggerCreateAsmInstr = GetAsmInstruction<Disassembler.TriggerCreateInstruction>();
+			Type = triggerCreateAsmInstr.Type;
 			Arg = triggerCreateAsmInstr.Arg;
 			TriggerProc = parser.GetTrigger(triggerCreateAsmInstr.Stream, this);
 		}
@@ -1410,7 +1390,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		{
 			base.Setup(parser);
 
-			var spawnFromAsmInstr = GetAsmInstruction<PSX.StratLang.SpawnFromInstruction>();
+			var spawnFromAsmInstr = GetAsmInstruction<Disassembler.SpawnFromInstruction>();
 			BoneToSpawnFrom = spawnFromAsmInstr.BoneToSpawnFrom;
 		}
 
@@ -1431,7 +1411,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public IStackProducer Channel => Operands[0];
 		public IStackProducer Pitch => Operands[1];
 
-		public override string ToStatement() => $"SoundShift {Channel.ToExpressionString()}, {Pitch.ToExpressionString()}";
+		public override string ToStatement() => $"SoundShift {Channel.ToIntStr()}, {Pitch.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.SoundStop)]
@@ -1441,7 +1421,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackProducer Channel => Operands[0];
 
-		public override string ToStatement() => $"SoundStop {Channel.ToExpressionString()}";
+		public override string ToStatement() => $"SoundStop {Channel.ToIntStr()}";
 	}
 
 	[Opcode(InstructionOpcode.CdPlay)]
@@ -1451,7 +1431,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackProducer MusicId => Operands[0];
 
-		public override string ToStatement() => $"CdPlay {MusicId.ToExpressionString()}";
+		public override string ToStatement() => $"CdPlay {MusicId.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.MidiLoop)]
@@ -1467,7 +1447,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackProducer TimeLength => Operands[0];
 
-		public override string ToStatement() => $"CdFade {TimeLength.ToExpressionString()}";
+		public override string ToStatement() => $"CdFade {TimeLength.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.MidiStop)]
@@ -1498,7 +1478,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var collisionFlagAsmInstr = GetAsmInstruction<PSX.StratLang.CollisionFlagInstruction>();
+			var collisionFlagAsmInstr = GetAsmInstruction<Disassembler.CollisionFlagInstruction>();
 			CollisionFlag = collisionFlagAsmInstr.CollisionType;
 		}
 
@@ -1523,7 +1503,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public IStackProducer Volume => Operands[1];
 		public IStackProducer Flags => Operands[2];
 
-		public override string ToStatement() => $"SoundPlay {SoundIndex.ToExpressionString()}, {Volume.ToExpressionString()}, {Flags.ToExpressionString()}";
+		public override string ToStatement() => $"SoundPlay {SoundIndex.ToIntStr()}, {Volume.ToFxString()}, {Flags.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.SoundPlay4)]
@@ -1538,7 +1518,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public IStackProducer Volume => Operands[1];
 		public IStackProducer Flags => Operands[2];
 
-		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"SoundPlay {SoundIndex.ToExpressionString()}, {Volume.ToExpressionString()}, {Flags.ToExpressionString()}";
+		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"SoundPlay {SoundIndex.ToIntStr()}, {Volume.ToFxString()}, {Flags.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.SoundPlay4ASS)]
@@ -1547,19 +1527,19 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	[Opcode(InstructionOpcode.Int)]
 	public sealed class IntInstruction:UnaryOperationInstruction
 	{
-		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"int({Value.ToExpressionString()})";
+		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"int({Value.ToFxString()})";
 	}
 
 	[Opcode(InstructionOpcode.Sin)]
 	public sealed class SinInstruction:UnaryOperationInstruction
 	{
-		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"sin({Value.ToExpressionString()})";
+		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"sin({Value.ToFxString()})";
 	}
 
 	[Opcode(InstructionOpcode.Cos)]
 	public sealed class CosInstruction:UnaryOperationInstruction
 	{
-		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"cos({Value.ToExpressionString()})";
+		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"cos({Value.ToFxString()})";
 	}
 
 	[Opcode(InstructionOpcode.Not)]
@@ -1599,7 +1579,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var addressAsmInstr = GetAsmInstruction<PSX.StratLang.AddressInstruction>();
+			var addressAsmInstr = GetAsmInstruction<Disassembler.AddressInstruction>();
 
 			if(addressAsmInstr.IsAnimLoad)
 			{
@@ -1659,7 +1639,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public override string ToStatement()
 		{
-			return $"if {Condition.ToExpressionString()} == 0 then goto {ConditionalDest.AsmLabel.GetLabel()} endif $ DONE";
+			//Branch if equal to zero
+			return $"if {Condition.ToConditionStr(false)} then goto {ConditionalDest.AsmLabel.GetLabel()} endif $ DONE";
 		}
 	}
 
@@ -1668,7 +1649,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public override string ToStatement()
 		{
-			return $"if {Condition.ToExpressionString()} != 0 then goto {ConditionalDest.AsmLabel.GetLabel()} endif $ DONE";
+			//Branch if not equal to zero
+			return $"if {Condition.ToConditionStr(true)} then goto {ConditionalDest.AsmLabel.GetLabel()} endif $ DONE";
 		}
 	}
 
@@ -1677,7 +1659,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public override string ToStatement()
 		{
-			return $"if {Condition.ToExpressionString()} == 0 then goto {ConditionalDest.AsmLabel.GetLabel()} endif $ IMM";
+			//Branch if equal to zero
+			return $"if {Condition.ToConditionStr(false)} then goto {ConditionalDest.AsmLabel.GetLabel()} endif $ IMM";
 		}
 	}
 
@@ -1686,7 +1669,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public override string ToStatement()
 		{
-			return $"if {Condition.ToExpressionString()} != 0 then goto {ConditionalDest.AsmLabel.GetLabel()} endif $ IMM";
+			//Branch if not equal to zero
+			return $"if {Condition.ToConditionStr(true)} then goto {ConditionalDest.AsmLabel.GetLabel()} endif $ IMM";
 		}
 	}
 
@@ -1709,11 +1693,13 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class AndInstruction:BinaryOperationInstruction
 	{
 		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToExpressionString()} AND {ValueB.ToExpressionString()})";
+		public override string ToConditionStr(bool checkTrue) => checkTrue ? $"({ValueA.ToConditionStr(true)} AND {ValueB.ToConditionStr(true)})" : $"({ValueA.ToConditionStr(false)} OR {ValueB.ToConditionStr(false)})";
 	}
 
 	[Opcode(InstructionOpcode.Or)]
 	public sealed class OrInstruction:BinaryOperationInstruction
 	{
+		//TODO: This is bitwise |, not logical ||.
 		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToExpressionString()} OR {ValueB.ToExpressionString()})";
 	}
 
@@ -1731,7 +1717,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var indexJumpAsmInstr = GetAsmInstruction<PSX.StratLang.IndexJumpInstruction>();
+			var indexJumpAsmInstr = GetAsmInstruction<Disassembler.IndexJumpInstruction>();
 
 			var cases = new List<(List<int> comparands, Instruction destination)>();
 			for(int i=0; i<indexJumpAsmInstr.CaseCount; i++)
@@ -1856,6 +1842,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class NotEqualInstruction:BinaryOperationInstruction
 	{
 		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToFxString()} != {ValueB.ToFxString()})";
+		public override string ToConditionStr(bool checkTrue) => checkTrue ? $"({ValueA.ToFxString()} != {ValueB.ToFxString()})" : $"({ValueA.ToFxString()} = {ValueB.ToFxString()})";
 	}
 
 	[Opcode(InstructionOpcode.ShiftLeft)]
@@ -1877,19 +1864,21 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackProducer DesiredIndex => Operands[0];
 
-		public override string ToStatement() => $"AnimAdvance {DesiredIndex.ToExpressionString()}";
+		public override string ToStatement() => $"AnimAdvance {DesiredIndex.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.GreaterEqual)]
 	public sealed class GreaterEqualInstruction:BinaryOperationInstruction
 	{
 		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToFxString()} >= {ValueB.ToFxString()})";
+		public override string ToConditionStr(bool checkTrue) => checkTrue ? $"({ValueA.ToFxString()} >= {ValueB.ToFxString()})" : $"({ValueA.ToFxString()} < {ValueB.ToFxString()})";
 	}
 
 	[Opcode(InstructionOpcode.LessEqual)]
 	public sealed class LessEqualInstruction:BinaryOperationInstruction
 	{
 		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToFxString()} <= {ValueB.ToFxString()})";
+		public override string ToConditionStr(bool checkTrue) => checkTrue ? $"({ValueA.ToFxString()} <= {ValueB.ToFxString()})" : $"({ValueA.ToFxString()} > {ValueB.ToFxString()})";
 	}
 
 	[Opcode(InstructionOpcode.Rnd)]
@@ -1915,7 +1904,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var blinkAsmInstr = GetAsmInstruction<PSX.StratLang.BlinkInstruction>();
+			var blinkAsmInstr = GetAsmInstruction<Disassembler.BlinkInstruction>();
 
 			Count = blinkAsmInstr.Count;
 		}
@@ -2027,7 +2016,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackProducer CrystalType => Operands[0];
 
-		public override string ToStatement() => $"GainCrystal {CrystalType.ToExpressionString()}";
+		public override string ToStatement() => $"GainCrystal {CrystalType.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.Cutscene)]
@@ -2037,7 +2026,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackProducer CutsceneAddr => Operands[0];
 
-		public override string ToStatement() => $"Cutscene {CutsceneAddr.ToExpressionString()}";
+		public override string ToStatement() => $"Cutscene {CutsceneAddr.ToExpressionString(ExpressionType.Reference)}";
 	}
 
 	[Opcode(InstructionOpcode.Inventory)]
@@ -2049,7 +2038,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var inventoryAsmInstr = GetAsmInstruction<PSX.StratLang.ItemCountInstruction>();
+			var inventoryAsmInstr = GetAsmInstruction<Disassembler.ItemCountInstruction>();
 
 			Item = inventoryAsmInstr.Item;
 		}
@@ -2065,7 +2054,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var debugNameAsmInstr = GetAsmInstruction<PSX.StratLang.DebugNameInstruction>();
+			var debugNameAsmInstr = GetAsmInstruction<Disassembler.DebugNameInstruction>();
 
 			Name = debugNameAsmInstr.Name;
 		}
@@ -2104,7 +2093,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var soundAddrAsmInstr = GetAsmInstruction<PSX.StratLang.SoundAddressInstruction>();
+			var soundAddrAsmInstr = GetAsmInstruction<Disassembler.SoundAddressInstruction>();
 
 			Value = soundAddrAsmInstr.Value;
 		}
@@ -2382,7 +2371,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackProducer Health => Operands[0];
 
-		public override string ToStatement() => $"SetBossHearts {Health.ToExpressionString()}";
+		public override string ToStatement() => $"SetBossHearts {Health.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.LoseBossHeart)]
@@ -2396,7 +2385,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public IStackProducer Channel => Operands[0];
 		public IStackProducer Pitch => Operands[1];
 
-		public override string ToStatement() => $"SoundShiftRelative {Channel.ToExpressionString()}, {Pitch.ToExpressionString()}";
+		public override string ToStatement() => $"SoundShiftRelative {Channel.ToIntStr()}, {Pitch.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.Smin)]
@@ -2454,6 +2443,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override bool Literal => true;
 
 		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => "0";
+		public override string ToConditionStr(bool checkTrue) => checkTrue ? "0" : "(NOT 0)";
 	}
 
 	[Opcode(InstructionOpcode.TopHead)]
@@ -2463,7 +2453,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackProducer Sprite => Operands[0];
 
-		public override string ToStatement() => $"TopHead {Sprite.ToExpressionString()}";
+		public override string ToStatement() => $"TopHead {Sprite.ToIntStr()}";
 	}
 
 	[Opcode(InstructionOpcode.TopDialog)]
@@ -2485,7 +2475,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackProducer Sprite => Operands[0];
 
-		public override string ToStatement() => $"BottomHead {Sprite.ToExpressionString()}";
+		public override string ToStatement() => $"BottomHead {Sprite.ToIntStr()}";
 	}
 
 	[Opcode(InstructionOpcode.BottomDialog)]
@@ -2548,7 +2538,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackProducer ShadeType => Operands[0];
 
-		public override string ToStatement() => $"ShadeType {ShadeType.ToExpressionString()}";
+		//TODO: Custom int values?
+		public override string ToStatement() => $"ShadeType {ShadeType.ToIntStr()}";
 	}
 
 	[Opcode(InstructionOpcode.NOP)]
@@ -2561,7 +2552,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackProducer AnimSpeed => Operands[0];
 
-		public override string ToStatement() => $"SetAnimSpeed {AnimSpeed.ToExpressionString()}";
+		public override string ToStatement() => $"SetAnimSpeed {AnimSpeed.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.CheckLevelDoor)]
@@ -2628,7 +2619,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public IStackProducer Y => Operands[1];
 		public IStackProducer Z => Operands[2];
 
-		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"Distance {X.ToExpressionString()}, {Y.ToExpressionString()}, {Z.ToExpressionString()}";
+		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"Distance {X.ToFxString()}, {Y.ToFxString()}, {Z.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.Binocs)]
@@ -2639,7 +2630,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var binocsAsmInstr = GetAsmInstruction<PSX.StratLang.BinocsInstruction>();
+			var binocsAsmInstr = GetAsmInstruction<Disassembler.BinocsInstruction>();
 
 			State = binocsAsmInstr.State switch
 			{
@@ -2724,7 +2715,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public IStackProducer Level => Operands[1];
 		public IStackProducer Type => Operands[2];
 
-		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"LevelComplete {Tribe.ToExpressionString()}, {Level.ToExpressionString()}, {Type.ToExpressionString()}";
+		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"LevelComplete {Tribe.ToFxString()}, {Level.ToFxString()}, {Type.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.SetLevelFlag)]
@@ -2734,7 +2725,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackProducer LevelFlag => Operands[0];
 
-		public override string ToStatement() => $"SetLevelFlag {LevelFlag.ToExpressionString()}";
+		public override string ToStatement() => $"SetLevelFlag {LevelFlag.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.GetLevelFlag)]
@@ -2746,7 +2737,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public IStackProducer Level => Operands[1];
 		public IStackProducer Type => Operands[2];
 
-		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"GetLevelFlag {Tribe.ToExpressionString()}, {Level.ToExpressionString()}, {Type.ToExpressionString()}";
+		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"GetLevelFlag {Tribe.ToFxString()}, {Level.ToFxString()}, {Type.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.CalcCarTilt)]
@@ -2760,7 +2751,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public IStackProducer Op2 => Operands[2];
 		public IStackProducer Op1 => Operands[3];
 
-		public override string ToStatement() => $"CalcCarTilt {Op4.ToExpressionString()}, {Op3.ToExpressionString()}, {Op2.ToExpressionString()}, {Op1.ToExpressionString()}";
+		public override string ToStatement() => $"CalcCarTilt {Op4.ToFxString()}, {Op3.ToFxString()}, {Op2.ToFxString()}, {Op1.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.MoveLeftq)]
@@ -2798,7 +2789,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public IStackProducer S => Operands[3];
 		public IStackProducer R => Operands[4];
 
-		public override string ToStatement() => $"SoundAdsr {Channel.ToExpressionString()}, {A.ToExpressionString()}, {D.ToExpressionString()}, {S.ToExpressionString()}, {R.ToExpressionString()}";
+		public override string ToStatement() => $"SoundAdsr {Channel.ToIntStr()}, {A.ToFxString()}, {D.ToFxString()}, {S.ToFxString()}, {R.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.SoundAdsrRelative)]
@@ -2812,7 +2803,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public IStackProducer S => Operands[3];
 		public IStackProducer R => Operands[4];
 
-		public override string ToStatement() => $"SoundAdsrRelative {Channel.ToExpressionString()}, {A.ToExpressionString()}, {D.ToExpressionString()}, {S.ToExpressionString()}, {R.ToExpressionString()}";
+		public override string ToStatement() => $"SoundAdsrRelative {Channel.ToIntStr()}, {A.ToFxString()}, {D.ToFxString()}, {S.ToFxString()}, {R.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.RotatePiece)]
@@ -2837,7 +2828,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackProducer ID => Operands[0];
 
-		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"SampleStatus {ID.ToExpressionString()}";
+		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"SampleStatus {ID.ToIntStr()}";
 	}
 
 	[Opcode(InstructionOpcode.ResetToCheckPointnlh)]
@@ -2871,7 +2862,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackProducer ExtraMax => Operands[0];
 
-		public override string ToStatement() => $"SetItem {ExtraMax.ToExpressionString()}";
+		public override string ToStatement() => $"SetItem {ExtraMax.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.SetTimer)]
@@ -2881,7 +2872,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public IStackProducer Timer => Operands[0];
 
-		public override string ToStatement() => $"SetTimer {Timer.ToExpressionString()}";
+		public override string ToStatement() => $"SetTimer {Timer.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.TimerOff)]
@@ -2895,7 +2886,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public IStackProducer X => Operands[0];
 		public IStackProducer Z => Operands[1];
 
-		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"DistanceNoY {X.ToExpressionString()}, {Z.ToExpressionString()}";
+		public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"DistanceNoY {X.ToFxString()}, {Z.ToFxString()}";
 	}
 
 	[Opcode(InstructionOpcode.Swim)]
@@ -2936,7 +2927,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var creditAsmInstr = GetAsmInstruction<PSX.StratLang.CreditInstruction>();
+			var creditAsmInstr = GetAsmInstruction<Disassembler.CreditInstruction>();
 
 			Operand = creditAsmInstr.Operand;
 		}
@@ -2961,7 +2952,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var cwgAsmInstr = GetAsmInstruction<PSX.StratLang.CwgInstruction>();
+			var cwgAsmInstr = GetAsmInstruction<Disassembler.CwgInstruction>();
 
 			Value = cwgAsmInstr.Value;
 		}
@@ -2977,7 +2968,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
-			var fadeSetUnknownAsmInstr = GetAsmInstruction<PSX.StratLang.FadeSetUnknownInstruction>();
+			var fadeSetUnknownAsmInstr = GetAsmInstruction<Disassembler.FadeSetUnknownInstruction>();
 			Value = fadeSetUnknownAsmInstr.Value;
 		}
 
