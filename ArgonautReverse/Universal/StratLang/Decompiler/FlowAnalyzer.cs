@@ -1099,7 +1099,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 	public abstract class FlowStatement<TInstruction>:FlowStatement where TInstruction:Instruction
 	{
-		public required TInstruction Instruction{get;init;}
+		public /*required*/ TInstruction Instruction{get;init;}
 	}
 
 	/// <summary>A flow with no flow change.</summary>

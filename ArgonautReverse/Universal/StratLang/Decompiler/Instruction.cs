@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using ArgonautReverse.Universal.StratLang.Disassembler;
+﻿using ArgonautReverse.Universal.StratLang.Disassembler;
 
 namespace ArgonautReverse.Universal.StratLang.Decompiler
 {
@@ -57,19 +56,5 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public virtual void Setup(AsmParser parser){}
 
 		public TAsmInstruction GetAsmInstruction<TAsmInstruction>() where TAsmInstruction:AsmInstruction => (TAsmInstruction)AsmOperation;
-	}
-
-	public abstract class OperandStack<TInstruction,TStack>:IStackOperation where TInstruction:Instruction where TStack:OperandStack<TInstruction,TStack>,new()
-	{
-		public /*required*/ TInstruction Instruction{get;init;}
-		Instruction IStackOperation.OperationInstruction => Instruction;
-
-		public abstract IStackStatement Statement{get;}
-		public abstract void Analyze(StackAnalyzer stack);
-
-		public abstract IEnumerable<IStackOperation> GetRootOperations();
-
-		public abstract bool TryGetSubroutine([MaybeNullWhen(false)]out AsmInstruction subroutine);
-		public abstract bool TryGetLabel([MaybeNullWhen(false)]out AsmInstruction label);
 	}
 }

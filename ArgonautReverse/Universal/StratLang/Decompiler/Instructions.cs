@@ -56,7 +56,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public InstructionOpcode Opcode{get;} = opcode;
 	}
 
-	public abstract class UnimplementedInstruction:BaseOperandInstruction<UnimplementedInstruction,UnimplementedInstruction.UnimplementedStack>
+	public abstract class UnimplementedInstruction:BaseOperationInstruction<UnimplementedInstruction,UnimplementedInstruction.UnimplementedStack>
 	{
 		public UnimplementedInstruction(bool fail = true)
 		{
@@ -70,7 +70,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			}
 		}
 
-		public sealed class UnimplementedStack:BaseOperandStack<UnimplementedInstruction,UnimplementedStack>
+		public sealed class UnimplementedStack:BaseOperationStack<UnimplementedInstruction,UnimplementedStack>
 		{
 			public override IStackStatement Statement => throw new NotImplementedException();
 
@@ -81,19 +81,20 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		}
 	}
 
-	public abstract class BaseOperandInstruction<TInstruction,TStack>:Instruction where TInstruction:BaseOperandInstruction<TInstruction,TStack> where TStack:BaseOperandStack<TInstruction,TStack>,new()
+	public abstract class BaseOperationInstruction<TInstruction,TStack>:Instruction where TInstruction:BaseOperationInstruction<TInstruction,TStack> where TStack:BaseOperationStack<TInstruction,TStack>,new()
 	{
 		public sealed override TStack StackOperation{get;}
 
-		public BaseOperandInstruction()
+		public BaseOperationInstruction()
 		{
 			StackOperation = new(){Instruction = (TInstruction)this};
 		}
 	}
-	public abstract class BaseOperandStack<TInstruction,TStack>:OperandStack<TInstruction,TStack> where TInstruction:BaseOperandInstruction<TInstruction,TStack> where TStack:BaseOperandStack<TInstruction,TStack>,new();
+	public abstract class BaseOperationStack<TInstruction,TStack>:OperationStack<TInstruction> where TInstruction:BaseOperationInstruction<TInstruction,TStack> where TStack:BaseOperationStack<TInstruction,TStack>,new();
+	public abstract class BaseOperationFlow<TInstruction,TStack,TFlow>:FlowStatement<TInstruction> where TInstruction:BaseOperationInstruction<TInstruction,TStack> where TStack:BaseOperationStack<TInstruction,TStack>,new() where TFlow:BaseOperationFlow<TInstruction,TStack,TFlow>,new();
 
-	public abstract class BaseConsumerInstruction<TInstruction,TStack>:BaseOperandInstruction<TInstruction,TStack> where TInstruction:BaseConsumerInstruction<TInstruction,TStack> where TStack:BaseConsumerStack<TInstruction,TStack>,new();
-	public abstract class BaseConsumerStack<TInstruction,TStack>:BaseOperandStack<TInstruction,TStack>,IStackConsumer where TInstruction:BaseConsumerInstruction<TInstruction,TStack> where TStack:BaseConsumerStack<TInstruction,TStack>,new()
+	public abstract class BaseConsumerInstruction<TInstruction,TStack>:BaseOperationInstruction<TInstruction,TStack> where TInstruction:BaseConsumerInstruction<TInstruction,TStack> where TStack:BaseConsumerStack<TInstruction,TStack>,new();
+	public abstract class BaseConsumerStack<TInstruction,TStack>:BaseOperationStack<TInstruction,TStack>,IStackConsumer where TInstruction:BaseConsumerInstruction<TInstruction,TStack> where TStack:BaseConsumerStack<TInstruction,TStack>,new()
 	{
 		public abstract int PopCount{get;}
 
@@ -152,11 +153,16 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		}
 	}
 
-	public abstract class PureConsumerInstruction<TInstruction,TStack>:BaseConsumerInstruction<TInstruction,TStack> where TInstruction:PureConsumerInstruction<TInstruction,TStack> where TStack:PureConsumerStack<TInstruction,TStack>,new()
+	public abstract class PureConsumerInstruction<TInstruction,TStack,TFlow>:BaseConsumerInstruction<TInstruction,TStack> where TInstruction:PureConsumerInstruction<TInstruction,TStack,TFlow> where TStack:PureConsumerStack<TInstruction,TStack,TFlow>,new() where TFlow:PureConsumerFlow<TInstruction,TStack,TFlow>,new()
 	{
-		public abstract FlowStatement FlowStatement{get;}
+		public TFlow FlowStatement{get;}
+
+		public PureConsumerInstruction()
+		{
+			FlowStatement = new(){Instruction = (TInstruction)this};
+		}
 	}
-	public abstract class PureConsumerStack<TInstruction,TStack>:BaseConsumerStack<TInstruction,TStack>,IStackStatement where TInstruction:PureConsumerInstruction<TInstruction,TStack> where TStack:PureConsumerStack<TInstruction,TStack>,new()
+	public abstract class PureConsumerStack<TInstruction,TStack,TFlow>:BaseConsumerStack<TInstruction,TStack>,IStackStatement where TInstruction:PureConsumerInstruction<TInstruction,TStack,TFlow> where TStack:PureConsumerStack<TInstruction,TStack,TFlow>,new() where TFlow:PureConsumerFlow<TInstruction,TStack,TFlow>,new()
 	{
 		public Instruction StatementInstruction => Instruction;
 		public FlowStatement FlowStatement => Instruction.FlowStatement;
@@ -180,29 +186,21 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		}
 	}
 
-	public abstract class PureConsumerFlow<TInstruction,TStack>:FlowStatement<TInstruction> where TInstruction:PureConsumerInstruction<TInstruction,TStack> where TStack:PureConsumerStack<TInstruction,TStack>,new()
+	public abstract class PureConsumerFlow<TInstruction,TStack,TFlow>:BaseOperationFlow<TInstruction,TStack,TFlow> where TInstruction:PureConsumerInstruction<TInstruction,TStack,TFlow> where TStack:PureConsumerStack<TInstruction,TStack,TFlow>,new() where TFlow:PureConsumerFlow<TInstruction,TStack,TFlow>,new()
 	{
 		public sealed override IStackStatement StackStatement => Instruction.StackOperation;
 	}
 
-	public abstract class SimplePureConsumerInstruction<TInstruction,TStack>:PureConsumerInstruction<TInstruction,TStack> where TInstruction:SimplePureConsumerInstruction<TInstruction,TStack> where TStack:SimplePureConsumerStack<TInstruction,TStack>,new()
-	{
-		public sealed override SimplePureConsumerFlow<TInstruction,TStack> FlowStatement{get;}
+	public abstract class SimplePureConsumerInstruction<TInstruction,TStack>:PureConsumerInstruction<TInstruction,TStack,SimplePureConsumerFlow<TInstruction,TStack>> where TInstruction:SimplePureConsumerInstruction<TInstruction,TStack> where TStack:SimplePureConsumerStack<TInstruction,TStack>,new();
+	public abstract class SimplePureConsumerStack<TInstruction,TStack>:PureConsumerStack<TInstruction,TStack,SimplePureConsumerFlow<TInstruction,TStack>> where TInstruction:SimplePureConsumerInstruction<TInstruction,TStack> where TStack:SimplePureConsumerStack<TInstruction,TStack>,new();
 
-		public SimplePureConsumerInstruction()
-		{
-			FlowStatement = new(){Instruction = (TInstruction)this};
-		}
-	}
-	public abstract class SimplePureConsumerStack<TInstruction,TStack>:PureConsumerStack<TInstruction,TStack> where TInstruction:SimplePureConsumerInstruction<TInstruction,TStack> where TStack:SimplePureConsumerStack<TInstruction,TStack>,new();
-
-	public sealed class SimplePureConsumerFlow<TInstruction,TStack>:PureConsumerFlow<TInstruction,TStack> where TInstruction:SimplePureConsumerInstruction<TInstruction,TStack> where TStack:SimplePureConsumerStack<TInstruction,TStack>,new()
+	public sealed class SimplePureConsumerFlow<TInstruction,TStack>:PureConsumerFlow<TInstruction,TStack,SimplePureConsumerFlow<TInstruction,TStack>> where TInstruction:SimplePureConsumerInstruction<TInstruction,TStack> where TStack:SimplePureConsumerStack<TInstruction,TStack>,new()
 	{
 		public override void Analyze(FlowAnalyzer flow){}
 	}
 
-	public abstract class PureProducerInstruction<TInstruction,TStack>:BaseOperandInstruction<TInstruction,TStack> where TInstruction:PureProducerInstruction<TInstruction,TStack> where TStack:PureProducerStack<TInstruction,TStack>,new();
-	public abstract class PureProducerStack<TInstruction,TStack>:BaseOperandStack<TInstruction,TStack>,IStackProducer where TInstruction:PureProducerInstruction<TInstruction,TStack> where TStack:PureProducerStack<TInstruction,TStack>,new()
+	public abstract class PureProducerInstruction<TInstruction,TStack>:BaseOperationInstruction<TInstruction,TStack> where TInstruction:PureProducerInstruction<TInstruction,TStack> where TStack:PureProducerStack<TInstruction,TStack>,new();
+	public abstract class PureProducerStack<TInstruction,TStack>:BaseOperationStack<TInstruction,TStack>,IStackProducer where TInstruction:PureProducerInstruction<TInstruction,TStack> where TStack:PureProducerStack<TInstruction,TStack>,new()
 	{
 		public IStackConsumer Consumer{get;set;}
 
@@ -215,7 +213,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			stack.Push(this);
 		}
 
-		public override IEnumerable<IStackOperation> GetRootOperations(){yield return this;}
+		public override IEnumerable<IStackOperation> GetRootOperations() => [this];
 
 		public abstract string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown);
 		public virtual string ToConditionStr(bool checkTrue) => checkTrue ? $"{ToExpressionString()} != 0" : $"{ToExpressionString()} = 0";
@@ -252,11 +250,16 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	/// <summary>Instructions that don't use the stack</summary>
-	public abstract class NoStackInstruction<TInstruction,TStack>:BaseOperandInstruction<TInstruction,TStack> where TInstruction:NoStackInstruction<TInstruction,TStack> where TStack:BaseOperandStack<TInstruction,TStack>,new()
+	public abstract class NoStackInstruction<TInstruction,TStack,TFlow>:BaseOperationInstruction<TInstruction,TStack> where TInstruction:NoStackInstruction<TInstruction,TStack,TFlow> where TStack:NoStackStack<TInstruction,TStack,TFlow>,new() where TFlow:NoStackFlow<TInstruction,TStack,TFlow>,new()
 	{
-		public abstract FlowStatement FlowStatement{get;}
+		public TFlow FlowStatement{get;}
+
+		public NoStackInstruction()
+		{
+			FlowStatement = new(){Instruction = (TInstruction)this};
+		}
 	}
-	public abstract class NoStackStack<TInstruction,TStack>:BaseOperandStack<TInstruction,TStack>,IStackStatement where TInstruction:NoStackInstruction<TInstruction,TStack> where TStack:NoStackStack<TInstruction,TStack>,new()
+	public abstract class NoStackStack<TInstruction,TStack,TFlow>:BaseOperationStack<TInstruction,TStack>,IStackStatement where TInstruction:NoStackInstruction<TInstruction,TStack,TFlow> where TStack:NoStackStack<TInstruction,TStack,TFlow>,new() where TFlow:NoStackFlow<TInstruction,TStack,TFlow>,new()
 	{
 		public Instruction OperationInstruction => Instruction;
 
@@ -302,23 +305,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		}
 	}
 
-	public abstract class NoStackFlow<TInstruction,TStack>:FlowStatement<TInstruction> where TInstruction:NoStackInstruction<TInstruction,TStack> where TStack:NoStackStack<TInstruction,TStack>,new()
+	public abstract class NoStackFlow<TInstruction,TStack,TFlow>:BaseOperationFlow<TInstruction,TStack,TFlow> where TInstruction:NoStackInstruction<TInstruction,TStack,TFlow> where TStack:NoStackStack<TInstruction,TStack,TFlow>,new() where TFlow:NoStackFlow<TInstruction,TStack,TFlow>,new()
 	{
 		public sealed override IStackStatement StackStatement => Instruction.StackOperation;
 	}
 
-	public abstract class SimpleNoStackInstruction<TInstruction,TStack>:NoStackInstruction<TInstruction,TStack> where TInstruction:SimpleNoStackInstruction<TInstruction,TStack> where TStack:SimpleNoStackStack<TInstruction,TStack>,new()
-	{
-		public sealed override SimpleNoStackFlow<TInstruction,TStack> FlowStatement{get;}	
+	public abstract class SimpleNoStackInstruction<TInstruction,TStack>:NoStackInstruction<TInstruction,TStack,SimpleNoStackFlow<TInstruction,TStack>> where TInstruction:SimpleNoStackInstruction<TInstruction,TStack> where TStack:SimpleNoStackStack<TInstruction,TStack>,new();
+	public abstract class SimpleNoStackStack<TInstruction,TStack>:NoStackStack<TInstruction,TStack,SimpleNoStackFlow<TInstruction,TStack>> where TInstruction:SimpleNoStackInstruction<TInstruction,TStack> where TStack:SimpleNoStackStack<TInstruction,TStack>,new();
 
-		public SimpleNoStackInstruction()
-		{
-			FlowStatement = new(){Instruction = (TInstruction)this};
-		}
-	}
-	public abstract class SimpleNoStackStack<TInstruction,TStack>:NoStackStack<TInstruction,TStack> where TInstruction:SimpleNoStackInstruction<TInstruction,TStack> where TStack:SimpleNoStackStack<TInstruction,TStack>,new();
-
-	public sealed class SimpleNoStackFlow<TInstruction,TStack>:NoStackFlow<TInstruction,TStack> where TInstruction:SimpleNoStackInstruction<TInstruction,TStack> where TStack:SimpleNoStackStack<TInstruction,TStack>,new()
+	public sealed class SimpleNoStackFlow<TInstruction,TStack>:NoStackFlow<TInstruction,TStack,SimpleNoStackFlow<TInstruction,TStack>> where TInstruction:SimpleNoStackInstruction<TInstruction,TStack> where TStack:SimpleNoStackStack<TInstruction,TStack>,new()
 	{
 		public override void Analyze(FlowAnalyzer flow){}
 	}
@@ -351,15 +346,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public IStackProducer Value => Operands[0];
 	}
 
-	public abstract class BranchInstruction<TInstruction,TStack>:PureConsumerInstruction<TInstruction,TStack> where TInstruction:BranchInstruction<TInstruction,TStack> where TStack:BranchStack<TInstruction,TStack>,new()
+	public abstract class BranchInstruction<TInstruction,TStack>:PureConsumerInstruction<TInstruction,TStack,BranchFlow<TInstruction,TStack>> where TInstruction:BranchInstruction<TInstruction,TStack> where TStack:BranchStack<TInstruction,TStack>,new()
 	{
 		public Instruction ConditionalDest;
-		public sealed override BranchFlow<TInstruction,TStack> FlowStatement{get;}
-
-		public BranchInstruction()
-		{
-			FlowStatement = new(){Instruction = (TInstruction)this};
-		}
 
 		public sealed override void Setup(AsmParser parser)
 		{
@@ -369,7 +358,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			ConditionalDest = parser.GetInstruction(branchAsmInstr.ConditionalDest, null, this);
 		}
 	}
-	public abstract class BranchStack<TInstruction,TStack>:PureConsumerStack<TInstruction,TStack> where TInstruction:BranchInstruction<TInstruction,TStack> where TStack:BranchStack<TInstruction,TStack>,new()
+	public abstract class BranchStack<TInstruction,TStack>:PureConsumerStack<TInstruction,TStack,BranchFlow<TInstruction,TStack>> where TInstruction:BranchInstruction<TInstruction,TStack> where TStack:BranchStack<TInstruction,TStack>,new()
 	{
 		public override int PopCount => 1;
 
@@ -382,7 +371,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		}
 	}
 
-	public sealed class BranchFlow<TInstruction,TStack>:PureConsumerFlow<TInstruction,TStack>,IFlowControl,IFlowBranch where TInstruction:BranchInstruction<TInstruction,TStack> where TStack:BranchStack<TInstruction,TStack>,new()
+	public sealed class BranchFlow<TInstruction,TStack>:PureConsumerFlow<TInstruction,TStack,BranchFlow<TInstruction,TStack>>,IFlowControl,IFlowBranch where TInstruction:BranchInstruction<TInstruction,TStack> where TStack:BranchStack<TInstruction,TStack>,new()
 	{
 		FlowStatement IFlowBranch.FlowStatement => this;
 
@@ -486,7 +475,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		};
 	}
 
-	public abstract class BaseJumpInstruction<TInstruction,TStack>:NoStackInstruction<TInstruction,TStack> where TInstruction:BaseJumpInstruction<TInstruction,TStack> where TStack:BaseJumpStack<TInstruction,TStack>,new()
+	public abstract class BaseJumpInstruction<TInstruction,TStack,TFlow>:NoStackInstruction<TInstruction,TStack,TFlow> where TInstruction:BaseJumpInstruction<TInstruction,TStack,TFlow> where TStack:BaseJumpStack<TInstruction,TStack,TFlow>,new() where TFlow:BaseJumpFlow<TInstruction,TStack,TFlow>,new()
 	{
 		public sealed override bool Terminal => true;
 
@@ -499,7 +488,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			Destination = parser.GetInstruction(jumpAsmInstr.Destination, null, this);
 		}
 	}
-	public abstract class BaseJumpStack<TInstruction,TStack>:NoStackStack<TInstruction,TStack> where TInstruction:BaseJumpInstruction<TInstruction,TStack> where TStack:BaseJumpStack<TInstruction,TStack>,new()
+	public abstract class BaseJumpStack<TInstruction,TStack,TFlow>:NoStackStack<TInstruction,TStack,TFlow> where TInstruction:BaseJumpInstruction<TInstruction,TStack,TFlow> where TStack:BaseJumpStack<TInstruction,TStack,TFlow>,new() where TFlow:BaseJumpFlow<TInstruction,TStack,TFlow>,new()
 	{
 		public override void Analyze(StackAnalyzer stack)
 		{
@@ -509,7 +498,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		}
 	}
 
-	public abstract class BaseJumpFlow<TInstruction,TStack>:NoStackFlow<TInstruction,TStack>,IFlowTerminal,IFlowControl,IFlowJump where TInstruction:BaseJumpInstruction<TInstruction,TStack> where TStack:BaseJumpStack<TInstruction,TStack>,new()
+	public abstract class BaseJumpFlow<TInstruction,TStack,TFlow>:NoStackFlow<TInstruction,TStack,TFlow>,IFlowTerminal,IFlowControl,IFlowJump where TInstruction:BaseJumpInstruction<TInstruction,TStack,TFlow> where TStack:BaseJumpStack<TInstruction,TStack,TFlow>,new() where TFlow:BaseJumpFlow<TInstruction,TStack,TFlow>,new()
 	{
 		FlowStatement IFlowJump.FlowStatement => this;
 
@@ -747,23 +736,16 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.CommandError)]
-	public sealed class CommandErrorInstruction:NoStackInstruction<CommandErrorInstruction,CommandErrorStack>
+	public sealed class CommandErrorInstruction:NoStackInstruction<CommandErrorInstruction,CommandErrorStack,CommandErrorFlow>
 	{
 		public sealed override bool Terminal => true;
-
-		public sealed override CommandErrorFlow FlowStatement{get;}
-
-		public CommandErrorInstruction()
-		{
-			FlowStatement = new(){Instruction = this};
-		}
 	}
-	public sealed class CommandErrorStack:NoStackStack<CommandErrorInstruction,CommandErrorStack>
+	public sealed class CommandErrorStack:NoStackStack<CommandErrorInstruction,CommandErrorStack,CommandErrorFlow>
 	{
 		public override string ToStatement() => "COMMAND ERROR";
 	}
 
-	public sealed class CommandErrorFlow:NoStackFlow<CommandErrorInstruction,CommandErrorStack>,IFlowTerminal
+	public sealed class CommandErrorFlow:NoStackFlow<CommandErrorInstruction,CommandErrorStack,CommandErrorFlow>,IFlowTerminal
 	{
 		public override void Analyze(FlowAnalyzer flow){}
 	}
@@ -1367,20 +1349,13 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class SetPosInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Jump)]
-	public sealed class JumpInstruction:BaseJumpInstruction<JumpInstruction,JumpInstruction.JumpStack>
+	public sealed class JumpInstruction:BaseJumpInstruction<JumpInstruction,JumpInstruction.JumpStack,JumpInstruction.JumpFlow>
 	{
-		public sealed override JumpFlow FlowStatement{get;}
-
-		public JumpInstruction()
-		{
-			FlowStatement = new(){Instruction = this};
-		}
-
-		public sealed class JumpStack:BaseJumpStack<JumpInstruction,JumpStack>
+		public sealed class JumpStack:BaseJumpStack<JumpInstruction,JumpStack,JumpFlow>
 		{
 			public override string ToStatement() => $"goto {Instruction.Destination.AsmLabel.GetLabel()} $ DONE";
 		}
-		public sealed class JumpFlow:BaseJumpFlow<JumpInstruction,JumpStack>;
+		public sealed class JumpFlow:BaseJumpFlow<JumpInstruction,JumpStack,JumpFlow>;
 	}
 
 	[Opcode(InstructionOpcode.ObjectFall)]
@@ -1964,25 +1939,18 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Return)]
-	public sealed class ReturnInstruction:NoStackInstruction<ReturnInstruction,ReturnInstruction.ReturnStack>
+	public sealed class ReturnInstruction:NoStackInstruction<ReturnInstruction,ReturnInstruction.ReturnStack,ReturnInstruction.ReturnFlow>
 	{
 		//Technically pops a value but we aren't counting it because it is pushed outisde the subroutine/trigger.
 
 		public sealed override bool Terminal => true;
 
-		public sealed override ReturnFlow FlowStatement{get;}
-
-		public ReturnInstruction()
-		{
-			FlowStatement = new(){Instruction = this};
-		}
-
-		public sealed class ReturnStack:NoStackStack<ReturnInstruction,ReturnStack>
+		public sealed class ReturnStack:NoStackStack<ReturnInstruction,ReturnStack,ReturnFlow>
 		{
 			public override string ToStatement() => "Return";
 		}
 
-		public sealed class ReturnFlow:NoStackFlow<ReturnInstruction,ReturnStack>,IFlowTerminal
+		public sealed class ReturnFlow:NoStackFlow<ReturnInstruction,ReturnStack,ReturnFlow>,IFlowTerminal
 		{
 			public override void Analyze(FlowAnalyzer flow){}
 		}
@@ -2029,41 +1997,27 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.JumpImm)]
-	public sealed class JumpImmInstruction:BaseJumpInstruction<JumpImmInstruction,JumpImmInstruction.JumpImmStack>
+	public sealed class JumpImmInstruction:BaseJumpInstruction<JumpImmInstruction,JumpImmInstruction.JumpImmStack,JumpImmInstruction.JumpImmFlow>
 	{
-		public sealed override JumpImmFlow FlowStatement{get;}
-
-		public JumpImmInstruction()
-		{
-			FlowStatement = new(){Instruction = this};
-		}
-
-		public sealed class JumpImmStack:BaseJumpStack<JumpImmInstruction,JumpImmStack>
+		public sealed class JumpImmStack:BaseJumpStack<JumpImmInstruction,JumpImmStack,JumpImmFlow>
 		{
 			public override string ToStatement() => $"goto {Instruction.Destination.AsmLabel.GetLabel()} $ IMM";
 		}
 
-		public sealed class JumpImmFlow:BaseJumpFlow<JumpImmInstruction,JumpImmStack>;
+		public sealed class JumpImmFlow:BaseJumpFlow<JumpImmInstruction,JumpImmStack,JumpImmFlow>;
 	}
 
 	[Opcode(InstructionOpcode.EndStrat)]
-	public sealed class EndStratInstruction:NoStackInstruction<EndStratInstruction,EndStratInstruction.EndStratStack>
+	public sealed class EndStratInstruction:NoStackInstruction<EndStratInstruction,EndStratInstruction.EndStratStack,EndStratInstruction.EndStratFlow>
 	{
 		public sealed override bool Terminal => true;
 
-		public sealed override EndStratFlow FlowStatement{get;}
-
-		public EndStratInstruction()
-		{
-			FlowStatement = new(){Instruction = this};
-		}
-
-		public sealed class EndStratStack:NoStackStack<EndStratInstruction,EndStratStack>
+		public sealed class EndStratStack:NoStackStack<EndStratInstruction,EndStratStack,EndStratFlow>
 		{
 			public override string ToStatement() => "EndStrat";
 		}
 
-		public sealed class EndStratFlow:NoStackFlow<EndStratInstruction,EndStratStack>,IFlowTerminal
+		public sealed class EndStratFlow:NoStackFlow<EndStratInstruction,EndStratStack,EndStratFlow>,IFlowTerminal
 		{
 			public override void Analyze(FlowAnalyzer flow){}
 		}
@@ -2094,16 +2048,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Index_Jump)]
-	public sealed class IndexJumpInstruction:PureConsumerInstruction<IndexJumpInstruction,IndexJumpInstruction.SwitchStack>
+	public sealed class IndexJumpInstruction:PureConsumerInstruction<IndexJumpInstruction,IndexJumpInstruction.SwitchStack,IndexJumpInstruction.SwitchFlow>
 	{
 		public (int[] Comparands,Instruction Destination)[] Cases;
-
-		public sealed override SwitchFlow FlowStatement{get;}
-
-		public IndexJumpInstruction()
-		{
-			FlowStatement = new(){Instruction = this};
-		}
 
 		public sealed override void Setup(AsmParser parser)
 		{
@@ -2132,7 +2079,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			}
 		}
 
-		public sealed class SwitchStack:PureConsumerStack<IndexJumpInstruction,SwitchStack>
+		public sealed class SwitchStack:PureConsumerStack<IndexJumpInstruction,SwitchStack,SwitchFlow>
 		{
 			public override int PopCount => 1;
 
@@ -2169,7 +2116,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			}
 		}
 
-		public sealed class SwitchFlow:PureConsumerFlow<IndexJumpInstruction,SwitchStack>,IFlowControl
+		public sealed class SwitchFlow:PureConsumerFlow<IndexJumpInstruction,SwitchStack,SwitchFlow>,IFlowControl
 		{
 			public IStackStatement ControlStatement => Instruction.StackOperation;
 

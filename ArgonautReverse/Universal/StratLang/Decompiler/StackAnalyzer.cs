@@ -43,6 +43,19 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public abstract bool TryGetSubroutine([MaybeNullWhen(false)]out AsmInstruction subroutine);
 		public abstract bool TryGetLabel([MaybeNullWhen(false)]out AsmInstruction label);
 	}
+	public abstract class OperationStack<TInstruction>:IStackOperation where TInstruction:Instruction
+	{
+		public /*required*/ TInstruction Instruction{get;init;}
+		Instruction IStackOperation.OperationInstruction => Instruction;
+
+		public abstract IStackStatement Statement{get;}
+		public abstract void Analyze(StackAnalyzer stack);
+
+		public abstract IEnumerable<IStackOperation> GetRootOperations();
+
+		public abstract bool TryGetSubroutine([MaybeNullWhen(false)]out AsmInstruction subroutine);
+		public abstract bool TryGetLabel([MaybeNullWhen(false)]out AsmInstruction label);
+	}
 
 	//public interface IStackOperation<TInstruction>:IStackOperation where TInstruction:Instruction
 	//{
