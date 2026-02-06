@@ -56,10 +56,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public InstructionOpcode Opcode{get;} = opcode;
 	}
 
-	public abstract class UnimplementedInstruction:Instruction
+	public abstract class UnimplementedInstruction:BaseOperandInstruction<UnimplementedInstruction,UnimplementedInstruction.UnimplementedStack>
 	{
-		public sealed override IStackOperation? StackOperation => null;
-
 		public UnimplementedInstruction(bool fail = true)
 		{
 			if(fail)
@@ -71,311 +69,296 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 				Console.WriteLine($"Instruction {GetType()} is not implmented in Croc 2");
 			}
 		}
-	}
 
-	public abstract class BaseOperandInstruction:Instruction
-	{
-		public abstract class BaseOperandStack<TInstruction>(TInstruction instruction):Stack<TInstruction>(instruction) where TInstruction:BaseOperandInstruction;
-	}
-
-	public abstract class BaseConsumerInstruction:BaseOperandInstruction
-	{
-		public abstract class BaseConsumerStack<TInstruction>(TInstruction instruction):BaseOperandStack<TInstruction>(instruction),IStackConsumer where TInstruction:BaseConsumerInstruction
+		public sealed class UnimplementedStack:BaseOperandStack<UnimplementedInstruction,UnimplementedStack>
 		{
-			public abstract int PopCount{get;}
+			public override IStackStatement Statement => throw new NotImplementedException();
 
-			public IStackProducer[] Operands{get;private set;}
-
-			public override void Analyze(StackAnalyzer stack)
-			{
-				Operands = new IStackProducer[PopCount];
-				//Reverse order
-				for(int i=PopCount-1; i>=0; i--)
-				{
-					var operand = stack.Pop();
-					if(operand.Consumer != null)
-					{
-						throw new Exception("Consumer already set");
-					}
-					operand.Consumer = this;
-
-					Operands[i] = operand;
-				}
-			}
-
-			public override IEnumerable<IStackOperation> GetRootOperations() => Operands.SelectMany(o => o.GetRootOperations());
-
-			public override bool TryGetSubroutine([MaybeNullWhen(false)]out AsmInstruction subroutine)
-			{
-				foreach(var operand in Operands)
-				{
-					var producer = (IStackLabellable)operand;
-					if(producer.TryGetSubroutine(out var producerSubroutine))
-					{
-						subroutine = producerSubroutine;
-						return true;
-					}
-				}
-				subroutine = null;
-				return false;
-			}
-
-			public override bool TryGetLabel([MaybeNullWhen(false)]out AsmInstruction label)
-			{
-				label = null;
-				foreach(var operand in Operands)
-				{
-					var producer = (IStackLabellable)operand;
-					if(producer.TryGetLabel(out var producerLabel))
-					{
-						if(label != null)
-						{
-							throw new Exception("Label already found");
-						}
-						label = producerLabel;
-					}
-				}
-				return label != null && label.HasLabel;
-			}
+			public override void Analyze(StackAnalyzer stack){}
+			public override IEnumerable<IStackOperation> GetRootOperations() => throw new NotImplementedException();
+			public override bool TryGetLabel([MaybeNullWhen(false)] out AsmInstruction label) => throw new NotImplementedException();
+			public override bool TryGetSubroutine([MaybeNullWhen(false)] out AsmInstruction subroutine) => throw new NotImplementedException();
 		}
 	}
 
-	public abstract class PureConsumerInstruction:BaseConsumerInstruction
+	public abstract class BaseOperandInstruction<TInstruction,TStack>:Instruction where TInstruction:BaseOperandInstruction<TInstruction,TStack> where TStack:BaseOperandStack<TInstruction,TStack>,new()
 	{
-		public sealed override IStackOperation StackOperation => StackStatement;
-		public abstract IStackStatement StackStatement{get;}
+		public sealed override TStack StackOperation{get;}
+
+		public BaseOperandInstruction()
+		{
+			StackOperation = new(){Instruction = (TInstruction)this};
+		}
+	}
+	public abstract class BaseOperandStack<TInstruction,TStack>:OperandStack<TInstruction,TStack> where TInstruction:BaseOperandInstruction<TInstruction,TStack> where TStack:BaseOperandStack<TInstruction,TStack>,new();
+
+	public abstract class BaseConsumerInstruction<TInstruction,TStack>:BaseOperandInstruction<TInstruction,TStack> where TInstruction:BaseConsumerInstruction<TInstruction,TStack> where TStack:BaseConsumerStack<TInstruction,TStack>,new();
+	public abstract class BaseConsumerStack<TInstruction,TStack>:BaseOperandStack<TInstruction,TStack>,IStackConsumer where TInstruction:BaseConsumerInstruction<TInstruction,TStack> where TStack:BaseConsumerStack<TInstruction,TStack>,new()
+	{
+		public abstract int PopCount{get;}
+
+		public IStackProducer[] Operands{get;private set;}
+
+		public override void Analyze(StackAnalyzer stack)
+		{
+			Operands = new IStackProducer[PopCount];
+			//Reverse order
+			for(int i=PopCount-1; i>=0; i--)
+			{
+				var operand = stack.Pop();
+				if(operand.Consumer != null)
+				{
+					throw new Exception("Consumer already set");
+				}
+				operand.Consumer = this;
+
+				Operands[i] = operand;
+			}
+		}
+
+		public override IEnumerable<IStackOperation> GetRootOperations() => Operands.SelectMany(o => o.GetRootOperations());
+
+		public override bool TryGetSubroutine([MaybeNullWhen(false)]out AsmInstruction subroutine)
+		{
+			foreach(var operand in Operands)
+			{
+				var producer = operand;
+				if(producer.TryGetSubroutine(out var producerSubroutine))
+				{
+					subroutine = producerSubroutine;
+					return true;
+				}
+			}
+			subroutine = null;
+			return false;
+		}
+
+		public override bool TryGetLabel([MaybeNullWhen(false)]out AsmInstruction label)
+		{
+			label = null;
+			foreach(var operand in Operands)
+			{
+				var producer = operand;
+				if(producer.TryGetLabel(out var producerLabel))
+				{
+					if(label != null)
+					{
+						throw new Exception("Label already found");
+					}
+					label = producerLabel;
+				}
+			}
+			return label != null && label.HasLabel;
+		}
+	}
+
+	public abstract class PureConsumerInstruction<TInstruction,TStack>:BaseConsumerInstruction<TInstruction,TStack> where TInstruction:PureConsumerInstruction<TInstruction,TStack> where TStack:PureConsumerStack<TInstruction,TStack>,new()
+	{
 		public abstract FlowStatement FlowStatement{get;}
+	}
+	public abstract class PureConsumerStack<TInstruction,TStack>:BaseConsumerStack<TInstruction,TStack>,IStackStatement where TInstruction:PureConsumerInstruction<TInstruction,TStack> where TStack:PureConsumerStack<TInstruction,TStack>,new()
+	{
+		public Instruction StatementInstruction => Instruction;
+		public FlowStatement FlowStatement => Instruction.FlowStatement;
 
-		public abstract class PureConsumerStack<TInstruction>(TInstruction instruction):BaseConsumerStack<TInstruction>(instruction),IStackStatement where TInstruction:PureConsumerInstruction
+		public override IStackStatement Statement => this;
+
+		public AsmInstruction StatementLabel{get;private set;}
+		public Instruction FirstInstruction{get;private set;}
+
+		public IStackStatement NextStatement{get;set;}
+		public IStackStatement PrevStatement{get;set;}
+
+		public abstract string ToStatement();
+
+		public override void Analyze(StackAnalyzer stack)
 		{
-			public Instruction StatementInstruction => Instruction;
-			public FlowStatement FlowStatement => Instruction.FlowStatement;
+			base.Analyze(stack);
 
-			public override IStackStatement Statement => this;
-
-			public AsmInstruction StatementLabel{get;private set;}
-			public Instruction FirstInstruction{get;private set;}
-			
-			public IStackStatement NextStatement{get;set;}
-			public IStackStatement PrevStatement{get;set;}
-
-			public abstract string ToStatement();
-
-			public override void Analyze(StackAnalyzer stack)
-			{
-				base.Analyze(stack);
-			
-				StatementLabel = stack.CurrentStatementFirstInstruction.AsmLabel;
-				FirstInstruction = stack.CurrentStatementFirstInstruction;
-			}
-		}
-
-		public abstract class PureConsumerFlow<TInstruction>(TInstruction instruction):FlowStatement<TInstruction>(instruction) where TInstruction:PureConsumerInstruction
-		{
-			public sealed override IStackStatement StackStatement => Instruction.StackStatement;
+			StatementLabel = stack.CurrentStatementFirstInstruction.AsmLabel;
+			FirstInstruction = stack.CurrentStatementFirstInstruction;
 		}
 	}
 
-	public abstract class SimplePureConsumerInstruction:PureConsumerInstruction
+	public abstract class PureConsumerFlow<TInstruction,TStack>:FlowStatement<TInstruction> where TInstruction:PureConsumerInstruction<TInstruction,TStack> where TStack:PureConsumerStack<TInstruction,TStack>,new()
 	{
-		public sealed override SimplePureConsumerFlow FlowStatement{get;}
+		public sealed override IStackStatement StackStatement => Instruction.StackOperation;
+	}
+
+	public abstract class SimplePureConsumerInstruction<TInstruction,TStack>:PureConsumerInstruction<TInstruction,TStack> where TInstruction:SimplePureConsumerInstruction<TInstruction,TStack> where TStack:SimplePureConsumerStack<TInstruction,TStack>,new()
+	{
+		public sealed override SimplePureConsumerFlow<TInstruction,TStack> FlowStatement{get;}
 
 		public SimplePureConsumerInstruction()
 		{
-			FlowStatement = new(this);
-		}
-
-		public abstract class SimplePureConsumerStack<TInstruction>(TInstruction instruction):PureConsumerStack<TInstruction>(instruction) where TInstruction:SimplePureConsumerInstruction;
-
-		public sealed class SimplePureConsumerFlow(SimplePureConsumerInstruction instruction):PureConsumerFlow<SimplePureConsumerInstruction>(instruction)
-		{
-			public override void Analyze(FlowAnalyzer flow){}
+			FlowStatement = new(){Instruction = (TInstruction)this};
 		}
 	}
+	public abstract class SimplePureConsumerStack<TInstruction,TStack>:PureConsumerStack<TInstruction,TStack> where TInstruction:SimplePureConsumerInstruction<TInstruction,TStack> where TStack:SimplePureConsumerStack<TInstruction,TStack>,new();
 
-	public abstract class PureProducerInstruction:BaseOperandInstruction
+	public sealed class SimplePureConsumerFlow<TInstruction,TStack>:PureConsumerFlow<TInstruction,TStack> where TInstruction:SimplePureConsumerInstruction<TInstruction,TStack> where TStack:SimplePureConsumerStack<TInstruction,TStack>,new()
 	{
-		public sealed override IStackOperation StackOperation => StackProducer;
-		public abstract IStackProducer StackProducer{get;}
+		public override void Analyze(FlowAnalyzer flow){}
+	}
+
+	public abstract class PureProducerInstruction<TInstruction,TStack>:BaseOperandInstruction<TInstruction,TStack> where TInstruction:PureProducerInstruction<TInstruction,TStack> where TStack:PureProducerStack<TInstruction,TStack>,new();
+	public abstract class PureProducerStack<TInstruction,TStack>:BaseOperandStack<TInstruction,TStack>,IStackProducer where TInstruction:PureProducerInstruction<TInstruction,TStack> where TStack:PureProducerStack<TInstruction,TStack>,new()
+	{
+		public IStackConsumer Consumer{get;set;}
+
+		public sealed override IStackStatement Statement => Consumer.Statement;
 
 		public virtual bool Literal => false;
 
-		public abstract class PureProducerStack<TInstruction>(TInstruction instruction):BaseOperandStack<TInstruction>(instruction),IStackProducer where TInstruction:PureProducerInstruction
+		public sealed override void Analyze(StackAnalyzer stack)
 		{
-			public IStackConsumer Consumer{get;set;}
+			stack.Push(this);
+		}
 
-			public sealed override IStackStatement Statement => Consumer.Statement;
+		public override IEnumerable<IStackOperation> GetRootOperations(){yield return this;}
 
-			public virtual bool Literal => false;
+		public abstract string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown);
+		public virtual string ToConditionStr(bool checkTrue) => checkTrue ? $"{ToExpressionString()} != 0" : $"{ToExpressionString()} = 0";
 
-			public sealed override void Analyze(StackAnalyzer stack)
-			{
-				stack.Push(this);
-			}
+		public sealed override bool TryGetSubroutine(out AsmInstruction subroutine)
+		{
+			subroutine = Instruction.AsmLabel;
+			return Instruction.AsmLabel.IsSubroutineEntry;
+		}
 
-			public override IEnumerable<IStackOperation> GetRootOperations(){yield return this;}
-
-			public abstract string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown);
-			public virtual string ToConditionStr(bool checkTrue) => checkTrue ? $"{ToExpressionString()} != 0" : $"{ToExpressionString()} = 0";
-
-			public sealed override bool TryGetSubroutine(out AsmInstruction subroutine)
-			{
-				subroutine = Instruction.AsmLabel;
-				return Instruction.AsmLabel.IsSubroutineEntry;
-			}
-
-			public sealed override bool TryGetLabel(out AsmInstruction label)
-			{
-				label = Instruction.AsmLabel;
-				return label.HasLabel;
-			}
+		public sealed override bool TryGetLabel(out AsmInstruction label)
+		{
+			label = Instruction.AsmLabel;
+			return label.HasLabel;
 		}
 	}
 
-	public abstract class BaseExpressionInstruction:BaseConsumerInstruction
+	public abstract class BaseExpressionInstruction<TInstruction,TStack>:BaseConsumerInstruction<TInstruction,TStack> where TInstruction:BaseExpressionInstruction<TInstruction,TStack> where TStack:BaseExpressionStack<TInstruction,TStack>,new();
+
+	public abstract class BaseExpressionStack<TInstruction,TStack>:BaseConsumerStack<TInstruction,TStack>,IStackExpression where TInstruction:BaseExpressionInstruction<TInstruction,TStack> where TStack:BaseExpressionStack<TInstruction,TStack>,new()
 	{
-		public abstract class BaseExpressionStack<TInstruction>(TInstruction instruction):BaseConsumerStack<TInstruction>(instruction),IStackExpression where TInstruction:BaseExpressionInstruction
+		public IStackConsumer Consumer{get;set;}
+
+		public sealed override IStackStatement Statement => Consumer.Statement;
+
+		public sealed override void Analyze(StackAnalyzer stack)
 		{
-			public IStackConsumer Consumer{get;set;}
-
-			public sealed override IStackStatement Statement => Consumer.Statement;
-
-			public sealed override void Analyze(StackAnalyzer stack)
-			{
-				base.Analyze(stack);
-				stack.Push(this);
-			}
-
-			public abstract string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown);
-			public virtual string ToConditionStr(bool checkTrue) => checkTrue ? $"{ToExpressionString()} != 0" : $"{ToExpressionString()} = 0";
+			base.Analyze(stack);
+			stack.Push(this);
 		}
+
+		public abstract string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown);
+		public virtual string ToConditionStr(bool checkTrue) => checkTrue ? $"{ToExpressionString()} != 0" : $"{ToExpressionString()} = 0";
 	}
 
 	/// <summary>Instructions that don't use the stack</summary>
-	public abstract class NoStackInstruction:Instruction
+	public abstract class NoStackInstruction<TInstruction,TStack>:BaseOperandInstruction<TInstruction,TStack> where TInstruction:NoStackInstruction<TInstruction,TStack> where TStack:BaseOperandStack<TInstruction,TStack>,new()
 	{
-		public sealed override IStackOperation StackOperation => StackStatement;
-		public abstract IStackStatement StackStatement{get;}
-
 		public abstract FlowStatement FlowStatement{get;}
+	}
+	public abstract class NoStackStack<TInstruction,TStack>:BaseOperandStack<TInstruction,TStack>,IStackStatement where TInstruction:NoStackInstruction<TInstruction,TStack> where TStack:NoStackStack<TInstruction,TStack>,new()
+	{
+		public Instruction OperationInstruction => Instruction;
 
-		public abstract class NoStackStack<TInstruction>(TInstruction instruction):Stack<TInstruction>(instruction),IStackStatement where TInstruction:NoStackInstruction
+		public Instruction StatementInstruction => Instruction;
+		public FlowStatement FlowStatement => Instruction.FlowStatement;
+
+		public AsmInstruction StatementLabel => Instruction.AsmLabel;
+		public Instruction FirstInstruction => Instruction;
+
+		public sealed override IStackStatement Statement => this;
+
+		public IStackStatement NextStatement{get;set;}
+		public IStackStatement PrevStatement{get;set;}
+
+		public IStackStatement StackStatement => this;
+
+		public override void Analyze(StackAnalyzer stack){}
+
+		public abstract string ToStatement();
+
+		public sealed override IEnumerable<IStackOperation> GetRootOperations() => [this];
+
+		public sealed override bool TryGetSubroutine([MaybeNullWhen(false)]out AsmInstruction subroutine)
 		{
-			public Instruction OperationInstruction => Instruction;
-
-			public Instruction StatementInstruction => Instruction;
-			public FlowStatement FlowStatement => Instruction.FlowStatement;
-
-			public AsmInstruction StatementLabel => Instruction.AsmLabel;
-			public Instruction FirstInstruction => Instruction;
-
-			public sealed override IStackStatement Statement => this;
-
-			public IStackStatement NextStatement{get;set;}
-			public IStackStatement PrevStatement{get;set;}
-
-			public IStackStatement StackStatement => this;
-
-			public override void Analyze(StackAnalyzer stack){}
-
-			public abstract string ToStatement();
-
-			public sealed override IEnumerable<IStackOperation> GetRootOperations() => [this];
-
-			public sealed override bool TryGetSubroutine([MaybeNullWhen(false)]out AsmInstruction subroutine)
+			if(Instruction.AsmLabel.IsSubroutineEntry)
 			{
-				if(Instruction.AsmLabel.IsSubroutineEntry)
-				{
-					subroutine = Instruction.AsmLabel;
-					return true;
-				}
-				subroutine = null;
-				return false;
+				subroutine = Instruction.AsmLabel;
+				return true;
 			}
-
-			public sealed override bool TryGetLabel([MaybeNullWhen(false)]out AsmInstruction label)
-			{
-				if(Instruction.AsmLabel.HasLabel)
-				{
-					label = Instruction.AsmLabel;
-					return true;
-				}
-				label = null;
-				return false;
-			}
+			subroutine = null;
+			return false;
 		}
 
-		public abstract class NoStackFlow<TInstruction>(TInstruction instruction):FlowStatement<TInstruction>(instruction) where TInstruction:NoStackInstruction
+		public sealed override bool TryGetLabel([MaybeNullWhen(false)]out AsmInstruction label)
 		{
-			public sealed override IStackStatement StackStatement => Instruction.StackStatement;
+			if(Instruction.AsmLabel.HasLabel)
+			{
+				label = Instruction.AsmLabel;
+				return true;
+			}
+			label = null;
+			return false;
 		}
 	}
-	public abstract class SimpleNoStackInstruction:NoStackInstruction
+
+	public abstract class NoStackFlow<TInstruction,TStack>:FlowStatement<TInstruction> where TInstruction:NoStackInstruction<TInstruction,TStack> where TStack:NoStackStack<TInstruction,TStack>,new()
 	{
-		public sealed override SimpleNoStackFlow FlowStatement{get;}
+		public sealed override IStackStatement StackStatement => Instruction.StackOperation;
+	}
+
+	public abstract class SimpleNoStackInstruction<TInstruction,TStack>:NoStackInstruction<TInstruction,TStack> where TInstruction:SimpleNoStackInstruction<TInstruction,TStack> where TStack:SimpleNoStackStack<TInstruction,TStack>,new()
+	{
+		public sealed override SimpleNoStackFlow<TInstruction,TStack> FlowStatement{get;}	
 
 		public SimpleNoStackInstruction()
 		{
-			FlowStatement = new(this);
-		}
-
-		public abstract class SimpleNoStackStack<TInstruction>(TInstruction instruction):NoStackStack<TInstruction>(instruction) where TInstruction:SimpleNoStackInstruction;
-
-		public sealed class SimpleNoStackFlow(SimpleNoStackInstruction instruction):NoStackFlow<SimpleNoStackInstruction>(instruction)
-		{
-			public override void Analyze(FlowAnalyzer flow){}
+			FlowStatement = new(){Instruction = (TInstruction)this};
 		}
 	}
+	public abstract class SimpleNoStackStack<TInstruction,TStack>:NoStackStack<TInstruction,TStack> where TInstruction:SimpleNoStackInstruction<TInstruction,TStack> where TStack:SimpleNoStackStack<TInstruction,TStack>,new();
 
-	public abstract class SimpleNoOperandsNoStackInstruction:SimpleNoStackInstruction
+	public sealed class SimpleNoStackFlow<TInstruction,TStack>:NoStackFlow<TInstruction,TStack> where TInstruction:SimpleNoStackInstruction<TInstruction,TStack> where TStack:SimpleNoStackStack<TInstruction,TStack>,new()
 	{
-		public sealed override SimpleNoOperandsNoStackStack StackStatement{get;}
-
-		public SimpleNoOperandsNoStackInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SimpleNoOperandsNoStackStack(SimpleNoOperandsNoStackInstruction instruction):SimpleNoStackStack<SimpleNoOperandsNoStackInstruction>(instruction)
-		{
-			public sealed override string ToStatement()
-			{
-				//TODO: Make this better
-				string name = Instruction.GetType().GetCustomAttribute<OpcodeAttribute>()!.Opcode.ToString();
-				return name;
-			}
-		}
+		public override void Analyze(FlowAnalyzer flow){}
 	}
 
-	public abstract class BinaryOperationInstruction:BaseExpressionInstruction
+	public abstract class SimpleNoOperandsNoStackInstruction:SimpleNoStackInstruction<SimpleNoOperandsNoStackInstruction,SimpleNoOperandsNoStackStack>;
+	public sealed class SimpleNoOperandsNoStackStack:SimpleNoStackStack<SimpleNoOperandsNoStackInstruction,SimpleNoOperandsNoStackStack>
 	{
-		public abstract class BinaryOperationStack<TInstruction>(TInstruction instruction):BaseExpressionStack<TInstruction>(instruction) where TInstruction:BinaryOperationInstruction
+		public sealed override string ToStatement()
 		{
-			public override int PopCount => 2;
-
-			public IStackProducer ValueA => Operands[0];
-			public IStackProducer ValueB => Operands[1];
+			//TODO: Make this better
+			string name = Instruction.GetType().GetCustomAttribute<OpcodeAttribute>()!.Opcode.ToString();
+			return name;
 		}
 	}
 
-	public abstract class UnaryOperationInstruction:BaseExpressionInstruction
+	public abstract class BinaryOperationInstruction<TInstruction,TStack>:BaseExpressionInstruction<TInstruction,TStack> where TInstruction:BinaryOperationInstruction<TInstruction,TStack> where TStack:BinaryOperationStack<TInstruction,TStack>,new();
+	public abstract class BinaryOperationStack<TInstruction,TStack>:BaseExpressionStack<TInstruction,TStack> where TInstruction:BinaryOperationInstruction<TInstruction,TStack> where TStack:BinaryOperationStack<TInstruction,TStack>,new()
 	{
-		public abstract class UnaryOperationStack<TInstruction>(TInstruction instruction):BaseExpressionStack<TInstruction>(instruction) where TInstruction:UnaryOperationInstruction
-		{
-			public override int PopCount => 1;
+		public override int PopCount => 2;
 
-			public IStackProducer Value => Operands[0];
-		}
+		public IStackProducer ValueA => Operands[0];
+		public IStackProducer ValueB => Operands[1];
 	}
 
-	public abstract class BranchInstruction:PureConsumerInstruction
+	public abstract class UnaryOperationInstruction<TInstruction,TStack>:BaseExpressionInstruction<TInstruction,TStack> where TInstruction:UnaryOperationInstruction<TInstruction,TStack> where TStack:UnaryOperationStack<TInstruction,TStack>,new();
+	public abstract class UnaryOperationStack<TInstruction,TStack>:BaseExpressionStack<TInstruction,TStack> where TInstruction:UnaryOperationInstruction<TInstruction,TStack> where TStack:UnaryOperationStack<TInstruction,TStack>,new()
+	{
+		public override int PopCount => 1;
+
+		public IStackProducer Value => Operands[0];
+	}
+
+	public abstract class BranchInstruction<TInstruction,TStack>:PureConsumerInstruction<TInstruction,TStack> where TInstruction:BranchInstruction<TInstruction,TStack> where TStack:BranchStack<TInstruction,TStack>,new()
 	{
 		public Instruction ConditionalDest;
-		public sealed override BranchFlow FlowStatement{get;}
+		public sealed override BranchFlow<TInstruction,TStack> FlowStatement{get;}
 
 		public BranchInstruction()
 		{
-			FlowStatement = new(this);
+			FlowStatement = new(){Instruction = (TInstruction)this};
 		}
 
 		public sealed override void Setup(AsmParser parser)
@@ -385,34 +368,35 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			var branchAsmInstr = GetAsmInstruction<Disassembler.BranchInstruction>();
 			ConditionalDest = parser.GetInstruction(branchAsmInstr.ConditionalDest, null, this);
 		}
+	}
+	public abstract class BranchStack<TInstruction,TStack>:PureConsumerStack<TInstruction,TStack> where TInstruction:BranchInstruction<TInstruction,TStack> where TStack:BranchStack<TInstruction,TStack>,new()
+	{
+		public override int PopCount => 1;
 
-		public abstract class BranchStack<TInstruction>(TInstruction instruction):PureConsumerStack<TInstruction>(instruction) where TInstruction:BranchInstruction
+		public IStackProducer Condition => Operands[0];
+
+		public override void Analyze(StackAnalyzer stack)
 		{
-			public override int PopCount => 1;
-
-			public IStackProducer Condition => Operands[0];
-
-			public override void Analyze(StackAnalyzer stack)
-			{
-				base.Analyze(stack);
-				stack.AddDest(Instruction.ConditionalDest);
-			}
-		}
-
-		public sealed class BranchFlow(BranchInstruction instruction):PureConsumerFlow<BranchInstruction>(instruction),IFlowControl
-		{
-			public IStackStatement ControlStatement => Instruction.StackStatement;
-
-			public FlowStatement FlowConditionalDest => FlowDestinations[0];
-
-			public override void Analyze(FlowAnalyzer flow)
-			{
-				flow.AddDest(this, Instruction.ConditionalDest);
-			}
+			base.Analyze(stack);
+			stack.AddDest(Instruction.ConditionalDest);
 		}
 	}
 
-	public abstract class DialogSayInstruction:SimpleNoStackInstruction
+	public sealed class BranchFlow<TInstruction,TStack>:PureConsumerFlow<TInstruction,TStack>,IFlowControl,IFlowBranch where TInstruction:BranchInstruction<TInstruction,TStack> where TStack:BranchStack<TInstruction,TStack>,new()
+	{
+		FlowStatement IFlowBranch.FlowStatement => this;
+
+		public IStackStatement ControlStatement => Instruction.StackOperation;
+
+		public FlowStatement FlowConditionalDest => FlowDestinations[0];
+
+		public override void Analyze(FlowAnalyzer flow)
+		{
+			flow.AddDest(this, Instruction.ConditionalDest);
+		}
+	}
+
+	public abstract class DialogSayInstruction<TInstruction,TStack>:SimpleNoStackInstruction<TInstruction,TStack> where TInstruction:DialogSayInstruction<TInstruction,TStack> where TStack:DialogSayStack<TInstruction,TStack>,new()
 	{
 		public string EnglishString;
 
@@ -423,11 +407,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 			EnglishString = dialogSayAsmInstr.EnglishString;
 		}
-
-		public abstract class DialogSayStack<TInstruction>(TInstruction instruction):SimpleNoStackStack<TInstruction>(instruction) where TInstruction:DialogSayInstruction;
 	}
+	public abstract class DialogSayStack<TInstruction,TStack>:SimpleNoStackStack<TInstruction,TStack> where TInstruction:DialogSayInstruction<TInstruction,TStack> where TStack:DialogSayStack<TInstruction,TStack>,new();
 
-	public abstract class DialogSetInstruction:SimpleNoStackInstruction
+	public abstract class DialogSetInstruction<TInstruction,TStack>:SimpleNoStackInstruction<TInstruction,TStack> where TInstruction:DialogSetInstruction<TInstruction,TStack> where TStack:DialogSetStack<TInstruction,TStack>,new()
 	{
 		public bool State;
 
@@ -443,11 +426,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 				_ => throw new Exception("Unknown state")
 			};
 		}
-
-		public abstract class DialogSetStack<TInstruction>(TInstruction instruction):SimpleNoStackStack<TInstruction>(instruction) where TInstruction:DialogSetInstruction;
 	}
+	public abstract class DialogSetStack<TInstruction,TStack>:SimpleNoStackStack<TInstruction,TStack> where TInstruction:DialogSetInstruction<TInstruction,TStack> where TStack:DialogSetStack<TInstruction,TStack>,new();
 
-	public abstract class FlagInstruction:SimpleNoStackInstruction
+	public abstract class FlagInstruction:SimpleNoStackInstruction<FlagInstruction,FlagStack>
 	{
 		public readonly string Flag;
 
@@ -458,11 +440,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		//Operand
 		public bool NewState;
 
-		public sealed override FlagStack StackStatement{get;}
-
 		public FlagInstruction()
 		{
-			StackStatement = new(this);
 			Flag = this.GetType().GetCustomAttribute<OpcodeAttribute>().Opcode.ToString();
 		}
 
@@ -473,14 +452,13 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 			NewState = flagAsmInstr.NewState;
 		}
-
-		public sealed class FlagStack(FlagInstruction instruction):SimpleNoStackStack<FlagInstruction>(instruction)
-		{
-			public override string ToStatement() => $"{Instruction.Flag} {(Instruction.NewState ? "on" : "off")}";
-		}
+	}
+	public sealed class FlagStack:SimpleNoStackStack<FlagInstruction,FlagStack>
+	{
+		public override string ToStatement() => $"{Instruction.Flag} {(Instruction.NewState ? "on" : "off")}";
 	}
 
-	public abstract class ItemChangeInstruction:SimpleNoStackInstruction
+	public abstract class ItemChangeInstruction:SimpleNoStackInstruction<ItemChangeInstruction,ItemChangeStack>
 	{
 		//Give/take item from inventory
 
@@ -490,13 +468,6 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		//Operation
 		public abstract int Change{get;}
 
-		public sealed override ItemChangeStack StackStatement{get;}
-
-		public ItemChangeInstruction()
-		{
-			StackStatement = new(this);
-		}
-
 		public sealed override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
@@ -504,30 +475,22 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 			Item = itemChangeAsmInstr.Item;
 		}
-
-		public sealed class ItemChangeStack(ItemChangeInstruction instruction):SimpleNoStackStack<ItemChangeInstruction>(instruction)
+	}
+	public sealed class ItemChangeStack:SimpleNoStackStack<ItemChangeInstruction,ItemChangeStack>
+	{
+		public override string ToStatement() => Instruction.Change switch
 		{
-			public override string ToStatement() => Instruction.Change switch
-			{
-				-1 => $"DelInv {Instruction.Item}",
-				+1 => $"AddInv {Instruction.Item}",
-				_ => throw new Exception()
-			};
-		}
+			-1 => $"DelInv {Instruction.Item}",
+			+1 => $"AddInv {Instruction.Item}",
+			_ => throw new Exception()
+		};
 	}
 
-	public abstract class BaseJumpInstruction:NoStackInstruction
+	public abstract class BaseJumpInstruction<TInstruction,TStack>:NoStackInstruction<TInstruction,TStack> where TInstruction:BaseJumpInstruction<TInstruction,TStack> where TStack:BaseJumpStack<TInstruction,TStack>,new()
 	{
 		public sealed override bool Terminal => true;
 
 		public Instruction Destination;
-
-		public sealed override JumpFlow FlowStatement{get;}
-
-		public BaseJumpInstruction()
-		{
-			FlowStatement = new(this);
-		}
 
 		public sealed override void Setup(AsmParser parser)
 		{
@@ -535,31 +498,32 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			var jumpAsmInstr = GetAsmInstruction<Disassembler.JumpInstruction>();
 			Destination = parser.GetInstruction(jumpAsmInstr.Destination, null, this);
 		}
-
-		public abstract class BaseJumpStack<TInstruction>(TInstruction instruction):NoStackStack<TInstruction>(instruction) where TInstruction:BaseJumpInstruction
+	}
+	public abstract class BaseJumpStack<TInstruction,TStack>:NoStackStack<TInstruction,TStack> where TInstruction:BaseJumpInstruction<TInstruction,TStack> where TStack:BaseJumpStack<TInstruction,TStack>,new()
+	{
+		public override void Analyze(StackAnalyzer stack)
 		{
-			public override void Analyze(StackAnalyzer stack)
-			{
-				base.Analyze(stack);
+			base.Analyze(stack);
 
-				stack.AddDest(Instruction.Destination);
-			}
-		}
-
-		public sealed class JumpFlow(BaseJumpInstruction instruction):NoStackFlow<BaseJumpInstruction>(instruction),IFlowTerminal,IFlowControl
-		{
-			public IStackStatement ControlStatement => Instruction.StackStatement;
-
-			public FlowStatement FlowDestination => FlowDestinations[0];
-
-			public override void Analyze(FlowAnalyzer flow)
-			{
-				flow.AddDest(this, Instruction.Destination);
-			}
+			stack.AddDest(Instruction.Destination);
 		}
 	}
 
-	public abstract class BaseJumpSubroutineInstruction:SimpleNoStackInstruction
+	public abstract class BaseJumpFlow<TInstruction,TStack>:NoStackFlow<TInstruction,TStack>,IFlowTerminal,IFlowControl,IFlowJump where TInstruction:BaseJumpInstruction<TInstruction,TStack> where TStack:BaseJumpStack<TInstruction,TStack>,new()
+	{
+		FlowStatement IFlowJump.FlowStatement => this;
+
+		public IStackStatement ControlStatement => Instruction.StackOperation;
+
+		public FlowStatement FlowDestination => FlowDestinations[0];
+
+		public override void Analyze(FlowAnalyzer flow)
+		{
+			flow.AddDest(this, Instruction.Destination);
+		}
+	}
+
+	public abstract class BaseJumpSubroutineInstruction<TInstruction,TStack>:SimpleNoStackInstruction<TInstruction,TStack> where TInstruction:BaseJumpSubroutineInstruction<TInstruction,TStack> where TStack:BaseJumpSubroutineStack<TInstruction,TStack>,new()
 	{
 		//Technically pushes a value but we aren't counting it because it's popped outside of this subroutine.
 
@@ -571,21 +535,18 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			var jumpSubroutineAsmInstr = GetAsmInstruction<Disassembler.JumpSubroutineInstruction>();
 			Proc = parser.GetProc(jumpSubroutineAsmInstr.Proc, this);
 		}
-
-		public abstract class BaseJumpSubroutineStack<TInstruction>(TInstruction instruction):SimpleNoStackStack<BaseJumpSubroutineInstruction>(instruction) where TInstruction:BaseJumpSubroutineInstruction;
 	}
+	public abstract class BaseJumpSubroutineStack<TInstruction,TStack>:SimpleNoStackStack<TInstruction,TStack> where TInstruction:BaseJumpSubroutineInstruction<TInstruction,TStack> where TStack:BaseJumpSubroutineStack<TInstruction,TStack>,new();
 
-	public abstract class BaseMoveInstruction:SimplePureConsumerInstruction
+	public abstract class BaseMoveInstruction<TInstruction,TStack>:SimplePureConsumerInstruction<TInstruction,TStack> where TInstruction:BaseMoveInstruction<TInstruction,TStack> where TStack:BaseMoveStack<TInstruction,TStack>,new();
+	public abstract class BaseMoveStack<TInstruction,TStack>:SimplePureConsumerStack<TInstruction,TStack> where TInstruction:BaseMoveInstruction<TInstruction,TStack> where TStack:BaseMoveStack<TInstruction,TStack>,new()
 	{
-		public abstract class BaseMoveStack<TInstruction>(TInstruction instruction):SimplePureConsumerStack<BaseMoveInstruction>(instruction) where TInstruction:BaseMoveInstruction
-		{
-			public override int PopCount => 1;
+		public override int PopCount => 1;
 
-			public IStackProducer Amount => Operands[0];
-		}
+		public IStackProducer Amount => Operands[0];
 	}
 
-	public abstract class BasePrintInstruction:SimpleNoStackInstruction
+	public abstract class BasePrintInstruction<TInstruction,TStack>:SimpleNoStackInstruction<TInstruction,TStack> where TInstruction:BasePrintInstruction<TInstruction,TStack> where TStack:SimpleNoStackStack<TInstruction,TStack>,new()
 	{
 		public string Data;
 
@@ -674,11 +635,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		}
 	}
 
-	public abstract class BaseSpawnInstruction:SimpleNoStackInstruction
+	public abstract class BaseSpawnInstruction<TInstruction,TStack>:SimpleNoStackInstruction<TInstruction,TStack> where TInstruction:BaseSpawnInstruction<TInstruction,TStack> where TStack:BaseSpawnStack<TInstruction,TStack>,new()
 	{
 		//Normally this would pop the Proc address off the stack,
 		//but we merged it with this instruction in the extractor.
-		
+
 		public int LocalVarsToPop;
 		public int LocalCount;
 		public int TriggerCount;
@@ -692,7 +653,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			base.Setup(parser);
 
 			var spawnAsmInstr = GetAsmInstruction<Disassembler.BaseSpawnInstruction>();
-			
+
 			SpawnStratProc = parser.GetStrat(spawnAsmInstr.SpawnStratProc, this);
 
 			LocalVarsToPop = spawnAsmInstr.LocalVarsToPop;
@@ -701,11 +662,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			CollisionSize = spawnAsmInstr.CollisionSize;
 			CollisionBoneCount = spawnAsmInstr.CollisionBoneCount;
 		}
-
-		public abstract class BaseSpawnStack<TInstruction>(TInstruction instruction):SimpleNoStackStack<TInstruction>(instruction) where TInstruction:BaseSpawnInstruction;
 	}
+	public abstract class BaseSpawnStack<TInstruction,TStack>:SimpleNoStackStack<TInstruction,TStack> where TInstruction:BaseSpawnInstruction<TInstruction,TStack> where TStack:BaseSpawnStack<TInstruction,TStack>,new();
 
-	public abstract class TriggerUpdateInstruction:SimpleNoStackInstruction
+	public abstract class TriggerUpdateInstruction<TInstruction,TStack>:SimpleNoStackInstruction<TInstruction,TStack> where TInstruction:TriggerUpdateInstruction<TInstruction,TStack> where TStack:TriggerUpdateStack<TInstruction,TStack>,new()
 	{
 		public Instruction TriggerProc;
 
@@ -715,11 +675,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			var triggerUpdateAsmInstr = GetAsmInstruction<Disassembler.TriggerUpdateInstruction>();
 			TriggerProc = parser.GetTrigger(triggerUpdateAsmInstr.TriggerProc, this);
 		}
-
-		public abstract class TriggerUpdateStack<TInstruction>(TInstruction instruction):SimpleNoStackStack<TInstruction>(instruction) where TInstruction:TriggerUpdateInstruction;
 	}
+	public abstract class TriggerUpdateStack<TInstruction,TStack>:SimpleNoStackStack<TInstruction,TStack> where TInstruction:TriggerUpdateInstruction<TInstruction,TStack> where TStack:TriggerUpdateStack<TInstruction,TStack>,new();
 
-	public abstract class VarInstruction:PureProducerInstruction
+	public abstract class VarInstruction:PureProducerInstruction<VarInstruction,VarInstruction.VarStack>
 	{
 		public enum SourceStrat
 		{
@@ -742,13 +701,6 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		//Strat Lang didn't have pointers
 		public abstract bool GetAddress{get;}//false to get value of var, true to get address of var
 
-		public sealed override VarStack StackProducer{get;}
-
-		public VarInstruction()
-		{
-			StackProducer = new(this);
-		}
-
 		public sealed override void Setup(AsmParser parser)
 		{
 			base.Setup(parser);
@@ -765,7 +717,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			};
 		}
 
-		public sealed class VarStack(VarInstruction instruction):PureProducerStack<VarInstruction>(instruction)
+		public sealed class VarStack:PureProducerStack<VarInstruction,VarStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown)
 			{
@@ -795,28 +747,25 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.CommandError)]
-	public sealed class CommandErrorInstruction:NoStackInstruction
+	public sealed class CommandErrorInstruction:NoStackInstruction<CommandErrorInstruction,CommandErrorStack>
 	{
 		public sealed override bool Terminal => true;
-		
-		public sealed override CommandErrorStack StackStatement{get;}
+
 		public sealed override CommandErrorFlow FlowStatement{get;}
 
 		public CommandErrorInstruction()
 		{
-			StackStatement = new(this);
-			FlowStatement = new(this);
+			FlowStatement = new(){Instruction = this};
 		}
+	}
+	public sealed class CommandErrorStack:NoStackStack<CommandErrorInstruction,CommandErrorStack>
+	{
+		public override string ToStatement() => "COMMAND ERROR";
+	}
 
-		public sealed class CommandErrorStack(CommandErrorInstruction instruction):NoStackStack<CommandErrorInstruction>(instruction)
-		{
-			public override string ToStatement() => "COMMAND ERROR";
-		}
-
-		public sealed class CommandErrorFlow(CommandErrorInstruction instruction):NoStackFlow<CommandErrorInstruction>(instruction),IFlowTerminal
-		{
-			public override void Analyze(FlowAnalyzer flow){}
-		}
+	public sealed class CommandErrorFlow:NoStackFlow<CommandErrorInstruction,CommandErrorStack>,IFlowTerminal
+	{
+		public override void Analyze(FlowAnalyzer flow){}
 	}
 
 	[Opcode(InstructionOpcode.Local)]
@@ -884,34 +833,18 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Print)]
-	public sealed class PrintInstruction:BasePrintInstruction
+	public sealed class PrintInstruction:BasePrintInstruction<PrintInstruction,PrintInstruction.PrintStack>
 	{
-		public sealed override PrintStack StackStatement{get;}
-
-		public PrintInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class PrintStack(PrintInstruction instruction):SimpleNoStackStack<PrintInstruction>(instruction)
+		public sealed class PrintStack:SimpleNoStackStack<PrintInstruction,PrintStack>
 		{
 			public override string ToStatement() => $"print {Instruction.Data}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.Number)]
-	public sealed class NumberInstruction:PureProducerInstruction
+	public sealed class NumberInstruction:PureProducerInstruction<NumberInstruction,NumberInstruction.NumberStack>
 	{
-		public sealed override bool Literal => true;
-
 		public int Value;
-
-		public sealed override NumberStack StackProducer{get;}
-
-		public NumberInstruction()
-		{
-			StackProducer = new(this);
-		}
 
 		public sealed override void Setup(AsmParser parser)
 		{
@@ -949,8 +882,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			return false;
 		}
 
-		public sealed class NumberStack(NumberInstruction instruction):PureProducerStack<NumberInstruction>(instruction)
+		public sealed class NumberStack:PureProducerStack<NumberInstruction,NumberStack>
 		{
+			public sealed override bool Literal => true;
+
 			//TODO: We will want to move away from this
 			private static bool TryGetValue(int fixed12, out double value)
 			{
@@ -999,32 +934,18 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.UMinus)]
-	public sealed class UMinusInstruction:UnaryOperationInstruction
+	public sealed class UMinusInstruction:UnaryOperationInstruction<UMinusInstruction,UMinusInstruction.UMinusStack>
 	{
-		public sealed override UMinusStack StackOperation{get;}
-
-		public UMinusInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class UMinusStack(UMinusInstruction instruction):UnaryOperationStack<UMinusInstruction>(instruction)
+		public sealed class UMinusStack:UnaryOperationStack<UMinusInstruction,UMinusStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"-{Value.ToFxString()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.Increase)]
-	public sealed class IncreaseInstruction:SimplePureConsumerInstruction
+	public sealed class IncreaseInstruction:SimplePureConsumerInstruction<IncreaseInstruction,IncreaseInstruction.IncreaseStack>
 	{
-		public sealed override IncreaseStack StackStatement{get;}
-
-		public IncreaseInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class IncreaseStack(IncreaseInstruction instruction):SimplePureConsumerStack<IncreaseInstruction>(instruction)
+		public sealed class IncreaseStack:SimplePureConsumerStack<IncreaseInstruction,IncreaseStack>
 		{
 			public override int PopCount => 1;
 
@@ -1035,16 +956,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Decrease)]
-	public sealed class DecreaseInstruction:SimplePureConsumerInstruction
+	public sealed class DecreaseInstruction:SimplePureConsumerInstruction<DecreaseInstruction,DecreaseInstruction.DecreaseStack>
 	{
-		public sealed override DecreaseStack StackStatement{get;}
-
-		public DecreaseInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class DecreaseStack(DecreaseInstruction instruction):SimplePureConsumerStack<DecreaseInstruction>(instruction)
+		public sealed class DecreaseStack:SimplePureConsumerStack<DecreaseInstruction,DecreaseStack>
 		{
 			public override int PopCount => 1;
 
@@ -1055,80 +969,45 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Add)]
-	public sealed class AddInstruction:BinaryOperationInstruction
+	public sealed class AddInstruction:BinaryOperationInstruction<AddInstruction,AddInstruction.AddStack>
 	{
-		public sealed override AddStack StackOperation{get;}
-
-		public AddInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class AddStack(AddInstruction instruction):BinaryOperationStack<AddInstruction>(instruction)
+		public sealed class AddStack:BinaryOperationStack<AddInstruction,AddStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToFxString()} + {ValueB.ToFxString()})";
 		}
 	}
 
 	[Opcode(InstructionOpcode.Sub)]
-	public sealed class SubInstruction:BinaryOperationInstruction
+	public sealed class SubInstruction:BinaryOperationInstruction<SubInstruction,SubInstruction.SubStack>
 	{
-		public sealed override SubStack StackOperation{get;}
-
-		public SubInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class SubStack(SubInstruction instruction):BinaryOperationStack<SubInstruction>(instruction)
+		public sealed class SubStack:BinaryOperationStack<SubInstruction,SubStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToFxString()} - {ValueB.ToFxString()})";
 		}
 	}
 
 	[Opcode(InstructionOpcode.Mul)]
-	public sealed class MulInstruction:BinaryOperationInstruction
+	public sealed class MulInstruction:BinaryOperationInstruction<MulInstruction,MulInstruction.MulStack>
 	{
-		public sealed override MulStack StackOperation{get;}
-
-		public MulInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class MulStack(MulInstruction instruction):BinaryOperationStack<MulInstruction>(instruction)
+		public sealed class MulStack:BinaryOperationStack<MulInstruction,MulStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToFxString()} * {ValueB.ToFxString()})";
 		}
 	}
 
 	[Opcode(InstructionOpcode.Div)]
-	public sealed class DivInstruction:BinaryOperationInstruction
+	public sealed class DivInstruction:BinaryOperationInstruction<DivInstruction,DivInstruction.DivStack>
 	{
-		public sealed override DivStack StackOperation{get;}
-
-		public DivInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class DivStack(DivInstruction instruction):BinaryOperationStack<DivInstruction>(instruction)
+		public sealed class DivStack:BinaryOperationStack<DivInstruction,DivStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToFxString()} / {ValueB.ToFxString()})";
 		}
 	}
 
 	[Opcode(InstructionOpcode.Equals)]
-	public sealed class EqualsInstruction:SimplePureConsumerInstruction
+	public sealed class EqualsInstruction:SimplePureConsumerInstruction<EqualsInstruction,EqualsInstruction.EqualsStack>
 	{
-		public sealed override EqualsStack StackStatement{get;}
-
-		public EqualsInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class EqualsStack(EqualsInstruction instruction):SimplePureConsumerStack<EqualsInstruction>(instruction)
+		public sealed class EqualsStack:SimplePureConsumerStack<EqualsInstruction,EqualsStack>
 		{
 			public override int PopCount => 2;
 
@@ -1141,16 +1020,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Compare)]
-	public sealed class CompareInstruction:BinaryOperationInstruction
+	public sealed class CompareInstruction:BinaryOperationInstruction<CompareInstruction,CompareInstruction.CompareStack>
 	{
-		public sealed override CompareStack StackOperation{get;}
-
-		public CompareInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class CompareStack(CompareInstruction instruction):BinaryOperationStack<CompareInstruction>(instruction)
+		public sealed class CompareStack:BinaryOperationStack<CompareInstruction,CompareStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToFxString()} = {ValueB.ToFxString()})";
 			public override string ToConditionStr(bool checkTrue) => checkTrue ? $"({ValueA.ToFxString()} = {ValueB.ToFxString()})" : $"({ValueA.ToFxString()} != {ValueB.ToFxString()})";
@@ -1158,16 +1030,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.LessThan)]
-	public sealed class LessThanInstruction:BinaryOperationInstruction
+	public sealed class LessThanInstruction:BinaryOperationInstruction<LessThanInstruction,LessThanInstruction.LessThanStack>
 	{
-		public sealed override LessThanStack StackOperation{get;}
-
-		public LessThanInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class LessThanStack(LessThanInstruction instruction):BinaryOperationStack<LessThanInstruction>(instruction)
+		public sealed class LessThanStack:BinaryOperationStack<LessThanInstruction,LessThanStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToFxString()} < {ValueB.ToFxString()})";
 			public override string ToConditionStr(bool checkTrue) => checkTrue ? $"({ValueA.ToFxString()} < {ValueB.ToFxString()})" : $"({ValueA.ToFxString()} >= {ValueB.ToFxString()})";
@@ -1175,16 +1040,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.GreaterThan)]
-	public sealed class GreaterThanInstruction:BinaryOperationInstruction
+	public sealed class GreaterThanInstruction:BinaryOperationInstruction<GreaterThanInstruction,GreaterThanInstruction.GreaterThanStack>
 	{
-		public sealed override GreaterThanStack StackOperation{get;}
-
-		public GreaterThanInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class GreaterThanStack(GreaterThanInstruction instruction):BinaryOperationStack<GreaterThanInstruction>(instruction)
+		public sealed class GreaterThanStack:BinaryOperationStack<GreaterThanInstruction,GreaterThanStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToFxString()} > {ValueB.ToFxString()})";
 			public override string ToConditionStr(bool checkTrue) => checkTrue ? $"({ValueA.ToFxString()} > {ValueB.ToFxString()})" : $"({ValueA.ToFxString()} <= {ValueB.ToFxString()})";
@@ -1192,16 +1050,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.SetModel)]
-	public sealed class SetModelInstruction:SimplePureConsumerInstruction
+	public sealed class SetModelInstruction:SimplePureConsumerInstruction<SetModelInstruction,SetModelInstruction.SetModelStack>
 	{
-		public sealed override SetModelStack StackStatement{get;}
-
-		public SetModelInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SetModelStack(SetModelInstruction instruction):SimplePureConsumerStack<SetModelInstruction>(instruction)
+		public sealed class SetModelStack:SimplePureConsumerStack<SetModelInstruction,SetModelStack>
 		{
 			public override int PopCount => 1;
 
@@ -1212,16 +1063,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Scale)]
-	public sealed class ScaleInstruction:SimplePureConsumerInstruction
+	public sealed class ScaleInstruction:SimplePureConsumerInstruction<ScaleInstruction,ScaleInstruction.ScaleStack>
 	{
-		public sealed override ScaleStack StackStatement{get;}
-
-		public ScaleInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class ScaleStack(ScaleInstruction instruction):SimplePureConsumerStack<ScaleInstruction>(instruction)
+		public sealed class ScaleStack:SimplePureConsumerStack<ScaleInstruction,ScaleStack>
 		{
 			public override int PopCount => 1;
 
@@ -1232,16 +1076,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.ScaleX)]
-	public sealed class ScaleXInstruction:SimplePureConsumerInstruction
+	public sealed class ScaleXInstruction:SimplePureConsumerInstruction<ScaleXInstruction,ScaleXInstruction.ScaleXStack>
 	{
-		public sealed override ScaleXStack StackStatement{get;}
-
-		public ScaleXInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class ScaleXStack(ScaleXInstruction instruction):SimplePureConsumerStack<ScaleXInstruction>(instruction)
+		public sealed class ScaleXStack:SimplePureConsumerStack<ScaleXInstruction,ScaleXStack>
 		{
 			public override int PopCount => 1;
 
@@ -1252,16 +1089,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.ScaleY)]
-	public sealed class ScaleYInstruction:SimplePureConsumerInstruction
+	public sealed class ScaleYInstruction:SimplePureConsumerInstruction<ScaleYInstruction,ScaleYInstruction.ScaleYStack>
 	{
-		public sealed override ScaleYStack StackStatement{get;}
-
-		public ScaleYInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class ScaleYStack(ScaleYInstruction instruction):SimplePureConsumerStack<ScaleYInstruction>(instruction)
+		public sealed class ScaleYStack:SimplePureConsumerStack<ScaleYInstruction,ScaleYStack>
 		{
 			public override int PopCount => 1;
 
@@ -1272,16 +1102,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.ScaleZ)]
-	public sealed class ScaleZInstruction:SimplePureConsumerInstruction
+	public sealed class ScaleZInstruction:SimplePureConsumerInstruction<ScaleZInstruction,ScaleZInstruction.ScaleZStack>
 	{
-		public sealed override ScaleZStack StackStatement{get;}
-
-		public ScaleZInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class ScaleZStack(ScaleZInstruction instruction):SimplePureConsumerStack<ScaleZInstruction>(instruction)
+		public sealed class ScaleZStack:SimplePureConsumerStack<ScaleZInstruction,ScaleZStack>
 		{
 			public override int PopCount => 1;
 
@@ -1295,16 +1118,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class ShadowInstruction:FlagInstruction;
 
 	[Opcode(InstructionOpcode.ShadowSize)]
-	public sealed class ShadowSizeInstruction:SimplePureConsumerInstruction
+	public sealed class ShadowSizeInstruction:SimplePureConsumerInstruction<ShadowSizeInstruction,ShadowSizeInstruction.ShadowSizeStack>
 	{
-		public sealed override ShadowSizeStack StackStatement{get;}
-
-		public ShadowSizeInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class ShadowSizeStack(ShadowSizeInstruction instruction):SimplePureConsumerStack<ShadowSizeInstruction>(instruction)
+		public sealed class ShadowSizeStack:SimplePureConsumerStack<ShadowSizeInstruction,ShadowSizeStack>
 		{
 			public override int PopCount => 1;
 
@@ -1315,16 +1131,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.ShadowType)]
-	public sealed class ShadowTypeInstruction:SimplePureConsumerInstruction
+	public sealed class ShadowTypeInstruction:SimplePureConsumerInstruction<ShadowTypeInstruction,ShadowTypeInstruction.ShadowTypeStack>
 	{
-		public sealed override ShadowTypeStack StackStatement{get;}
-
-		public ShadowTypeInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class ShadowTypeStack(ShadowTypeInstruction instruction):SimplePureConsumerStack<ShadowTypeInstruction>(instruction)
+		public sealed class ShadowTypeStack:SimplePureConsumerStack<ShadowTypeInstruction,ShadowTypeStack>
 		{
 			public override int PopCount => 1;
 
@@ -1344,208 +1153,117 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class TransInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.MoveUp)]
-	public sealed class MoveUpInstruction:BaseMoveInstruction
+	public sealed class MoveUpInstruction:BaseMoveInstruction<MoveUpInstruction,MoveUpInstruction.MoveUpStack>
 	{
-		public sealed override MoveUpStack StackStatement{get;}
-
-		public MoveUpInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class MoveUpStack(MoveUpInstruction instruction):BaseMoveStack<MoveUpInstruction>(instruction)
+		public sealed class MoveUpStack:BaseMoveStack<MoveUpInstruction,MoveUpStack>
 		{
 			public override string ToStatement() => $"MoveUp {Amount.ToFxString()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.MoveDown)]
-	public sealed class MoveDownInstruction:BaseMoveInstruction
+	public sealed class MoveDownInstruction:BaseMoveInstruction<MoveDownInstruction,MoveDownInstruction.MoveDownStack>
 	{
-		public sealed override MoveDownStack StackStatement{get;}
-
-		public MoveDownInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class MoveDownStack(MoveDownInstruction instruction):BaseMoveStack<MoveDownInstruction>(instruction)
+		public sealed class MoveDownStack:BaseMoveStack<MoveDownInstruction,MoveDownStack>
 		{
 			public override string ToStatement() => $"MoveDown {Amount.ToFxString()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.MoveForward)]
-	public sealed class MoveForwardInstruction:BaseMoveInstruction
+	public sealed class MoveForwardInstruction:BaseMoveInstruction<MoveForwardInstruction,MoveForwardInstruction.MoveForwardStack>
 	{
-		public sealed override MoveForwardStack StackStatement{get;}
-
-		public MoveForwardInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class MoveForwardStack(MoveForwardInstruction instruction):BaseMoveStack<MoveForwardInstruction>(instruction)
+		public sealed class MoveForwardStack:BaseMoveStack<MoveForwardInstruction,MoveForwardStack>
 		{
 			public override string ToStatement() => $"MoveForward {Amount.ToFxString()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.MoveBackward)]
-	public sealed class MoveBackwardInstruction:BaseMoveInstruction
+	public sealed class MoveBackwardInstruction:BaseMoveInstruction<MoveBackwardInstruction,MoveBackwardInstruction.MoveBackwardStack>
 	{
-		public sealed override MoveBackwardStack StackStatement{get;}
-
-		public MoveBackwardInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class MoveBackwardStack(MoveBackwardInstruction instruction):BaseMoveStack<MoveBackwardInstruction>(instruction)
+		public sealed class MoveBackwardStack:BaseMoveStack<MoveBackwardInstruction,MoveBackwardStack>
 		{
 			public override string ToStatement() => $"MoveBackward {Amount.ToFxString()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.MoveLeft)]
-	public sealed class MoveLeftInstruction:BaseMoveInstruction
+	public sealed class MoveLeftInstruction:BaseMoveInstruction<MoveLeftInstruction,MoveLeftInstruction.MoveLeftStack>
 	{
-		public sealed override MoveLeftStack StackStatement{get;}
-
-		public MoveLeftInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class MoveLeftStack(MoveLeftInstruction instruction):BaseMoveStack<MoveLeftInstruction>(instruction)
+		public sealed class MoveLeftStack:BaseMoveStack<MoveLeftInstruction,MoveLeftStack>
 		{
 			public override string ToStatement() => $"MoveLeft {Amount.ToFxString()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.MoveRight)]
-	public sealed class MoveRightInstruction:BaseMoveInstruction
+	public sealed class MoveRightInstruction:BaseMoveInstruction<MoveRightInstruction,MoveRightInstruction.MoveRightStack>
 	{
-		public sealed override MoveRightStack StackStatement{get;}
-
-		public MoveRightInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class MoveRightStack(MoveRightInstruction instruction):BaseMoveStack<MoveRightInstruction>(instruction)
+		public sealed class MoveRightStack:BaseMoveStack<MoveRightInstruction,MoveRightStack>
 		{
 			public override string ToStatement() => $"MoveRight {Amount.ToFxString()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.TurnRight)]
-	public sealed class TurnRightInstruction:BaseMoveInstruction
+	public sealed class TurnRightInstruction:BaseMoveInstruction<TurnRightInstruction,TurnRightInstruction.TurnRightStack>
 	{
-		public sealed override TurnRightStack StackStatement{get;}
-
-		public TurnRightInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class TurnRightStack(TurnRightInstruction instruction):BaseMoveStack<TurnRightInstruction>(instruction)
+		public sealed class TurnRightStack:BaseMoveStack<TurnRightInstruction,TurnRightStack>
 		{
 			public override string ToStatement() => $"TurnRight {Amount.ToFxString()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.TurnLeft)]
-	public sealed class TurnLeftInstruction:BaseMoveInstruction
+	public sealed class TurnLeftInstruction:BaseMoveInstruction<TurnLeftInstruction,TurnLeftInstruction.TurnLeftStack>
 	{
-		public sealed override TurnLeftStack StackStatement{get;}
-
-		public TurnLeftInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class TurnLeftStack(TurnLeftInstruction instruction):BaseMoveStack<TurnLeftInstruction>(instruction)
+		public sealed class TurnLeftStack:BaseMoveStack<TurnLeftInstruction,TurnLeftStack>
 		{
 			public override string ToStatement() => $"TurnLeft {Amount.ToFxString()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.TiltLeft)]
-	public sealed class TiltLeftInstruction:BaseMoveInstruction
+	public sealed class TiltLeftInstruction:BaseMoveInstruction<TiltLeftInstruction,TiltLeftInstruction.TiltLeftStack>
 	{
-		public sealed override TiltLeftStack StackStatement{get;}
-
-		public TiltLeftInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class TiltLeftStack(TiltLeftInstruction instruction):BaseMoveStack<TiltLeftInstruction>(instruction)
+		public sealed class TiltLeftStack:BaseMoveStack<TiltLeftInstruction,TiltLeftStack>
 		{
 			public override string ToStatement() => $"TiltLeft {Amount.ToFxString()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.TiltRight)]
-	public sealed class TiltRightInstruction:BaseMoveInstruction
+	public sealed class TiltRightInstruction:BaseMoveInstruction<TiltRightInstruction,TiltRightInstruction.TiltRightStack>
 	{
-		public sealed override TiltRightStack StackStatement{get;}
-
-		public TiltRightInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class TiltRightStack(TiltRightInstruction instruction):BaseMoveStack<TiltRightInstruction>(instruction)
+		public sealed class TiltRightStack:BaseMoveStack<TiltRightInstruction,TiltRightStack>
 		{
 			public override string ToStatement() => $"TiltRight {Amount.ToFxString()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.TiltForward)]
-	public sealed class TiltForwardInstruction:BaseMoveInstruction
+	public sealed class TiltForwardInstruction:BaseMoveInstruction<TiltForwardInstruction,TiltForwardInstruction.TiltForwardStack>
 	{
-		public sealed override TiltForwardStack StackStatement{get;}
-
-		public TiltForwardInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class TiltForwardStack(TiltForwardInstruction instruction):BaseMoveStack<TiltForwardInstruction>(instruction)
+		public sealed class TiltForwardStack:BaseMoveStack<TiltForwardInstruction,TiltForwardStack>
 		{
 			public override string ToStatement() => $"TiltForward {Amount.ToFxString()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.TiltBackward)]
-	public sealed class TiltBackwardInstruction:BaseMoveInstruction
+	public sealed class TiltBackwardInstruction:BaseMoveInstruction<TiltBackwardInstruction,TiltBackwardInstruction.TiltBackwardStack>
 	{
-		public sealed override TiltBackwardStack StackStatement{get;}
-
-		public TiltBackwardInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class TiltBackwardStack(TiltBackwardInstruction instruction):BaseMoveStack<TiltBackwardInstruction>(instruction)
+		public sealed class TiltBackwardStack:BaseMoveStack<TiltBackwardInstruction,TiltBackwardStack>
 		{
 			public override string ToStatement() => $"TiltBackward {Amount.ToFxString()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.TurnToPlayerX)]
-	public sealed class TurnToPlayerXInstruction:SimplePureConsumerInstruction
+	public sealed class TurnToPlayerXInstruction:SimplePureConsumerInstruction<TurnToPlayerXInstruction,TurnToPlayerXInstruction.TurnToPlayerXStack>
 	{
-		public sealed override TurnToPlayerXStack StackStatement{get;}
-
-		public TurnToPlayerXInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class TurnToPlayerXStack(TurnToPlayerXInstruction instruction):SimplePureConsumerStack<TurnToPlayerXInstruction>(instruction)
+		public sealed class TurnToPlayerXStack:SimplePureConsumerStack<TurnToPlayerXInstruction,TurnToPlayerXStack>
 		{
 			public override int PopCount => 1;
 
@@ -1556,16 +1274,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.TurnToPlayerY)]
-	public sealed class TurnToPlayerYInstruction:SimplePureConsumerInstruction
+	public sealed class TurnToPlayerYInstruction:SimplePureConsumerInstruction<TurnToPlayerYInstruction,TurnToPlayerYInstruction.TurnToPlayerYStack>
 	{
-		public sealed override TurnToPlayerYStack StackStatement{get;}
-
-		public TurnToPlayerYInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class TurnToPlayerYStack(TurnToPlayerYInstruction instruction):SimplePureConsumerStack<TurnToPlayerYInstruction>(instruction)
+		public sealed class TurnToPlayerYStack:SimplePureConsumerStack<TurnToPlayerYInstruction,TurnToPlayerYStack>
 		{
 			public override int PopCount => 1;
 
@@ -1576,16 +1287,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.TurnToPlayerXY)]
-	public sealed class TurnToPlayerXYInstruction:SimplePureConsumerInstruction
+	public sealed class TurnToPlayerXYInstruction:SimplePureConsumerInstruction<TurnToPlayerXYInstruction,TurnToPlayerXYInstruction.TurnToPlayerXYStack>
 	{
-		public sealed override TurnToPlayerXYStack StackStatement{get;}
-
-		public TurnToPlayerXYInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class TurnToPlayerXYStack(TurnToPlayerXYInstruction instruction):SimplePureConsumerStack<TurnToPlayerXYInstruction>(instruction)
+		public sealed class TurnToPlayerXYStack:SimplePureConsumerStack<TurnToPlayerXYInstruction,TurnToPlayerXYStack>
 		{
 			public override int PopCount => 1;
 
@@ -1596,16 +1300,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.TurnToX)]
-	public sealed class TurnToXInstruction:SimplePureConsumerInstruction
+	public sealed class TurnToXInstruction:SimplePureConsumerInstruction<TurnToXInstruction,TurnToXInstruction.TurnToXStack>
 	{
-		public sealed override TurnToXStack StackStatement{get;}
-
-		public TurnToXInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class TurnToXStack(TurnToXInstruction instruction):SimplePureConsumerStack<TurnToXInstruction>(instruction)
+		public sealed class TurnToXStack:SimplePureConsumerStack<TurnToXInstruction,TurnToXStack>
 		{
 			public override int PopCount => 4;
 
@@ -1619,16 +1316,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.TurnToY)]
-	public sealed class TurnToYInstruction:SimplePureConsumerInstruction
+	public sealed class TurnToYInstruction:SimplePureConsumerInstruction<TurnToYInstruction,TurnToYInstruction.TurnToYStack>
 	{
-		public sealed override TurnToYStack StackStatement{get;}
-
-		public TurnToYInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class TurnToYStack(TurnToYInstruction instruction):SimplePureConsumerStack<TurnToYInstruction>(instruction)
+		public sealed class TurnToYStack:SimplePureConsumerStack<TurnToYInstruction,TurnToYStack>
 		{
 			public override int PopCount => 4;
 
@@ -1642,16 +1332,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.TurnToXY)]
-	public sealed class TurnToXYInstruction:SimplePureConsumerInstruction
+	public sealed class TurnToXYInstruction:SimplePureConsumerInstruction<TurnToXYInstruction,TurnToXYInstruction.TurnToXYStack>
 	{
-		public sealed override TurnToXYStack StackStatement{get;}
-
-		public TurnToXYInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class TurnToXYStack(TurnToXYInstruction instruction):SimplePureConsumerStack<TurnToXYInstruction>(instruction)
+		public sealed class TurnToXYStack:SimplePureConsumerStack<TurnToXYInstruction,TurnToXYStack>
 		{
 			public override int PopCount => 4;
 
@@ -1665,16 +1348,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Wobble)]
-	public sealed class WobbleInstruction:SimplePureConsumerInstruction
+	public sealed class WobbleInstruction:SimplePureConsumerInstruction<WobbleInstruction,WobbleInstruction.WobbleStack>
 	{
-		public sealed override WobbleStack StackStatement{get;}
-
-		public WobbleInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class WobbleStack(WobbleInstruction instruction):SimplePureConsumerStack<WobbleInstruction>(instruction)
+		public sealed class WobbleStack:SimplePureConsumerStack<WobbleInstruction,WobbleStack>
 		{
 			public override int PopCount => 1;
 
@@ -1691,20 +1367,20 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class SetPosInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Jump)]
-	public sealed class JumpInstruction:BaseJumpInstruction
+	public sealed class JumpInstruction:BaseJumpInstruction<JumpInstruction,JumpInstruction.JumpStack>
 	{
-
-		public sealed override JumpStack StackStatement{get;}
+		public sealed override JumpFlow FlowStatement{get;}
 
 		public JumpInstruction()
 		{
-			StackStatement = new(this);
+			FlowStatement = new(){Instruction = this};
 		}
 
-		public sealed class JumpStack(JumpInstruction instruction):BaseJumpStack<JumpInstruction>(instruction)
+		public sealed class JumpStack:BaseJumpStack<JumpInstruction,JumpStack>
 		{
 			public override string ToStatement() => $"goto {Instruction.Destination.AsmLabel.GetLabel()} $ DONE";
 		}
+		public sealed class JumpFlow:BaseJumpFlow<JumpInstruction,JumpStack>;
 	}
 
 	[Opcode(InstructionOpcode.ObjectFall)]
@@ -1738,16 +1414,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class WPFurthestInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.WPTurnToX)]
-	public sealed class WPTurnToXInstruction:SimplePureConsumerInstruction
+	public sealed class WPTurnToXInstruction:SimplePureConsumerInstruction<WPTurnToXInstruction,WPTurnToXInstruction.WPTurnToXStack>
 	{
-		public sealed override WPTurnToXStack StackStatement{get;}
-
-		public WPTurnToXInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class WPTurnToXStack(WPTurnToXInstruction instruction):SimplePureConsumerStack<WPTurnToXInstruction>(instruction)
+		public sealed class WPTurnToXStack:SimplePureConsumerStack<WPTurnToXInstruction,WPTurnToXStack>
 		{
 			public override int PopCount => 1;
 
@@ -1758,16 +1427,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.WPTurnToY)]
-	public sealed class WPTurnToYInstruction:SimplePureConsumerInstruction
+	public sealed class WPTurnToYInstruction:SimplePureConsumerInstruction<WPTurnToYInstruction,WPTurnToYInstruction.WPTurnToYStack>
 	{
-		public sealed override WPTurnToYStack StackStatement{get;}
-
-		public WPTurnToYInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class WPTurnToYStack(WPTurnToYInstruction instruction):SimplePureConsumerStack<WPTurnToYInstruction>(instruction)
+		public sealed class WPTurnToYStack:SimplePureConsumerStack<WPTurnToYInstruction,WPTurnToYStack>
 		{
 			public override int PopCount => 1;
 
@@ -1778,16 +1440,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.WPTurnToXY)]
-	public sealed class WPTurnToXYInstruction:SimplePureConsumerInstruction
+	public sealed class WPTurnToXYInstruction:SimplePureConsumerInstruction<WPTurnToXYInstruction,WPTurnToXYInstruction.WPTurnToXYStack>
 	{
-		public sealed override WPTurnToXYStack StackStatement{get;}
-
-		public WPTurnToXYInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class WPTurnToXYStack(WPTurnToXYInstruction instruction):SimplePureConsumerStack<WPTurnToXYInstruction>(instruction)
+		public sealed class WPTurnToXYStack:SimplePureConsumerStack<WPTurnToXYInstruction,WPTurnToXYStack>
 		{
 			public override int PopCount => 1;
 
@@ -1798,16 +1453,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.AnimPlay)]
-	public sealed class AnimPlayInstruction:SimplePureConsumerInstruction
+	public sealed class AnimPlayInstruction:SimplePureConsumerInstruction<AnimPlayInstruction,AnimPlayInstruction.AnimPlayStack>
 	{
-		public sealed override AnimPlayStack StackStatement{get;}
-
-		public AnimPlayInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class AnimPlayStack(AnimPlayInstruction instruction):SimplePureConsumerStack<AnimPlayInstruction>(instruction)
+		public sealed class AnimPlayStack:SimplePureConsumerStack<AnimPlayInstruction,AnimPlayStack>
 		{
 			public override int PopCount => 1;
 
@@ -1827,16 +1475,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class AnimSetSpeedInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.CollisionType)]
-	public sealed class CollisionTypeInstruction:SimplePureConsumerInstruction
+	public sealed class CollisionTypeInstruction:SimplePureConsumerInstruction<CollisionTypeInstruction,CollisionTypeInstruction.CollisionTypeStack>
 	{
-		public sealed override CollisionTypeStack StackStatement{get;}
-
-		public CollisionTypeInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class CollisionTypeStack(CollisionTypeInstruction instruction):SimplePureConsumerStack<CollisionTypeInstruction>(instruction)
+		public sealed class CollisionTypeStack:SimplePureConsumerStack<CollisionTypeInstruction,CollisionTypeStack>
 		{
 			public override int PopCount => 1;
 
@@ -1848,16 +1489,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.CollRadius)]
-	public sealed class CollisionRadiusInstruction:SimplePureConsumerInstruction
+	public sealed class CollisionRadiusInstruction:SimplePureConsumerInstruction<CollisionRadiusInstruction,CollisionRadiusInstruction.CollisionRadiusStack>
 	{
-		public sealed override CollisionRadiusStack StackStatement{get;}
-
-		public CollisionRadiusInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class CollisionRadiusStack(CollisionRadiusInstruction instruction):SimplePureConsumerStack<CollisionRadiusInstruction>(instruction)
+		public sealed class CollisionRadiusStack:SimplePureConsumerStack<CollisionRadiusInstruction,CollisionRadiusStack>
 		{
 			public override int PopCount => 1;
 
@@ -1871,16 +1505,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class CollisionHeightInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.CollExtent)]
-	public sealed class CollisionExtentInstruction:SimplePureConsumerInstruction
+	public sealed class CollisionExtentInstruction:SimplePureConsumerInstruction<CollisionExtentInstruction,CollisionExtentInstruction.CollisionExtentStack>
 	{
-		public sealed override CollisionExtentStack StackStatement{get;}
-
-		public CollisionExtentInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class CollisionExtentStack(CollisionExtentInstruction instruction):SimplePureConsumerStack<CollisionExtentInstruction>(instruction)
+		public sealed class CollisionExtentStack:SimplePureConsumerStack<CollisionExtentInstruction,CollisionExtentStack>
 		{
 			public override int PopCount => 1;
 
@@ -1894,16 +1521,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class CollisionViewInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.CollPoints)]
-	public sealed class CollisionPointsInstruction:SimplePureConsumerInstruction
+	public sealed class CollisionPointsInstruction:SimplePureConsumerInstruction<CollisionPointsInstruction,CollisionPointsInstruction.CollisionPointsStack>
 	{
-		public sealed override CollisionPointsStack StackStatement{get;}
-
-		public CollisionPointsInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class CollisionPointsStack(CollisionPointsInstruction instruction):SimplePureConsumerStack<CollisionPointsInstruction>(instruction)
+		public sealed class CollisionPointsStack:SimplePureConsumerStack<CollisionPointsInstruction,CollisionPointsStack>
 		{
 			public override int PopCount => 1;
 
@@ -1914,16 +1534,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.CollSetPoint)]
-	public sealed class CollSetPointInstruction:SimplePureConsumerInstruction
+	public sealed class CollSetPointInstruction:SimplePureConsumerInstruction<CollSetPointInstruction,CollSetPointInstruction.CollSetPointStack>
 	{
-		public sealed override CollSetPointStack StackStatement{get;}
-
-		public CollSetPointInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class CollSetPointStack(CollSetPointInstruction instruction):SimplePureConsumerStack<CollSetPointInstruction>(instruction)
+		public sealed class CollSetPointStack:SimplePureConsumerStack<CollSetPointInstruction,CollSetPointStack>
 		{
 			public override int PopCount => 4;
 
@@ -1937,7 +1550,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.CreateTrigger)]
-	public sealed class CreateTriggerInstruction:SimpleNoStackInstruction
+	public sealed class CreateTriggerInstruction:SimpleNoStackInstruction<CreateTriggerInstruction,CreateTriggerInstruction.CreateTriggerStack>
 	{
 		public TriggerType Type;
 		public int Arg;
@@ -1952,14 +1565,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			TriggerProc = parser.GetTrigger(triggerCreateAsmInstr.Stream, this);
 		}
 
-		public sealed override CreateTriggerStack StackStatement{get;}
-
-		public CreateTriggerInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class CreateTriggerStack(CreateTriggerInstruction instruction):SimpleNoStackStack<CreateTriggerInstruction>(instruction)
+		public sealed class CreateTriggerStack:SimpleNoStackStack<CreateTriggerInstruction,CreateTriggerStack>
 		{
 			public override string ToStatement()
 			{
@@ -1980,16 +1586,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.KillTrigger)]
-	public sealed class KillTriggerInstruction:TriggerUpdateInstruction
+	public sealed class KillTriggerInstruction:TriggerUpdateInstruction<KillTriggerInstruction,KillTriggerInstruction.KillTriggerStack>
 	{
-		public sealed override KillTriggerStack StackStatement{get;}
-
-		public KillTriggerInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class KillTriggerStack(KillTriggerInstruction instruction):TriggerUpdateStack<KillTriggerInstruction>(instruction)
+		public sealed class KillTriggerStack:TriggerUpdateStack<KillTriggerInstruction,KillTriggerStack>
 		{
 			public override string ToStatement() => $"KillTrigger {Instruction.TriggerProc.AsmLabel.SubroutineName()}";
 		}
@@ -2002,48 +1601,27 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class ReleaseTriggersInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.HoldTrigger)]
-	public sealed class HoldTriggerInstruction:TriggerUpdateInstruction
+	public sealed class HoldTriggerInstruction:TriggerUpdateInstruction<HoldTriggerInstruction,HoldTriggerInstruction.HoldTriggerStack>
 	{
-		public sealed override HoldTriggerStack StackStatement{get;}
-
-		public HoldTriggerInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class HoldTriggerStack(HoldTriggerInstruction instruction):TriggerUpdateStack<HoldTriggerInstruction>(instruction)
+		public sealed class HoldTriggerStack:TriggerUpdateStack<HoldTriggerInstruction,HoldTriggerStack>
 		{
 			public override string ToStatement() => $"HoldTrigger {Instruction.TriggerProc.AsmLabel.SubroutineName()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.ReleaseTrigger)]
-	public sealed class ReleaseTriggerInstruction:TriggerUpdateInstruction
+	public sealed class ReleaseTriggerInstruction:TriggerUpdateInstruction<ReleaseTriggerInstruction,ReleaseTriggerInstruction.ReleaseTriggerStack>
 	{
-		public sealed override ReleaseTriggerStack StackStatement{get;}
-
-		public ReleaseTriggerInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class ReleaseTriggerStack(ReleaseTriggerInstruction instruction):TriggerUpdateStack<ReleaseTriggerInstruction>(instruction)
+		public sealed class ReleaseTriggerStack:TriggerUpdateStack<ReleaseTriggerInstruction,ReleaseTriggerStack>
 		{
 			public override string ToStatement() => $"ReleaseTrigger {Instruction.TriggerProc.AsmLabel.SubroutineName()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.Wait)]
-	public sealed class WaitInstruction:SimplePureConsumerInstruction
+	public sealed class WaitInstruction:SimplePureConsumerInstruction<WaitInstruction,WaitInstruction.WaitStack>
 	{
-		public sealed override WaitStack StackStatement{get;}
-
-		public WaitInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class WaitStack(WaitInstruction instruction):SimplePureConsumerStack<WaitInstruction>(instruction)
+		public sealed class WaitStack:SimplePureConsumerStack<WaitInstruction,WaitStack>
 		{
 			public override int PopCount => 1;
 
@@ -2078,23 +1656,16 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class CollectedInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Spawn)]
-	public sealed class SpawnInstruction:BaseSpawnInstruction
+	public sealed class SpawnInstruction:BaseSpawnInstruction<SpawnInstruction,SpawnInstruction.SpawnStack>
 	{
-		public sealed override SpawnStack StackStatement{get;}
-
-		public SpawnInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SpawnStack(SpawnInstruction instruction):BaseSpawnStack<SpawnInstruction>(instruction)
+		public sealed class SpawnStack:BaseSpawnStack<SpawnInstruction,SpawnStack>
 		{
 			public override string ToStatement() => $"Spawn {Instruction.SpawnStratProc.AsmLabel.SubroutineName()}, {Instruction.LocalVarsToPop}, {Instruction.LocalCount}, {Instruction.TriggerCount}, {Instruction.CollisionSize}, {Instruction.CollisionBoneCount}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.SpawnFrom)]
-	public sealed class SpawnFromInstruction:BaseSpawnInstruction
+	public sealed class SpawnFromInstruction:BaseSpawnInstruction<SpawnFromInstruction,SpawnFromInstruction.SpawnFromStack>
 	{
 		public int BoneToSpawnFrom;
 
@@ -2106,14 +1677,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			BoneToSpawnFrom = spawnFromAsmInstr.BoneToSpawnFrom;
 		}
 
-		public sealed override SpawnFromStack StackStatement{get;}
-
-		public SpawnFromInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SpawnFromStack(SpawnFromInstruction instruction):BaseSpawnStack<SpawnFromInstruction>(instruction)
+		public sealed class SpawnFromStack:BaseSpawnStack<SpawnFromInstruction,SpawnFromStack>
 		{
 			public override string ToStatement() => $"SpawnFrom {Instruction.SpawnStratProc.AsmLabel.SubroutineName()}, {Instruction.LocalVarsToPop}, {Instruction.LocalCount}, {Instruction.TriggerCount}, {Instruction.CollisionSize}, {Instruction.CollisionBoneCount}, {Instruction.BoneToSpawnFrom}";
 		}
@@ -2126,16 +1690,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class UnlinkInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.SoundShift)]
-	public sealed class SoundShiftInstruction:SimplePureConsumerInstruction
+	public sealed class SoundShiftInstruction:SimplePureConsumerInstruction<SoundShiftInstruction,SoundShiftInstruction.SoundShiftStack>
 	{
-		public sealed override SoundShiftStack StackStatement{get;}
-
-		public SoundShiftInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SoundShiftStack(SoundShiftInstruction instruction):SimplePureConsumerStack<SoundShiftInstruction>(instruction)
+		public sealed class SoundShiftStack:SimplePureConsumerStack<SoundShiftInstruction,SoundShiftStack>
 		{
 			public override int PopCount => 2;
 
@@ -2147,16 +1704,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.SoundStop)]
-	public sealed class SoundStopInstruction:SimplePureConsumerInstruction
+	public sealed class SoundStopInstruction:SimplePureConsumerInstruction<SoundStopInstruction,SoundStopInstruction.SoundStopStack>
 	{
-		public sealed override SoundStopStack StackStatement{get;}
-
-		public SoundStopInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SoundStopStack(SoundStopInstruction instruction):SimplePureConsumerStack<SoundStopInstruction>(instruction)
+		public sealed class SoundStopStack:SimplePureConsumerStack<SoundStopInstruction,SoundStopStack>
 		{
 			public override int PopCount => 1;
 
@@ -2167,16 +1717,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.CdPlay)]
-	public sealed class CdPlayInstruction:SimplePureConsumerInstruction
+	public sealed class CdPlayInstruction:SimplePureConsumerInstruction<CdPlayInstruction,CdPlayInstruction.CdPlayStack>
 	{
-		public sealed override CdPlayStack StackStatement{get;}
-
-		public CdPlayInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class CdPlayStack(CdPlayInstruction instruction):SimplePureConsumerStack<CdPlayInstruction>(instruction)
+		public sealed class CdPlayStack:SimplePureConsumerStack<CdPlayInstruction,CdPlayStack>
 		{
 			public override int PopCount => 1;
 
@@ -2193,16 +1736,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class MidiVolumeInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.CdFade)]
-	public sealed class CdFadeInstruction:SimplePureConsumerInstruction
+	public sealed class CdFadeInstruction:SimplePureConsumerInstruction<CdFadeInstruction,CdFadeInstruction.CdFadeStack>
 	{
-		public sealed override CdFadeStack StackStatement{get;}
-
-		public CdFadeInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class CdFadeStack(CdFadeInstruction instruction):SimplePureConsumerStack<CdFadeInstruction>(instruction)
+		public sealed class CdFadeStack:SimplePureConsumerStack<CdFadeInstruction,CdFadeStack>
 		{
 			public override int PopCount => 1;
 
@@ -2233,17 +1769,14 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	[Opcode(InstructionOpcode.LightType)]
 	public sealed class LightTypeInstruction:UnimplementedInstruction;
 
-	public abstract class BaseCollisionInstruction:SimpleNoStackInstruction
+	public abstract class BaseCollisionInstruction:SimpleNoStackInstruction<BaseCollisionInstruction,BaseCollisionInstruction.BaseCollisionStack>
 	{
 		public readonly bool NewState;
 		public uint CollisionFlag;
 
-		public sealed override BaseCollisionStack StackStatement{get;}
-
 		public BaseCollisionInstruction(bool newState)
 		{
 			NewState = newState;
-			StackStatement = new(this);
 		}
 
 		public sealed override void Setup(AsmParser parser)
@@ -2253,7 +1786,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			CollisionFlag = collisionFlagAsmInstr.CollisionType;
 		}
 
-		public sealed class BaseCollisionStack(BaseCollisionInstruction instruction):SimpleNoStackStack<BaseCollisionInstruction>(instruction)
+		public sealed class BaseCollisionStack:SimpleNoStackStack<BaseCollisionInstruction,BaseCollisionStack>
 		{
 			public override string ToStatement() => $"collision {(Instruction.NewState ? "on" : "off")} {Instruction.CollisionFlag}";
 		}
@@ -2269,16 +1802,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class CollisionOffAllInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.SoundPlay3)]
-	public sealed class SoundPlay3Instruction:SimplePureConsumerInstruction
+	public sealed class SoundPlay3Instruction:SimplePureConsumerInstruction<SoundPlay3Instruction,SoundPlay3Instruction.SoundPlay3Stack>
 	{
-		public sealed override SoundPlay3Stack StackStatement{get;}
-
-		public SoundPlay3Instruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SoundPlay3Stack(SoundPlay3Instruction instruction):SimplePureConsumerStack<SoundPlay3Instruction>(instruction)
+		public sealed class SoundPlay3Stack:SimplePureConsumerStack<SoundPlay3Instruction,SoundPlay3Stack>
 		{
 			public override int PopCount => 3;
 
@@ -2294,16 +1820,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class SoundPlay4Instruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.SoundPlay3ASS)]
-	public sealed class SoundPlay3AssignmentInstruction:BaseExpressionInstruction
+	public sealed class SoundPlay3AssignmentInstruction:BaseExpressionInstruction<SoundPlay3AssignmentInstruction,SoundPlay3AssignmentInstruction.SoundPlay3AssignmentStack>
 	{
-		public sealed override SoundPlay3AssignmentStack StackOperation{get;}
-
-		public SoundPlay3AssignmentInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class SoundPlay3AssignmentStack(SoundPlay3AssignmentInstruction instruction):BaseExpressionStack<SoundPlay3AssignmentInstruction>(instruction)
+		public sealed class SoundPlay3AssignmentStack:BaseExpressionStack<SoundPlay3AssignmentInstruction,SoundPlay3AssignmentStack>
 		{
 			public override int PopCount => 3;
 
@@ -2319,80 +1838,45 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class SoundPlay4AssignmentInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.Int)]
-	public sealed class IntInstruction:UnaryOperationInstruction
+	public sealed class IntInstruction:UnaryOperationInstruction<IntInstruction,IntInstruction.IntStack>
 	{
-		public sealed override IntStack StackOperation{get;}
-
-		public IntInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class IntStack(IntInstruction instruction):UnaryOperationStack<IntInstruction>(instruction)
+		public sealed class IntStack:UnaryOperationStack<IntInstruction,IntStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"int({Value.ToFxString()})";
 		}
 	}
 
 	[Opcode(InstructionOpcode.Sin)]
-	public sealed class SinInstruction:UnaryOperationInstruction
+	public sealed class SinInstruction:UnaryOperationInstruction<SinInstruction,SinInstruction.SinStack>
 	{
-		public sealed override SinStack StackOperation{get;}
-
-		public SinInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class SinStack(SinInstruction instruction):UnaryOperationStack<SinInstruction>(instruction)
+		public sealed class SinStack:UnaryOperationStack<SinInstruction,SinStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"sin({Value.ToFxString()})";
 		}
 	}
 
 	[Opcode(InstructionOpcode.Cos)]
-	public sealed class CosInstruction:UnaryOperationInstruction
+	public sealed class CosInstruction:UnaryOperationInstruction<CosInstruction,CosInstruction.CosStack>
 	{
-		public sealed override CosStack StackOperation{get;}
-
-		public CosInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class CosStack(CosInstruction instruction):UnaryOperationStack<CosInstruction>(instruction)
+		public sealed class CosStack:UnaryOperationStack<CosInstruction,CosStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"cos({Value.ToFxString()})";
 		}
 	}
 
 	[Opcode(InstructionOpcode.Not)]
-	public sealed class NotInstruction:UnaryOperationInstruction
+	public sealed class NotInstruction:UnaryOperationInstruction<NotInstruction,NotInstruction.NotStack>
 	{
-		public sealed override NotStack StackOperation{get;}
-
-		public NotInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class NotStack(NotInstruction instruction):UnaryOperationStack<NotInstruction>(instruction)
+		public sealed class NotStack:UnaryOperationStack<NotInstruction,NotStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"NOT {Value.ToExpressionString()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.Pop)]
-	public sealed class PopInstruction:SimplePureConsumerInstruction
+	public sealed class PopInstruction:SimplePureConsumerInstruction<PopInstruction,PopInstruction.PopStack>
 	{
-		public sealed override PopStack StackStatement{get;}
-
-		public PopInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class PopStack(PopInstruction instruction):SimplePureConsumerStack<PopInstruction>(instruction)
+		public sealed class PopStack:SimplePureConsumerStack<PopInstruction,PopStack>
 		{
 			public override int PopCount => 1;
 
@@ -2403,7 +1887,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Address)]
-	public sealed class AddressInstruction:PureProducerInstruction
+	public sealed class AddressInstruction:PureProducerInstruction<AddressInstruction,AddressInstruction.AddressStack>
 	{
 		//It appears that stAddress is used in:
 		// - Loading animation data
@@ -2411,7 +1895,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		// - Object/Model loading
 		// - Load Strat Proc Address for Spawning
 		// - Loading some strings
-	
+
 		//Might also be using in midiloading?
 
 		public bool IsDataLoad;
@@ -2419,13 +1903,6 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public bool IsAnimLoad;
 		public int AnimationIndex;
-
-		public sealed override AddressStack StackProducer{get;}
-
-		public AddressInstruction()
-		{
-			StackProducer = new(this);
-		}
 
 		public sealed override void Setup(AsmParser parser)
 		{
@@ -2448,7 +1925,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			}
 		}
 
-		public sealed class AddressStack(AddressInstruction instruction):PureProducerStack<AddressInstruction>(instruction)
+		public sealed class AddressStack:PureProducerStack<AddressInstruction,AddressStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown)
 			{
@@ -2469,75 +1946,52 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Jsr)]
-	public sealed class JsrInstruction:BaseJumpSubroutineInstruction
+	public sealed class JsrInstruction:BaseJumpSubroutineInstruction<JsrInstruction,JsrInstruction.JsrStack>
 	{
-		public sealed override JsrStack StackStatement{get;}
-
-		public JsrInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class JsrStack(JsrInstruction instruction):BaseJumpSubroutineStack<JsrInstruction>(instruction)
+		public sealed class JsrStack:BaseJumpSubroutineStack<JsrInstruction,JsrStack>
 		{
 			public override string ToStatement() => $"proc {Instruction.Proc.AsmLabel.SubroutineName()} $ DONE";
 		}
 	}
 
 	[Opcode(InstructionOpcode.JsrImm)]
-	public sealed class JsrImmInstruction:BaseJumpSubroutineInstruction
+	public sealed class JsrImmInstruction:BaseJumpSubroutineInstruction<JsrImmInstruction,JsrImmInstruction.JsrImmStack>
 	{
-		public sealed override JsrImmStack StackStatement{get;}
-
-		public JsrImmInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class JsrImmStack(JsrImmInstruction instruction):BaseJumpSubroutineStack<JsrImmInstruction>(instruction)
+		public sealed class JsrImmStack:BaseJumpSubroutineStack<JsrImmInstruction,JsrImmStack>
 		{
 			public override string ToStatement() => $"proc {Instruction.Proc.AsmLabel.SubroutineName()} $ IMM";
 		}
 	}
 
 	[Opcode(InstructionOpcode.Return)]
-	public sealed class ReturnInstruction:NoStackInstruction
+	public sealed class ReturnInstruction:NoStackInstruction<ReturnInstruction,ReturnInstruction.ReturnStack>
 	{
 		//Technically pops a value but we aren't counting it because it is pushed outisde the subroutine/trigger.
 
 		public sealed override bool Terminal => true;
 
-		public sealed override ReturnStack StackStatement{get;}
 		public sealed override ReturnFlow FlowStatement{get;}
 
 		public ReturnInstruction()
 		{
-			StackStatement = new(this);
-			FlowStatement = new(this);
+			FlowStatement = new(){Instruction = this};
 		}
 
-		public sealed class ReturnStack(ReturnInstruction instruction):NoStackStack<ReturnInstruction>(instruction)
+		public sealed class ReturnStack:NoStackStack<ReturnInstruction,ReturnStack>
 		{
 			public override string ToStatement() => "Return";
 		}
 
-		public sealed class ReturnFlow(ReturnInstruction instruction):NoStackFlow<ReturnInstruction>(instruction),IFlowTerminal
+		public sealed class ReturnFlow:NoStackFlow<ReturnInstruction,ReturnStack>,IFlowTerminal
 		{
 			public override void Analyze(FlowAnalyzer flow){}
 		}
 	}
 
 	[Opcode(InstructionOpcode.Beq)]
-	public sealed class BeqInstruction:BranchInstruction
+	public sealed class BeqInstruction:BranchInstruction<BeqInstruction,BeqInstruction.BeqStack>
 	{
-		public sealed override BeqStack StackStatement{get;}
-
-		public BeqInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class BeqStack(BeqInstruction instruction):BranchStack<BeqInstruction>(instruction)
+		public sealed class BeqStack:BranchStack<BeqInstruction,BeqStack>
 		{
 			//Branch if equal to zero
 			public override string ToStatement() => $"if {Condition.ToConditionStr(false)} then goto {Instruction.ConditionalDest.AsmLabel.GetLabel()} endif $ DONE";
@@ -2545,16 +1999,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Bne)]
-	public sealed class BneInstruction:BranchInstruction
+	public sealed class BneInstruction:BranchInstruction<BneInstruction,BneInstruction.BneStack>
 	{
-		public sealed override BneStack StackStatement{get;}
-
-		public BneInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class BneStack(BneInstruction instruction):BranchStack<BneInstruction>(instruction)
+		public sealed class BneStack:BranchStack<BneInstruction,BneStack>
 		{
 			//Branch if not equal to zero
 			public override string ToStatement() => $"if {Condition.ToConditionStr(true)} then goto {Instruction.ConditionalDest.AsmLabel.GetLabel()} endif $ DONE";
@@ -2562,16 +2009,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.BeqImm)]
-	public sealed class BeqImmInstruction:BranchInstruction
+	public sealed class BeqImmInstruction:BranchInstruction<BeqImmInstruction,BeqImmInstruction.BeqImmStack>
 	{
-		public sealed override BeqImmStack StackStatement{get;}
-
-		public BeqImmInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class BeqImmStack(BeqImmInstruction instruction):BranchStack<BeqImmInstruction>(instruction)
+		public sealed class BeqImmStack:BranchStack<BeqImmInstruction,BeqImmStack>
 		{
 			//Branch if equal to zero
 			public override string ToStatement() => $"if {Condition.ToConditionStr(false)} then goto {Instruction.ConditionalDest.AsmLabel.GetLabel()} endif $ IMM";
@@ -2579,16 +2019,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.BneImm)]
-	public sealed class BneImmInstruction:BranchInstruction
+	public sealed class BneImmInstruction:BranchInstruction<BneImmInstruction,BneImmInstruction.BneImmStack>
 	{
-		public sealed override BneImmStack StackStatement{get;}
-
-		public BneImmInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class BneImmStack(BneImmInstruction instruction):BranchStack<BneImmInstruction>(instruction)
+		public sealed class BneImmStack:BranchStack<BneImmInstruction,BneImmStack>
 		{
 			//Branch if not equal to zero
 			public override string ToStatement() => $"if {Condition.ToConditionStr(true)} then goto {Instruction.ConditionalDest.AsmLabel.GetLabel()} endif $ IMM";
@@ -2596,41 +2029,41 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.JumpImm)]
-	public sealed class JumpImmInstruction:BaseJumpInstruction
+	public sealed class JumpImmInstruction:BaseJumpInstruction<JumpImmInstruction,JumpImmInstruction.JumpImmStack>
 	{
-		public sealed override JumpImmStack StackStatement{get;}
+		public sealed override JumpImmFlow FlowStatement{get;}
 
 		public JumpImmInstruction()
 		{
-			StackStatement = new(this);
+			FlowStatement = new(){Instruction = this};
 		}
 
-		public sealed class JumpImmStack(JumpImmInstruction instruction):BaseJumpStack<JumpImmInstruction>(instruction)
+		public sealed class JumpImmStack:BaseJumpStack<JumpImmInstruction,JumpImmStack>
 		{
 			public override string ToStatement() => $"goto {Instruction.Destination.AsmLabel.GetLabel()} $ IMM";
 		}
+
+		public sealed class JumpImmFlow:BaseJumpFlow<JumpImmInstruction,JumpImmStack>;
 	}
 
 	[Opcode(InstructionOpcode.EndStrat)]
-	public sealed class EndStratInstruction:NoStackInstruction
+	public sealed class EndStratInstruction:NoStackInstruction<EndStratInstruction,EndStratInstruction.EndStratStack>
 	{
 		public sealed override bool Terminal => true;
 
-		public sealed override EndStratStack StackStatement{get;}
 		public sealed override EndStratFlow FlowStatement{get;}
 
 		public EndStratInstruction()
 		{
-			StackStatement = new(this);
-			FlowStatement = new(this);
+			FlowStatement = new(){Instruction = this};
 		}
 
-		public sealed class EndStratStack(EndStratInstruction instruction):NoStackStack<EndStratInstruction>(instruction)
+		public sealed class EndStratStack:NoStackStack<EndStratInstruction,EndStratStack>
 		{
 			public override string ToStatement() => "EndStrat";
 		}
 
-		public sealed class EndStratFlow(EndStratInstruction instruction):NoStackFlow<EndStratInstruction>(instruction),IFlowTerminal
+		public sealed class EndStratFlow:NoStackFlow<EndStratInstruction,EndStratStack>,IFlowTerminal
 		{
 			public override void Analyze(FlowAnalyzer flow){}
 		}
@@ -2640,16 +2073,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class IsPlayerInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.And)]
-	public sealed class AndInstruction:BinaryOperationInstruction
+	public sealed class AndInstruction:BinaryOperationInstruction<AndInstruction,AndInstruction.AndStack>
 	{
-		public sealed override AndStack StackOperation{get;}
-
-		public AndInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class AndStack(AndInstruction instruction):BinaryOperationStack<AndInstruction>(instruction)
+		public sealed class AndStack:BinaryOperationStack<AndInstruction,AndStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToExpressionString()} AND {ValueB.ToExpressionString()})";
 			public override string ToConditionStr(bool checkTrue) => checkTrue ? $"({ValueA.ToConditionStr(true)} AND {ValueB.ToConditionStr(true)})" : $"({ValueA.ToConditionStr(false)} OR {ValueB.ToConditionStr(false)})";
@@ -2657,35 +2083,26 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Or)]
-	public sealed class OrInstruction:BinaryOperationInstruction
+	public sealed class OrInstruction:BinaryOperationInstruction<OrInstruction,OrInstruction.OrStack>
 	{
 		//TODO: This is bitwise |, not logical ||.
 
-		public sealed override OrStack StackOperation{get;}
-
-		public OrInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class OrStack(OrInstruction instruction):BinaryOperationStack<OrInstruction>(instruction)
+		public sealed class OrStack:BinaryOperationStack<OrInstruction,OrStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToExpressionString()} OR {ValueB.ToExpressionString()})";
 		}
 	}
 
 	[Opcode(InstructionOpcode.Index_Jump)]
-	public sealed class IndexJumpInstruction:PureConsumerInstruction
+	public sealed class IndexJumpInstruction:PureConsumerInstruction<IndexJumpInstruction,IndexJumpInstruction.SwitchStack>
 	{
 		public (int[] Comparands,Instruction Destination)[] Cases;
 
-		public sealed override SwitchStack StackStatement{get;}
 		public sealed override SwitchFlow FlowStatement{get;}
 
 		public IndexJumpInstruction()
 		{
-			StackStatement = new(this);
-			FlowStatement = new(this);
+			FlowStatement = new(){Instruction = this};
 		}
 
 		public sealed override void Setup(AsmParser parser)
@@ -2715,7 +2132,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			}
 		}
 
-		public sealed class SwitchStack(IndexJumpInstruction instruction):PureConsumerStack<IndexJumpInstruction>(instruction)
+		public sealed class SwitchStack:PureConsumerStack<IndexJumpInstruction,SwitchStack>
 		{
 			public override int PopCount => 1;
 
@@ -2752,9 +2169,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			}
 		}
 
-		public sealed class SwitchFlow(IndexJumpInstruction instruction):PureConsumerFlow<IndexJumpInstruction>(instruction),IFlowControl
+		public sealed class SwitchFlow:PureConsumerFlow<IndexJumpInstruction,SwitchStack>,IFlowControl
 		{
-			public IStackStatement ControlStatement => Instruction.StackStatement;
+			public IStackStatement ControlStatement => Instruction.StackOperation;
 
 			public IReadOnlyList<FlowStatement> FlowCaseDestinations => FlowDestinations;
 
@@ -2769,16 +2186,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.BitwiseAnd)]
-	public sealed class BitwiseAndInstruction:BinaryOperationInstruction
+	public sealed class BitwiseAndInstruction:BinaryOperationInstruction<BitwiseAndInstruction,BitwiseAndInstruction.BitwiseAndStack>
 	{
-		public sealed override BitwiseAndStack StackOperation{get;}
-
-		public BitwiseAndInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class BitwiseAndStack(BitwiseAndInstruction instruction):BinaryOperationStack<BitwiseAndInstruction>(instruction)
+		public sealed class BitwiseAndStack:BinaryOperationStack<BitwiseAndInstruction,BitwiseAndStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToIntStr()} & {ValueB.ToIntStr()})";
 		}
@@ -2807,16 +2217,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class Ext_GlobalAddressInstruction:UnimplementedInstruction;//VarInstruction
 
 	[Opcode(InstructionOpcode.ObjectJump)]
-	public sealed class ObjectJumpInstruction:SimplePureConsumerInstruction
+	public sealed class ObjectJumpInstruction:SimplePureConsumerInstruction<ObjectJumpInstruction,ObjectJumpInstruction.ObjectJumpStack>
 	{
-		public sealed override ObjectJumpStack StackStatement{get;}
-
-		public ObjectJumpInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class ObjectJumpStack(ObjectJumpInstruction instruction):SimplePureConsumerStack<ObjectJumpInstruction>(instruction)
+		public sealed class ObjectJumpStack:SimplePureConsumerStack<ObjectJumpInstruction,ObjectJumpStack>
 		{
 			public override int PopCount => 1;
 
@@ -2843,16 +2246,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.NotEqual)]
-	public sealed class NotEqualInstruction:BinaryOperationInstruction
+	public sealed class NotEqualInstruction:BinaryOperationInstruction<NotEqualInstruction,NotEqualInstruction.NotEqualStack>
 	{
-		public sealed override NotEqualStack StackOperation{get;}
-
-		public NotEqualInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class NotEqualStack(NotEqualInstruction instruction):BinaryOperationStack<NotEqualInstruction>(instruction)
+		public sealed class NotEqualStack:BinaryOperationStack<NotEqualInstruction,NotEqualStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToFxString()} != {ValueB.ToFxString()})";
 			public override string ToConditionStr(bool checkTrue) => checkTrue ? $"({ValueA.ToFxString()} != {ValueB.ToFxString()})" : $"({ValueA.ToFxString()} = {ValueB.ToFxString()})";
@@ -2860,48 +2256,27 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.ShiftLeft)]
-	public sealed class ShiftLeftInstruction:BinaryOperationInstruction
+	public sealed class ShiftLeftInstruction:BinaryOperationInstruction<ShiftLeftInstruction,ShiftLeftInstruction.ShiftLeftStack>
 	{
-		public sealed override ShiftLeftStack StackOperation{get;}
-
-		public ShiftLeftInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class ShiftLeftStack(ShiftLeftInstruction instruction):BinaryOperationStack<ShiftLeftInstruction>(instruction)
+		public sealed class ShiftLeftStack:BinaryOperationStack<ShiftLeftInstruction,ShiftLeftStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToFxString()} << {ValueB.ToFxString()})";
 		}
 	}
 
 	[Opcode(InstructionOpcode.ShiftRight)]
-	public sealed class ShiftRightInstruction:BinaryOperationInstruction
+	public sealed class ShiftRightInstruction:BinaryOperationInstruction<ShiftRightInstruction,ShiftRightInstruction.ShiftRightStack>
 	{
-		public sealed override ShiftRightStack StackOperation{get;}
-
-		public ShiftRightInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class ShiftRightStack(ShiftRightInstruction instruction):BinaryOperationStack<ShiftRightInstruction>(instruction)
+		public sealed class ShiftRightStack:BinaryOperationStack<ShiftRightInstruction,ShiftRightStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToFxString()} >> {ValueB.ToFxString()})";
 		}
 	}
 
 	[Opcode(InstructionOpcode.AnimAdvance)]
-	public sealed class AnimAdvanceInstruction:SimplePureConsumerInstruction
+	public sealed class AnimAdvanceInstruction:SimplePureConsumerInstruction<AnimAdvanceInstruction,AnimAdvanceInstruction.AnimAdvanceStack>
 	{
-		public sealed override AnimAdvanceStack StackStatement{get;}
-
-		public AnimAdvanceInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class AnimAdvanceStack(AnimAdvanceInstruction instruction):SimplePureConsumerStack<AnimAdvanceInstruction>(instruction)
+		public sealed class AnimAdvanceStack:SimplePureConsumerStack<AnimAdvanceInstruction,AnimAdvanceStack>
 		{
 			public override int PopCount => 1;
 
@@ -2912,16 +2287,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.GreaterEqual)]
-	public sealed class GreaterEqualInstruction:BinaryOperationInstruction
+	public sealed class GreaterEqualInstruction:BinaryOperationInstruction<GreaterEqualInstruction,GreaterEqualInstruction.GreaterEqualStack>
 	{
-		public sealed override GreaterEqualStack StackOperation{get;}
-
-		public GreaterEqualInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class GreaterEqualStack(GreaterEqualInstruction instruction):BinaryOperationStack<GreaterEqualInstruction>(instruction)
+		public sealed class GreaterEqualStack:BinaryOperationStack<GreaterEqualInstruction,GreaterEqualStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToFxString()} >= {ValueB.ToFxString()})";
 			public override string ToConditionStr(bool checkTrue) => checkTrue ? $"({ValueA.ToFxString()} >= {ValueB.ToFxString()})" : $"({ValueA.ToFxString()} < {ValueB.ToFxString()})";
@@ -2929,16 +2297,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.LessEqual)]
-	public sealed class LessEqualInstruction:BinaryOperationInstruction
+	public sealed class LessEqualInstruction:BinaryOperationInstruction<LessEqualInstruction,LessEqualInstruction.LessEqualStack>
 	{
-		public sealed override LessEqualStack StackOperation{get;}
-
-		public LessEqualInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class LessEqualStack(LessEqualInstruction instruction):BinaryOperationStack<LessEqualInstruction>(instruction)
+		public sealed class LessEqualStack:BinaryOperationStack<LessEqualInstruction,LessEqualStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"({ValueA.ToFxString()} <= {ValueB.ToFxString()})";
 			public override string ToConditionStr(bool checkTrue) => checkTrue ? $"({ValueA.ToFxString()} <= {ValueB.ToFxString()})" : $"({ValueA.ToFxString()} > {ValueB.ToFxString()})";
@@ -2946,16 +2307,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Rnd)]
-	public sealed class RndInstruction:BaseExpressionInstruction
+	public sealed class RndInstruction:BaseExpressionInstruction<RndInstruction,RndInstruction.RndStack>
 	{
-		public sealed override RndStack StackOperation{get;}
-
-		public RndInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class RndStack(RndInstruction instruction):BaseExpressionStack<RndInstruction>(instruction)
+		public sealed class RndStack:BaseExpressionStack<RndInstruction,RndStack>
 		{
 			public override int PopCount => 1;
 
@@ -2966,16 +2320,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Blink)]
-	public sealed class BlinkInstruction:SimplePureConsumerInstruction
+	public sealed class BlinkInstruction:SimplePureConsumerInstruction<BlinkInstruction,BlinkInstruction.BlinkStack>
 	{
 		public int Count;
-
-		public sealed override BlinkStack StackStatement{get;}
-
-		public BlinkInstruction()
-		{
-			StackStatement = new(this);
-		}
 
 		public sealed override void Setup(AsmParser parser)
 		{
@@ -2985,7 +2332,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			Count = blinkAsmInstr.Count;
 		}
 
-		public sealed class BlinkStack(BlinkInstruction instruction):SimplePureConsumerStack<BlinkInstruction>(instruction)
+		public sealed class BlinkStack:SimplePureConsumerStack<BlinkInstruction,BlinkStack>
 		{
 			public override int PopCount => Instruction.Count;
 
@@ -3007,16 +2354,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class ForceCollisionInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.TurnFromPlayerY)]
-	public sealed class TurnFromPlayerYInstruction:SimplePureConsumerInstruction
+	public sealed class TurnFromPlayerYInstruction:SimplePureConsumerInstruction<TurnFromPlayerYInstruction,TurnFromPlayerYInstruction.TurnFromPlayerYStack>
 	{
-		public sealed override TurnFromPlayerYStack StackStatement{get;}
-
-		public TurnFromPlayerYInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class TurnFromPlayerYStack(TurnFromPlayerYInstruction instruction):SimplePureConsumerStack<TurnFromPlayerYInstruction>(instruction)
+		public sealed class TurnFromPlayerYStack:SimplePureConsumerStack<TurnFromPlayerYInstruction,TurnFromPlayerYStack>
 		{
 			public override int PopCount => 1;
 
@@ -3030,16 +2370,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class PlayerAttackInstruction:FlagInstruction;
 
 	[Opcode(InstructionOpcode.Rumble)]
-	public sealed class RumbleInstruction:SimplePureConsumerInstruction
+	public sealed class RumbleInstruction:SimplePureConsumerInstruction<RumbleInstruction,RumbleInstruction.RumbleStack>
 	{
-		public sealed override RumbleStack StackStatement{get;}
-
-		public RumbleInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class RumbleStack(RumbleInstruction instruction):SimplePureConsumerStack<RumbleInstruction>(instruction)
+		public sealed class RumbleStack:SimplePureConsumerStack<RumbleInstruction,RumbleStack>
 		{
 			public override int PopCount => 2;
 
@@ -3051,16 +2384,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Vibrate)]
-	public sealed class VibrateInstruction:SimplePureConsumerInstruction
+	public sealed class VibrateInstruction:SimplePureConsumerInstruction<VibrateInstruction,VibrateInstruction.VibrateStack>
 	{
-		public sealed override VibrateStack StackStatement{get;}
-
-		public VibrateInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class VibrateStack(VibrateInstruction instruction):SimplePureConsumerStack<VibrateInstruction>(instruction)
+		public sealed class VibrateStack:SimplePureConsumerStack<VibrateInstruction,VibrateStack>
 		{
 			public override int PopCount => 1;
 
@@ -3074,16 +2400,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class SuspendIfTooFarInstruction:FlagInstruction;
 
 	[Opcode(InstructionOpcode.CollisionBone)]
-	public sealed class CollisionBoneInstruction:SimplePureConsumerInstruction
+	public sealed class CollisionBoneInstruction:SimplePureConsumerInstruction<CollisionBoneInstruction,CollisionBoneInstruction.CollisionBoneStack>
 	{
-		public sealed override CollisionBoneStack StackStatement{get;}
-
-		public CollisionBoneInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class CollisionBoneStack(CollisionBoneInstruction instruction):SimplePureConsumerStack<CollisionBoneInstruction>(instruction)
+		public sealed class CollisionBoneStack:SimplePureConsumerStack<CollisionBoneInstruction,CollisionBoneStack>
 		{
 			public override int PopCount => 2;
 
@@ -3095,16 +2414,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.UseBone)]
-	public sealed class UseBoneInstruction:SimplePureConsumerInstruction
+	public sealed class UseBoneInstruction:SimplePureConsumerInstruction<UseBoneInstruction,UseBoneInstruction.UseBoneStack>
 	{
-		public sealed override UseBoneStack StackStatement{get;}
-
-		public UseBoneInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class UseBoneStack(UseBoneInstruction instruction):SimplePureConsumerStack<UseBoneInstruction>(instruction)
+		public sealed class UseBoneStack:SimplePureConsumerStack<UseBoneInstruction,UseBoneStack>
 		{
 			public override int PopCount => 1;
 
@@ -3145,16 +2457,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.GainCrystal)]
-	public sealed class GainCrystalInstruction:SimplePureConsumerInstruction
+	public sealed class GainCrystalInstruction:SimplePureConsumerInstruction<GainCrystalInstruction,GainCrystalInstruction.GainCrystalStack>
 	{
-		public sealed override GainCrystalStack StackStatement{get;}
-
-		public GainCrystalInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class GainCrystalStack(GainCrystalInstruction instruction):SimplePureConsumerStack<GainCrystalInstruction>(instruction)
+		public sealed class GainCrystalStack:SimplePureConsumerStack<GainCrystalInstruction,GainCrystalStack>
 		{
 			public override int PopCount => 1;
 
@@ -3165,16 +2470,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Cutscene)]
-	public sealed class CutsceneInstruction:SimplePureConsumerInstruction
+	public sealed class CutsceneInstruction:SimplePureConsumerInstruction<CutsceneInstruction,CutsceneInstruction.CutsceneStack>
 	{
-		public sealed override CutsceneStack StackStatement{get;}
-
-		public CutsceneInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class CutsceneStack(CutsceneInstruction instruction):SimplePureConsumerStack<CutsceneInstruction>(instruction)
+		public sealed class CutsceneStack:SimplePureConsumerStack<CutsceneInstruction,CutsceneStack>
 		{
 			public override int PopCount => 1;
 
@@ -3185,17 +2483,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Inventory)]
-	public sealed class InventoryInstruction:PureProducerInstruction
+	public sealed class InventoryInstruction:PureProducerInstruction<InventoryInstruction,InventoryInstruction.InventoryStack>
 	{
 		//Item count
 		public int Item;
-
-		public sealed override InventoryStack StackProducer{get;}
-
-		public InventoryInstruction()
-		{
-			StackProducer = new(this);
-		}
 
 		public sealed override void Setup(AsmParser parser)
 		{
@@ -3205,23 +2496,16 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			Item = inventoryAsmInstr.Item;
 		}
 
-		public sealed class InventoryStack(InventoryInstruction instruction):PureProducerStack<InventoryInstruction>(instruction)
+		public sealed class InventoryStack:PureProducerStack<InventoryInstruction,InventoryStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"inventory({Instruction.Item})";
 		}
 	}
 
 	[Opcode(InstructionOpcode.DebugName)]
-	public sealed class DebugNameInstruction:SimpleNoStackInstruction
+	public sealed class DebugNameInstruction:SimpleNoStackInstruction<DebugNameInstruction,DebugNameInstruction.DebugNameStack>
 	{
 		public string Name;
-
-		public sealed override DebugNameStack StackStatement{get;}
-
-		public DebugNameInstruction()
-		{
-			StackStatement = new(this);
-		}
 
 		public sealed override void Setup(AsmParser parser)
 		{
@@ -3231,7 +2515,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			Name = debugNameAsmInstr.Name;
 		}
 
-		public sealed class DebugNameStack(DebugNameInstruction instruction):SimpleNoStackStack<DebugNameInstruction>(instruction)
+		public sealed class DebugNameStack:SimpleNoStackStack<DebugNameInstruction,DebugNameStack>
 		{
 			public override string ToStatement() => $"DebugName \"{Instruction.Name}\"";
 		}
@@ -3241,16 +2525,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class PlayerDistanceCheckInstruction:FlagInstruction;
 
 	[Opcode(InstructionOpcode.SoundPlay1)]
-	public sealed class SoundPlay1Instruction:SimplePureConsumerInstruction
+	public sealed class SoundPlay1Instruction:SimplePureConsumerInstruction<SoundPlay1Instruction,SoundPlay1Instruction.SoundPlay1Stack>
 	{
-		public sealed override SoundPlay1Stack StackStatement{get;}
-
-		public SoundPlay1Instruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SoundPlay1Stack(SoundPlay1Instruction instruction):SimplePureConsumerStack<SoundPlay1Instruction>(instruction)
+		public sealed class SoundPlay1Stack:SimplePureConsumerStack<SoundPlay1Instruction,SoundPlay1Stack>
 		{
 			public override int PopCount => 1;
 
@@ -3261,16 +2538,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.SoundPlay1ASS)]
-	public sealed class SoundPlay1AssignmentInstruction:BaseExpressionInstruction
+	public sealed class SoundPlay1AssignmentInstruction:BaseExpressionInstruction<SoundPlay1AssignmentInstruction,SoundPlay1AssignmentInstruction.SoundPlay1AssignmentStack>
 	{
-		public sealed override SoundPlay1AssignmentStack StackOperation{get;}
-
-		public SoundPlay1AssignmentInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class SoundPlay1AssignmentStack(SoundPlay1AssignmentInstruction instruction):BaseExpressionStack<SoundPlay1AssignmentInstruction>(instruction)
+		public sealed class SoundPlay1AssignmentStack:BaseExpressionStack<SoundPlay1AssignmentInstruction,SoundPlay1AssignmentStack>
 		{
 			public override int PopCount => 1;
 
@@ -3281,16 +2551,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.SoundAddress)]
-	public sealed class SoundAddressInstruction:PureProducerInstruction
+	public sealed class SoundAddressInstruction:PureProducerInstruction<SoundAddressInstruction,SoundAddressInstruction.SoundAddressStack>
 	{
 		public int Value;
-
-		public sealed override SoundAddressStack StackProducer{get;}
-
-		public SoundAddressInstruction()
-		{
-			StackProducer = new(this);
-		}
 
 		public sealed override void Setup(AsmParser parser)
 		{
@@ -3299,9 +2562,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 			Value = soundAddrAsmInstr.Value;
 		}
-		
 
-		public sealed class SoundAddressStack(SoundAddressInstruction instruction):PureProducerStack<SoundAddressInstruction>(instruction)
+		public sealed class SoundAddressStack:PureProducerStack<SoundAddressInstruction,SoundAddressStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"SoundAddress {Instruction.Value}";
 		}
@@ -3330,16 +2592,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.CollisionOffset)]
-	public sealed class CollisionOffsetInstruction:SimplePureConsumerInstruction
+	public sealed class CollisionOffsetInstruction:SimplePureConsumerInstruction<CollisionOffsetInstruction,CollisionOffsetInstruction.CollisionOffsetStack>
 	{
-		public sealed override CollisionOffsetStack StackStatement{get;}
-
-		public CollisionOffsetInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class CollisionOffsetStack(CollisionOffsetInstruction instruction):SimplePureConsumerStack<CollisionOffsetInstruction>(instruction)
+		public sealed class CollisionOffsetStack:SimplePureConsumerStack<CollisionOffsetInstruction,CollisionOffsetStack>
 		{
 			public override int PopCount => 3;
 
@@ -3352,16 +2607,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Abs)]
-	public sealed class AbsInstruction:UnaryOperationInstruction
+	public sealed class AbsInstruction:UnaryOperationInstruction<AbsInstruction,AbsInstruction.AbsStack>
 	{
-		public sealed override AbsStack StackOperation{get;}
-
-		public AbsInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class AbsStack(AbsInstruction instruction):UnaryOperationStack<AbsInstruction>(instruction)
+		public sealed class AbsStack:UnaryOperationStack<AbsInstruction,AbsStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"abs({Value.ToFxString()})";
 		}
@@ -3371,39 +2619,25 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class PickupInstruction:FlagInstruction;
 
 	[Opcode(InstructionOpcode.Min)]
-	public sealed class MinInstruction:BinaryOperationInstruction
+	public sealed class MinInstruction:BinaryOperationInstruction<MinInstruction,MinInstruction.MinStack>
 	{
-		public sealed override MinStack StackOperation{get;}
-
-		public MinInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class MinStack(MinInstruction instruction):BinaryOperationStack<MinInstruction>(instruction)
+		public sealed class MinStack:BinaryOperationStack<MinInstruction,MinStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"min({ValueA.ToFxString()}, {ValueB.ToFxString()})";
 		}
 	}
 
 	[Opcode(InstructionOpcode.Max)]
-	public sealed class MaxInstruction:BinaryOperationInstruction
+	public sealed class MaxInstruction:BinaryOperationInstruction<MaxInstruction,MaxInstruction.MaxStack>
 	{
-		public sealed override MaxStack StackOperation{get;}
-
-		public MaxInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class MaxStack(MaxInstruction instruction):BinaryOperationStack<MaxInstruction>(instruction)
+		public sealed class MaxStack:BinaryOperationStack<MaxInstruction,MaxStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"max({ValueA.ToFxString()}, {ValueB.ToFxString()})";
 		}
 	}
 
 	[Opcode(InstructionOpcode.SpawnParticle)]
-	public sealed class SpawnParticleInstruction:SimplePureConsumerInstruction
+	public sealed class SpawnParticleInstruction:SimplePureConsumerInstruction<SpawnParticleInstruction,SpawnParticleInstruction.SpawnParticleStack>
 	{
 		public enum ParticleType
 		{
@@ -3451,14 +2685,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			particle_vectfadefallspritespin = 42,
 		}
 
-		public sealed override SpawnParticleStack StackStatement{get;}
-
-		public SpawnParticleInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SpawnParticleStack(SpawnParticleInstruction instruction):SimplePureConsumerStack<SpawnParticleInstruction>(instruction)
+		public sealed class SpawnParticleStack:SimplePureConsumerStack<SpawnParticleInstruction,SpawnParticleStack>
 		{
 			public override int PopCount => 6;
 
@@ -3486,32 +2713,18 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Sgn)]
-	public sealed class SgnInstruction:UnaryOperationInstruction
+	public sealed class SgnInstruction:UnaryOperationInstruction<SgnInstruction,SgnInstruction.SgnStack>
 	{
-		public sealed override SgnStack StackOperation{get;}
-
-		public SgnInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class SgnStack(SgnInstruction instruction):UnaryOperationStack<SgnInstruction>(instruction)
+		public sealed class SgnStack:UnaryOperationStack<SgnInstruction,SgnStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"sgn({Value.ToFxString()})";
 		}
 	}
 
 	[Opcode(InstructionOpcode.SpawnAfter)]
-	public sealed class SpawnAfterInstruction:BaseSpawnInstruction
+	public sealed class SpawnAfterInstruction:BaseSpawnInstruction<SpawnAfterInstruction,SpawnAfterInstruction.SpawnAfterStack>
 	{
-		public sealed override SpawnAfterStack StackStatement{get;}
-
-		public SpawnAfterInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SpawnAfterStack(SpawnAfterInstruction instruction):BaseSpawnStack<SpawnAfterInstruction>(instruction)
+		public sealed class SpawnAfterStack:BaseSpawnStack<SpawnAfterInstruction,SpawnAfterStack>
 		{
 			public override string ToStatement() => $"SpawnAfter {Instruction.SpawnStratProc.AsmLabel.SubroutineName()}, {Instruction.LocalVarsToPop}, {Instruction.LocalCount}, {Instruction.TriggerCount}, {Instruction.CollisionSize}, {Instruction.CollisionBoneCount}";
 		}
@@ -3578,64 +2791,36 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class RunAt60Instruction():UnimplementedInstruction(fail:false);
 
 	[Opcode(InstructionOpcode.MoveForwardq)]
-	public sealed class MoveForwardqInstruction:BaseMoveInstruction
+	public sealed class MoveForwardqInstruction:BaseMoveInstruction<MoveForwardqInstruction,MoveForwardqInstruction.MoveForwardqStack>
 	{
-		public sealed override MoveForwardqStack StackStatement{get;}
-
-		public MoveForwardqInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class MoveForwardqStack(MoveForwardqInstruction instruction):BaseMoveStack<MoveForwardqInstruction>(instruction)
+		public sealed class MoveForwardqStack:BaseMoveStack<MoveForwardqInstruction,MoveForwardqStack>
 		{
 			public override string ToStatement() => $"MoveForwardQ {Amount.ToFxString()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.MoveBackwardq)]
-	public sealed class MoveBackwardqInstruction:BaseMoveInstruction
+	public sealed class MoveBackwardqInstruction:BaseMoveInstruction<MoveBackwardqInstruction,MoveBackwardqInstruction.MoveBackwardqStack>
 	{
-		public sealed override MoveBackwardqStack StackStatement{get;}
-
-		public MoveBackwardqInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class MoveBackwardqStack(MoveBackwardqInstruction instruction):BaseMoveStack<MoveBackwardqInstruction>(instruction)
+		public sealed class MoveBackwardqStack:BaseMoveStack<MoveBackwardqInstruction,MoveBackwardqStack>
 		{
 			public override string ToStatement() => $"MoveBackwardQ {Amount.ToFxString()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.ScreenPrint)]
-	public sealed class ScreenPrintInstruction:BasePrintInstruction
+	public sealed class ScreenPrintInstruction:BasePrintInstruction<ScreenPrintInstruction,ScreenPrintInstruction.ScreenPrintStack>
 	{
-		public sealed override ScreenPrintStack StackStatement{get;}
-
-		public ScreenPrintInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class ScreenPrintStack(ScreenPrintInstruction instruction):SimpleNoStackStack<ScreenPrintInstruction>(instruction)
+		public sealed class ScreenPrintStack:SimpleNoStackStack<ScreenPrintInstruction,ScreenPrintStack>
 		{
 			public override string ToStatement() => $"screenprint {Instruction.Data}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.SoundPlay2)]
-	public sealed class SoundPlay2Instruction:SimplePureConsumerInstruction
+	public sealed class SoundPlay2Instruction:SimplePureConsumerInstruction<SoundPlay2Instruction,SoundPlay2Instruction.SoundPlay2Stack>
 	{
-		public sealed override SoundPlay2Stack StackStatement{get;}
-
-		public SoundPlay2Instruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SoundPlay2Stack(SoundPlay2Instruction instruction):SimplePureConsumerStack<SoundPlay2Instruction>(instruction)
+		public sealed class SoundPlay2Stack:SimplePureConsumerStack<SoundPlay2Instruction,SoundPlay2Stack>
 		{
 			public override int PopCount => 2;
 
@@ -3647,16 +2832,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.SoundPlay2ASS)]
-	public sealed class SoundPlay2AssignmentInstruction:BaseExpressionInstruction
+	public sealed class SoundPlay2AssignmentInstruction:BaseExpressionInstruction<SoundPlay2AssignmentInstruction,SoundPlay2AssignmentInstruction.SoundPlay2AssignmentStack>
 	{
-		public sealed override SoundPlay2AssignmentStack StackOperation{get;}
-
-		public SoundPlay2AssignmentInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class SoundPlay2AssignmentStack(SoundPlay2AssignmentInstruction instruction):BaseExpressionStack<SoundPlay2AssignmentInstruction>(instruction)
+		public sealed class SoundPlay2AssignmentStack:BaseExpressionStack<SoundPlay2AssignmentInstruction,SoundPlay2AssignmentStack>
 		{
 			public override int PopCount => 2;
 
@@ -3674,16 +2852,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class ResetWPInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.SoundVolume)]
-	public sealed class SoundVolumeInstruction:SimplePureConsumerInstruction
+	public sealed class SoundVolumeInstruction:SimplePureConsumerInstruction<SoundVolumeInstruction,SoundVolumeInstruction.SoundVolumeStack>
 	{
-		public sealed override SoundVolumeStack StackStatement{get;}
-
-		public SoundVolumeInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SoundVolumeStack(SoundVolumeInstruction instruction):SimplePureConsumerStack<SoundVolumeInstruction>(instruction)
+		public sealed class SoundVolumeStack:SimplePureConsumerStack<SoundVolumeInstruction,SoundVolumeStack>
 		{
 			public override int PopCount => 2;
 
@@ -3701,16 +2872,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class StringInstruction:UnimplementedInstruction;
 
 	[Opcode(InstructionOpcode.SetBossHearts)]
-	public sealed class SetBossHeartsInstruction:SimplePureConsumerInstruction
+	public sealed class SetBossHeartsInstruction:SimplePureConsumerInstruction<SetBossHeartsInstruction,SetBossHeartsInstruction.SetBossHeartsStack>
 	{
-		public sealed override SetBossHeartsStack StackStatement{get;}
-
-		public SetBossHeartsInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SetBossHeartsStack(SetBossHeartsInstruction instruction):SimplePureConsumerStack<SetBossHeartsInstruction>(instruction)
+		public sealed class SetBossHeartsStack:SimplePureConsumerStack<SetBossHeartsInstruction,SetBossHeartsStack>
 		{
 			public override int PopCount => 1;
 
@@ -3724,16 +2888,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class LoseBossHeartInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.SoundShiftRelative)]
-	public sealed class SoundShiftRelativeInstruction:SimplePureConsumerInstruction
+	public sealed class SoundShiftRelativeInstruction:SimplePureConsumerInstruction<SoundShiftRelativeInstruction,SoundShiftRelativeInstruction.SoundShiftRelativeStack>
 	{
-		public sealed override SoundShiftRelativeStack StackStatement{get;}
-
-		public SoundShiftRelativeInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SoundShiftRelativeStack(SoundShiftRelativeInstruction instruction):SimplePureConsumerStack<SoundShiftRelativeInstruction>(instruction)
+		public sealed class SoundShiftRelativeStack:SimplePureConsumerStack<SoundShiftRelativeInstruction,SoundShiftRelativeStack>
 		{
 			public override int PopCount => 2;
 
@@ -3745,16 +2902,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Smin)]
-	public sealed class SminInstruction:BinaryOperationInstruction
+	public sealed class SminInstruction:BinaryOperationInstruction<SminInstruction,SminInstruction.SminStack>
 	{
-		public sealed override SminStack StackOperation{get;}
-
-		public SminInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class SminStack(SminInstruction instruction):BinaryOperationStack<SminInstruction>(instruction)
+		public sealed class SminStack:BinaryOperationStack<SminInstruction,SminStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"smin({ValueA.ToFxString()}, {ValueB.ToFxString()})";
 		}
@@ -3764,16 +2914,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class IsBossInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.TopSay)]
-	public sealed class TopSayInstruction:DialogSayInstruction
+	public sealed class TopSayInstruction:DialogSayInstruction<TopSayInstruction,TopSayInstruction.TopSayStack>
 	{
-		public sealed override TopSayStack StackStatement{get;}
-
-		public TopSayInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class TopSayStack(TopSayInstruction instruction):DialogSayStack<TopSayInstruction>(instruction)
+		public sealed class TopSayStack:DialogSayStack<TopSayInstruction,TopSayStack>
 		{
 			public override string ToStatement() => $"TopSay \"{Instruction.EnglishString}\"";
 		}
@@ -3814,35 +2957,21 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class NoHangInstruction:FlagInstruction;
 
 	[Opcode(InstructionOpcode.Zero)]
-	public sealed class ZeroInstruction:PureProducerInstruction
+	public sealed class ZeroInstruction:PureProducerInstruction<ZeroInstruction,ZeroInstruction.ZeroStack>
 	{
-		public sealed override bool Literal => true;
-
-		public sealed override ZeroStack StackProducer{get;}
-
-		public ZeroInstruction()
+		public sealed class ZeroStack:PureProducerStack<ZeroInstruction,ZeroStack>
 		{
-			StackProducer = new(this);
-		}
+			public sealed override bool Literal => true;
 
-		public sealed class ZeroStack(ZeroInstruction instruction):PureProducerStack<ZeroInstruction>(instruction)
-		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => "0";
 			public override string ToConditionStr(bool checkTrue) => checkTrue ? "0" : "(NOT 0)";
 		}
 	}
 
 	[Opcode(InstructionOpcode.TopHead)]
-	public sealed class TopHeadInstruction:SimplePureConsumerInstruction
+	public sealed class TopHeadInstruction:SimplePureConsumerInstruction<TopHeadInstruction,TopHeadInstruction.TopHeadStack>
 	{
-		public sealed override TopHeadStack StackStatement{get;}
-
-		public TopHeadInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class TopHeadStack(TopHeadInstruction instruction):SimplePureConsumerStack<TopHeadInstruction>(instruction)
+		public sealed class TopHeadStack:SimplePureConsumerStack<TopHeadInstruction,TopHeadStack>
 		{
 			public override int PopCount => 1;
 
@@ -3853,48 +2982,27 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.TopDialog)]
-	public sealed class TopDialogInstruction:DialogSetInstruction
+	public sealed class TopDialogInstruction:DialogSetInstruction<TopDialogInstruction,TopDialogInstruction.TopDialogStack>
 	{
-		public sealed override TopDialogStack StackStatement{get;}
-
-		public TopDialogInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class TopDialogStack(TopDialogInstruction instruction):DialogSetStack<TopDialogInstruction>(instruction)
+		public sealed class TopDialogStack:DialogSetStack<TopDialogInstruction,TopDialogStack>
 		{
 			public override string ToStatement() => Instruction.State ? "TopDialog on" : "TopDialog off";
 		}
 	}
 
 	[Opcode(InstructionOpcode.BottomSay)]
-	public sealed class BottomSayInstruction:DialogSayInstruction
+	public sealed class BottomSayInstruction:DialogSayInstruction<BottomSayInstruction,BottomSayInstruction.BottomSayStack>
 	{
-		public sealed override BottomSayStack StackStatement{get;}
-
-		public BottomSayInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class BottomSayStack(BottomSayInstruction instruction):DialogSayStack<BottomSayInstruction>(instruction)
+		public sealed class BottomSayStack:DialogSayStack<BottomSayInstruction,BottomSayStack>
 		{
 			public override string ToStatement() => $"BottomSay \"{Instruction.EnglishString}\"";
 		}
 	}
 
 	[Opcode(InstructionOpcode.BottomHead)]
-	public sealed class BottomHeadInstruction:SimplePureConsumerInstruction
+	public sealed class BottomHeadInstruction:SimplePureConsumerInstruction<BottomHeadInstruction,BottomHeadInstruction.BottomHeadStack>
 	{
-		public sealed override BottomHeadStack StackStatement{get;}
-
-		public BottomHeadInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class BottomHeadStack(BottomHeadInstruction instruction):SimplePureConsumerStack<BottomHeadInstruction>(instruction)
+		public sealed class BottomHeadStack:SimplePureConsumerStack<BottomHeadInstruction,BottomHeadStack>
 		{
 			public override int PopCount => 1;
 
@@ -3905,16 +3013,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.BottomDialog)]
-	public sealed class BottomDialogInstruction:DialogSetInstruction
+	public sealed class BottomDialogInstruction:DialogSetInstruction<BottomDialogInstruction,BottomDialogInstruction.BottomDialogStack>
 	{
-		public sealed override BottomDialogStack StackStatement{get;}
-
-		public BottomDialogInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class BottomDialogStack(BottomDialogInstruction instruction):DialogSetStack<BottomDialogInstruction>(instruction)
+		public sealed class BottomDialogStack:DialogSetStack<BottomDialogInstruction,BottomDialogStack>
 		{
 			public override string ToStatement() => Instruction.State ? "BottomDialog on" : "BottomDialog off";
 		}
@@ -3933,16 +3034,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class GetDoorPosInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.FadeOut)]
-	public sealed class FadeOutInstruction:SimplePureConsumerInstruction
+	public sealed class FadeOutInstruction:SimplePureConsumerInstruction<FadeOutInstruction,FadeOutInstruction.FadeOutStack>
 	{
-		public sealed override FadeOutStack StackStatement{get;}
-
-		public FadeOutInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class FadeOutStack(FadeOutInstruction instruction):SimplePureConsumerStack<FadeOutInstruction>(instruction)
+		public sealed class FadeOutStack:SimplePureConsumerStack<FadeOutInstruction,FadeOutStack>
 		{
 			public override int PopCount => 1;
 
@@ -3953,16 +3047,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.FadeIn)]
-	public sealed class FadeInInstruction:SimplePureConsumerInstruction
+	public sealed class FadeInInstruction:SimplePureConsumerInstruction<FadeInInstruction,FadeInInstruction.FadeInStack>
 	{
-		public sealed override FadeInStack StackStatement{get;}
-
-		public FadeInInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class FadeInStack(FadeInInstruction instruction):SimplePureConsumerStack<FadeInInstruction>(instruction)
+		public sealed class FadeInStack:SimplePureConsumerStack<FadeInInstruction,FadeInStack>
 		{
 			public override int PopCount => 1;
 
@@ -3973,32 +3060,18 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.MoveUpq)]
-	public sealed class MoveUpqInstruction:BaseMoveInstruction
+	public sealed class MoveUpqInstruction:BaseMoveInstruction<MoveUpqInstruction,MoveUpqInstruction.MoveUpqStack>
 	{
-		public sealed override MoveUpqStack StackStatement{get;}
-
-		public MoveUpqInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class MoveUpqStack(MoveUpqInstruction instruction):BaseMoveStack<MoveUpqInstruction>(instruction)
+		public sealed class MoveUpqStack:BaseMoveStack<MoveUpqInstruction,MoveUpqStack>
 		{
 			public override string ToStatement() => $"MoveUpQ {Amount.ToFxString()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.MoveDownq)]
-	public sealed class MoveDownqInstruction:BaseMoveInstruction
+	public sealed class MoveDownqInstruction:BaseMoveInstruction<MoveDownqInstruction,MoveDownqInstruction.MoveDownqStack>
 	{
-		public sealed override MoveDownqStack StackStatement{get;}
-
-		public MoveDownqInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class MoveDownqStack(MoveDownqInstruction instruction):BaseMoveStack<MoveDownqInstruction>(instruction)
+		public sealed class MoveDownqStack:BaseMoveStack<MoveDownqInstruction,MoveDownqStack>
 		{
 			public override string ToStatement() => $"MoveDownQ {Amount.ToFxString()}";
 		}
@@ -4008,16 +3081,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class ForcePlayerDistInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.ShadeType)]
-	public sealed class ShadeTypeInstruction:SimplePureConsumerInstruction
+	public sealed class ShadeTypeInstruction:SimplePureConsumerInstruction<ShadeTypeInstruction,ShadeTypeInstruction.ShadeTypeStack>
 	{
-		public sealed override ShadeTypeStack StackStatement{get;}
-
-		public ShadeTypeInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class ShadeTypeStack(ShadeTypeInstruction instruction):SimplePureConsumerStack<ShadeTypeInstruction>(instruction)
+		public sealed class ShadeTypeStack:SimplePureConsumerStack<ShadeTypeInstruction,ShadeTypeStack>
 		{
 			public override int PopCount => 1;
 
@@ -4032,16 +3098,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class NOPInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.SetAnimSpeed)]
-	public sealed class SetAnimSpeedInstruction:SimplePureConsumerInstruction
+	public sealed class SetAnimSpeedInstruction:SimplePureConsumerInstruction<SetAnimSpeedInstruction,SetAnimSpeedInstruction.SetAnimSpeedStack>
 	{
-		public sealed override SetAnimSpeedStack StackStatement{get;}
-
-		public SetAnimSpeedInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SetAnimSpeedStack(SetAnimSpeedInstruction instruction):SimplePureConsumerStack<SetAnimSpeedInstruction>(instruction)
+		public sealed class SetAnimSpeedStack:SimplePureConsumerStack<SetAnimSpeedInstruction,SetAnimSpeedStack>
 		{
 			public override int PopCount => 1;
 
@@ -4107,16 +3166,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class IsDialogInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Distance)]
-	public sealed class DistanceInstruction:BaseExpressionInstruction
+	public sealed class DistanceInstruction:BaseExpressionInstruction<DistanceInstruction,DistanceInstruction.DistanceStack>
 	{
-		public sealed override DistanceStack StackOperation{get;}
-
-		public DistanceInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class DistanceStack(DistanceInstruction instruction):BaseExpressionStack<DistanceInstruction>(instruction)
+		public sealed class DistanceStack:BaseExpressionStack<DistanceInstruction,DistanceStack>
 		{
 			public override int PopCount => 3;
 
@@ -4129,16 +3181,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.Binocs)]
-	public sealed class BinocsInstruction:SimpleNoStackInstruction
+	public sealed class BinocsInstruction:SimpleNoStackInstruction<BinocsInstruction,BinocsInstruction.BinocsStack>
 	{
 		public bool State;
-
-		public sealed override BinocsStack StackStatement{get;}
-
-		public BinocsInstruction()
-		{
-			StackStatement = new(this);
-		}
 
 		public sealed override void Setup(AsmParser parser)
 		{
@@ -4153,7 +3198,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			};
 		}
 
-		public sealed class BinocsStack(BinocsInstruction instruction):SimpleNoStackStack<BinocsInstruction>(instruction)
+		public sealed class BinocsStack:SimpleNoStackStack<BinocsInstruction,BinocsStack>
 		{
 			public override string ToStatement() => Instruction.State ? "Binocs on" : "Binocs off";
 		}
@@ -4190,16 +3235,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class GainRewardInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.WorldVector)]
-	public sealed class WorldVectorInstruction:SimplePureConsumerInstruction
+	public sealed class WorldVectorInstruction:SimplePureConsumerInstruction<WorldVectorInstruction,WorldVectorInstruction.WorldVectorStack>
 	{
-		public sealed override WorldVectorStack StackStatement{get;}
-
-		public WorldVectorInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class WorldVectorStack(WorldVectorInstruction instruction):SimplePureConsumerStack<WorldVectorInstruction>(instruction)
+		public sealed class WorldVectorStack:SimplePureConsumerStack<WorldVectorInstruction,WorldVectorStack>
 		{
 			public override int PopCount => 3;
 
@@ -4216,16 +3254,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class ObjectFallVerySlowInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Slope2Controller)]
-	public sealed class Slope2ControllerInstruction:SimplePureConsumerInstruction
+	public sealed class Slope2ControllerInstruction:SimplePureConsumerInstruction<Slope2ControllerInstruction,Slope2ControllerInstruction.Slope2ControllerStack>
 	{
-		public sealed override Slope2ControllerStack StackStatement{get;}
-
-		public Slope2ControllerInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class Slope2ControllerStack(Slope2ControllerInstruction instruction):SimplePureConsumerStack<Slope2ControllerInstruction>(instruction)
+		public sealed class Slope2ControllerStack:SimplePureConsumerStack<Slope2ControllerInstruction,Slope2ControllerStack>
 		{
 			public override int PopCount => 1;
 
@@ -4243,16 +3274,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.LevelComplete)]
-	public sealed class LevelCompleteInstruction:BaseExpressionInstruction
+	public sealed class LevelCompleteInstruction:BaseExpressionInstruction<LevelCompleteInstruction,LevelCompleteInstruction.LevelCompleteStack>
 	{
-		public sealed override LevelCompleteStack StackOperation{get;}
-
-		public LevelCompleteInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class LevelCompleteStack(LevelCompleteInstruction instruction):BaseExpressionStack<LevelCompleteInstruction>(instruction)
+		public sealed class LevelCompleteStack:BaseExpressionStack<LevelCompleteInstruction,LevelCompleteStack>
 		{
 			public override int PopCount => 3;
 
@@ -4265,16 +3289,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.SetLevelFlag)]
-	public sealed class SetLevelFlagInstruction:SimplePureConsumerInstruction
+	public sealed class SetLevelFlagInstruction:SimplePureConsumerInstruction<SetLevelFlagInstruction,SetLevelFlagInstruction.SetLevelFlagStack>
 	{
-		public sealed override SetLevelFlagStack StackStatement{get;}
-
-		public SetLevelFlagInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SetLevelFlagStack(SetLevelFlagInstruction instruction):SimplePureConsumerStack<SetLevelFlagInstruction>(instruction)
+		public sealed class SetLevelFlagStack:SimplePureConsumerStack<SetLevelFlagInstruction,SetLevelFlagStack>
 		{
 			public override int PopCount => 1;
 
@@ -4285,16 +3302,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.GetLevelFlag)]
-	public sealed class GetLevelFlagInstruction:BaseExpressionInstruction
+	public sealed class GetLevelFlagInstruction:BaseExpressionInstruction<GetLevelFlagInstruction,GetLevelFlagInstruction.GetLevelFlagStack>
 	{
-		public sealed override GetLevelFlagStack StackOperation{get;}
-
-		public GetLevelFlagInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class GetLevelFlagStack(GetLevelFlagInstruction instruction):BaseExpressionStack<GetLevelFlagInstruction>(instruction)
+		public sealed class GetLevelFlagStack:BaseExpressionStack<GetLevelFlagInstruction,GetLevelFlagStack>
 		{
 			public override int PopCount => 3;
 
@@ -4307,16 +3317,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.CalcCarTilt)]
-	public sealed class CalcCarTiltInstruction:SimplePureConsumerInstruction
+	public sealed class CalcCarTiltInstruction:SimplePureConsumerInstruction<CalcCarTiltInstruction,CalcCarTiltInstruction.CalcCarTiltStack>
 	{
-		public sealed override CalcCarTiltStack StackStatement{get;}
-
-		public CalcCarTiltInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class CalcCarTiltStack(CalcCarTiltInstruction instruction):SimplePureConsumerStack<CalcCarTiltInstruction>(instruction)
+		public sealed class CalcCarTiltStack:SimplePureConsumerStack<CalcCarTiltInstruction,CalcCarTiltStack>
 		{
 			public override int PopCount => 4;
 
@@ -4331,48 +3334,27 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.MoveLeftq)]
-	public sealed class MoveLeftqInstruction:BaseMoveInstruction
+	public sealed class MoveLeftqInstruction:BaseMoveInstruction<MoveLeftqInstruction,MoveLeftqInstruction.MoveLeftqStack>
 	{
-		public sealed override MoveLeftqStack StackStatement{get;}
-
-		public MoveLeftqInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class MoveLeftqStack(MoveLeftqInstruction instruction):BaseMoveStack<MoveLeftqInstruction>(instruction)
+		public sealed class MoveLeftqStack:BaseMoveStack<MoveLeftqInstruction,MoveLeftqStack>
 		{
 			public override string ToStatement() => $"MoveLeftQ {Amount.ToFxString()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.MoveRightq)]
-	public sealed class MoveRightqInstruction:BaseMoveInstruction
+	public sealed class MoveRightqInstruction:BaseMoveInstruction<MoveRightqInstruction,MoveRightqInstruction.MoveRightqStack>
 	{
-		public sealed override MoveRightqStack StackStatement{get;}
-
-		public MoveRightqInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class MoveRightqStack(MoveRightqInstruction instruction):BaseMoveStack<MoveRightqInstruction>(instruction)
+		public sealed class MoveRightqStack:BaseMoveStack<MoveRightqInstruction,MoveRightqStack>
 		{
 			public override string ToStatement() => $"MoveRightQ {Amount.ToFxString()}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.BitwiseNot)]
-	public sealed class BitwiseNotInstruction:UnaryOperationInstruction
+	public sealed class BitwiseNotInstruction:UnaryOperationInstruction<BitwiseNotInstruction,BitwiseNotInstruction.BitwiseNotStack>
 	{
-		public sealed override BitwiseNotStack StackOperation{get;}
-
-		public BitwiseNotInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class BitwiseNotStack(BitwiseNotInstruction instruction):UnaryOperationStack<BitwiseNotInstruction>(instruction)
+		public sealed class BitwiseNotStack:UnaryOperationStack<BitwiseNotInstruction,BitwiseNotStack>
 		{
 			public override string ToExpressionString(ExpressionType requestType = ExpressionType.Unknown) => $"~{Value.ToIntStr()}";
 		}
@@ -4385,16 +3367,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class BordersOffInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.SoundAdsr)]
-	public sealed class SoundAdsrInstruction:SimplePureConsumerInstruction
+	public sealed class SoundAdsrInstruction:SimplePureConsumerInstruction<SoundAdsrInstruction,SoundAdsrInstruction.SoundAdsrStack>
 	{
-		public sealed override SoundAdsrStack StackStatement{get;}
-
-		public SoundAdsrInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SoundAdsrStack(SoundAdsrInstruction instruction):SimplePureConsumerStack<SoundAdsrInstruction>(instruction)
+		public sealed class SoundAdsrStack:SimplePureConsumerStack<SoundAdsrInstruction,SoundAdsrStack>
 		{
 			public override int PopCount => 5;
 
@@ -4409,16 +3384,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.SoundAdsrRelative)]
-	public sealed class SoundAdsrRelativeInstruction:SimplePureConsumerInstruction
+	public sealed class SoundAdsrRelativeInstruction:SimplePureConsumerInstruction<SoundAdsrRelativeInstruction,SoundAdsrRelativeInstruction.SoundAdsrRelativeStack>
 	{
-		public sealed override SoundAdsrRelativeStack StackStatement{get;}
-
-		public SoundAdsrRelativeInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SoundAdsrRelativeStack(SoundAdsrRelativeInstruction instruction):SimplePureConsumerStack<SoundAdsrRelativeInstruction>(instruction)
+		public sealed class SoundAdsrRelativeStack:SimplePureConsumerStack<SoundAdsrRelativeInstruction,SoundAdsrRelativeStack>
 		{
 			public override int PopCount => 5;
 
@@ -4448,16 +3416,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class InvInactiveInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.SampleStatus)]
-	public sealed class SampleStatusInstruction:BaseExpressionInstruction
+	public sealed class SampleStatusInstruction:BaseExpressionInstruction<SampleStatusInstruction,SampleStatusInstruction.SampleStatusStack>
 	{
-		public sealed override SampleStatusStack StackOperation{get;}
-
-		public SampleStatusInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class SampleStatusStack(SampleStatusInstruction instruction):BaseExpressionStack<SampleStatusInstruction>(instruction)
+		public sealed class SampleStatusStack:BaseExpressionStack<SampleStatusInstruction,SampleStatusStack>
 		{
 			public override int PopCount => 1;
 
@@ -4492,16 +3453,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class GainItemInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.SetItem)]
-	public sealed class SetItemInstruction:SimplePureConsumerInstruction
+	public sealed class SetItemInstruction:SimplePureConsumerInstruction<SetItemInstruction,SetItemInstruction.SetItemStack>
 	{
-		public sealed override SetItemStack StackStatement{get;}
-
-		public SetItemInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SetItemStack(SetItemInstruction instruction):SimplePureConsumerStack<SetItemInstruction>(instruction)
+		public sealed class SetItemStack:SimplePureConsumerStack<SetItemInstruction,SetItemStack>
 		{
 			public override int PopCount => 1;
 
@@ -4512,16 +3466,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	[Opcode(InstructionOpcode.SetTimer)]
-	public sealed class SetTimerInstruction:SimplePureConsumerInstruction
+	public sealed class SetTimerInstruction:SimplePureConsumerInstruction<SetTimerInstruction,SetTimerInstruction.SetTimerStack>
 	{
-		public sealed override SetTimerStack StackStatement{get;}
-
-		public SetTimerInstruction()
-		{
-			StackStatement = new(this);
-		}
-
-		public sealed class SetTimerStack(SetTimerInstruction instruction):SimplePureConsumerStack<SetTimerInstruction>(instruction)
+		public sealed class SetTimerStack:SimplePureConsumerStack<SetTimerInstruction,SetTimerStack>
 		{
 			public override int PopCount => 1;
 
@@ -4535,16 +3482,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class TimerOffInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.DistanceNoY)]
-	public sealed class DistanceNoYInstruction:BaseExpressionInstruction
+	public sealed class DistanceNoYInstruction:BaseExpressionInstruction<DistanceNoYInstruction,DistanceNoYInstruction.DistanceNoYStack>
 	{
-		public sealed override DistanceNoYStack StackOperation{get;}
-
-		public DistanceNoYInstruction()
-		{
-			StackOperation = new(this);
-		}
-
-		public sealed class DistanceNoYStack(DistanceNoYInstruction instruction):BaseExpressionStack<DistanceNoYInstruction>(instruction)
+		public sealed class DistanceNoYStack:BaseExpressionStack<DistanceNoYInstruction,DistanceNoYStack>
 		{
 			public override int PopCount => 2;
 
@@ -4586,16 +3526,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class CloseBurpingGameInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Credit)]
-	public sealed class CreditInstruction:SimpleNoStackInstruction
+	public sealed class CreditInstruction:SimpleNoStackInstruction<CreditInstruction,CreditInstruction.CreditStack>
 	{
 		public int Operand;
-
-		public sealed override CreditStack StackStatement{get;}
-
-		public CreditInstruction()
-		{
-			StackStatement = new(this);
-		}
 
 		public sealed override void Setup(AsmParser parser)
 		{
@@ -4605,7 +3538,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			Operand = creditAsmInstr.Operand;
 		}
 
-		public sealed class CreditStack(CreditInstruction instruction):SimpleNoStackStack<CreditInstruction>(instruction)
+		public sealed class CreditStack:SimpleNoStackStack<CreditInstruction,CreditStack>
 		{
 			public override string ToStatement() => $"Credit {Instruction.Operand}";
 		}
@@ -4621,16 +3554,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public sealed class ShowHeartsInstruction:SimpleNoOperandsNoStackInstruction;
 
 	[Opcode(InstructionOpcode.Cwg)]
-	public sealed class CwgInstruction:SimpleNoStackInstruction
+	public sealed class CwgInstruction:SimpleNoStackInstruction<CwgInstruction,CwgInstruction.CwgStack>
 	{
 		public int Value;
-
-		public sealed override CwgStack StackStatement{get;}
-
-		public CwgInstruction()
-		{
-			StackStatement = new(this);
-		}
 
 		public sealed override void Setup(AsmParser parser)
 		{
@@ -4640,23 +3566,16 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			Value = cwgAsmInstr.Value;
 		}
 
-		public sealed class CwgStack(CwgInstruction instruction):SimpleNoStackStack<CwgInstruction>(instruction)
+		public sealed class CwgStack:SimpleNoStackStack<CwgInstruction,CwgStack>
 		{
 			public override string ToStatement() => $"Cwg {Instruction.Value}";
 		}
 	}
 
 	[Opcode(InstructionOpcode.FadeFunction_47E960)]
-	public sealed class FadeFunction_47E960Instruction:SimpleNoStackInstruction
+	public sealed class FadeFunction_47E960Instruction:SimpleNoStackInstruction<FadeFunction_47E960Instruction,FadeFunction_47E960Instruction.FadeFunction_47E960Stack>
 	{
 		public int Value;
-
-		public sealed override FadeFunction_47E960Stack StackStatement{get;}
-
-		public FadeFunction_47E960Instruction()
-		{
-			StackStatement = new(this);
-		}
 
 		public sealed override void Setup(AsmParser parser)
 		{
@@ -4665,7 +3584,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			Value = fadeSetUnknownAsmInstr.Value;
 		}
 
-		public sealed class FadeFunction_47E960Stack(FadeFunction_47E960Instruction instruction):SimpleNoStackStack<FadeFunction_47E960Instruction>(instruction)
+		public sealed class FadeFunction_47E960Stack:SimpleNoStackStack<FadeFunction_47E960Instruction,FadeFunction_47E960Stack>
 		{
 			public override string ToStatement() => $"FadeFunction_47E960 {Instruction.Value}";
 		}

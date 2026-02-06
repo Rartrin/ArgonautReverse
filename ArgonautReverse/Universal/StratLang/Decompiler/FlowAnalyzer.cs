@@ -177,7 +177,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			//}
 
 			//An unidentified unconditional forward jump is a Break
-			if(flow is BaseJumpInstruction.JumpFlow jump && flow.StatementIndex<jump.FlowDestination.StatementIndex)
+			if(flow is IFlowJump jump && flow.StatementIndex<jump.FlowDestination.StatementIndex)
 			{
 				//TODO: Anything needed here?
 			}
@@ -196,8 +196,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			{
 				//While, Repeat, Loop
 
-				bool conditionalStart = flow is IFlowControl flowControl && flowControl.ControlStatement.FlowStatement is BranchInstruction.BranchFlow conditionalStartBranch && conditionalStartBranch.FlowConditionalDest == backwardFlow.RawNextFlow;
-				bool conditionalEnd = backwardFlow is IFlowControl backwardFlowControl && backwardFlowControl.ControlStatement.FlowStatement is BranchInstruction.BranchFlow;
+				bool conditionalStart = flow is IFlowControl flowControl && flowControl.ControlStatement.FlowStatement is IFlowBranch conditionalStartBranch && conditionalStartBranch.FlowConditionalDest == backwardFlow.RawNextFlow;
+				bool conditionalEnd = backwardFlow is IFlowControl backwardFlowControl && backwardFlowControl.ControlStatement.FlowStatement is IFlowBranch;
 
 				BreakableBlockFlowData blockFlow;
 				if(conditionalStart && !conditionalEnd)
@@ -232,10 +232,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 				scope.AddSubflow(blockFlow);
 				return true;
 			}
-			if(flow is BranchInstruction.BranchFlow branch)
+			if(flow is IFlowBranch branch)
 			{
 				//TODO: Better way to handle breaks. We should check if the jump happeneds within the current scope.
-				if(branch.FlowConditionalDest.RawPrevFlow is BaseJumpInstruction.JumpFlow jumpToEnd && jumpToEnd.FlowType == FlowStatementType.Unknown)
+				if(branch.FlowConditionalDest.RawPrevFlow is IFlowJump jumpToEnd && jumpToEnd.FlowStatement.FlowType == FlowStatementType.Unknown)
 				{
 					//If Else
 					if(jumpToEnd.FlowDestination.StatementIndex <= branch.FlowConditionalDest.StatementIndex)
@@ -243,7 +243,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 						throw new Exception("This is a loop");
 					}
 
-					var ifElseFlow = new IfElseFlowData(flow, jumpToEnd, jumpToEnd.FlowDestination.RawPrevFlow);
+					var ifElseFlow = new IfElseFlowData(flow, jumpToEnd.FlowStatement, jumpToEnd.FlowDestination.RawPrevFlow);
 					scope.AddSubflow(ifElseFlow);
 				}
 				else
@@ -397,12 +397,13 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
-			(bool invert, IStackProducer condition) = start.Instruction switch
+			if(start is not IFlowBranch startBranch){throw new Exception();}
+			(bool invert, IStackProducer condition) = startBranch.FlowStatement.StackStatement switch
 			{
-				BeqInstruction beqInstruction => (false, beqInstruction.StackStatement.Condition),
-				BeqImmInstruction beqImmInstruction => (false, beqImmInstruction.StackStatement.Condition),
-				BneInstruction bneInstruction => (true, bneInstruction.StackStatement.Condition),
-				BneImmInstruction bneImmInstruction => (true, bneImmInstruction.StackStatement.Condition),
+				BeqInstruction.BeqStack beq => (false, beq.Instruction.StackOperation.Condition),
+				BeqImmInstruction.BeqImmStack beqImm => (false, beqImm.Instruction.StackOperation.Condition),
+				BneInstruction.BneStack bne => (true, bne.Instruction.StackOperation.Condition),
+				BneImmInstruction.BneImmStack bneImm => (true, bneImm.Instruction.StackOperation.Condition),
 				_ => throw new Exception()
 			};
 			//TODO: Use ToConditionStr(invert)
@@ -461,12 +462,13 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
-			(bool invert, IStackProducer condition) = start.Instruction switch
+			if(start is not IFlowBranch startBranch){throw new Exception();}
+			(bool invert, IStackProducer condition) = startBranch.FlowStatement.StackStatement switch
 			{
-				BeqInstruction beqInstruction => (false, beqInstruction.StackStatement.Condition),
-				BeqImmInstruction beqImmInstruction => (false, beqImmInstruction.StackStatement.Condition),
-				BneInstruction bneInstruction => (true, bneInstruction.StackStatement.Condition),
-				BneImmInstruction bneImmInstruction => (true, bneImmInstruction.StackStatement.Condition),
+				BeqInstruction.BeqStack beq => (false, beq.Instruction.StackOperation.Condition),
+				BeqImmInstruction.BeqImmStack beqImm => (false, beqImm.Instruction.StackOperation.Condition),
+				BneInstruction.BneStack bne => (true, bne.Instruction.StackOperation.Condition),
+				BneImmInstruction.BneImmStack bneImm => (true, bneImm.Instruction.StackOperation.Condition),
 				_ => throw new Exception()
 			};
 			//TODO: Use ToConditionStr(invert)
@@ -486,7 +488,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		}
 		public void WriteElse(Writer writer, FlowStatement elseStatement, FlowStatementType statementType)
 		{
-			if(elseStatement is not BaseJumpInstruction.JumpFlow){throw new Exception();}
+			if(elseStatement is not IFlowJump){throw new Exception();}
 
 			writer.Unindent();
 			writer.WriteLine("else");
@@ -540,12 +542,13 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
-			(bool invert, IStackProducer condition) = start.Instruction switch
+			if(start is not IFlowBranch startBranch){throw new Exception();}
+			(bool invert, IStackProducer condition) = startBranch.FlowStatement.StackStatement switch
 			{
-				BeqInstruction beqInstruction => (false, beqInstruction.StackStatement.Condition),
-				BeqImmInstruction beqImmInstruction => (false, beqImmInstruction.StackStatement.Condition),
-				BneInstruction bneInstruction => (true, bneInstruction.StackStatement.Condition),
-				BneImmInstruction bneImmInstruction => (true, bneImmInstruction.StackStatement.Condition),
+				BeqInstruction.BeqStack beq => (false, beq.Instruction.StackOperation.Condition),
+				BeqImmInstruction.BeqImmStack beqImm => (false, beqImm.Instruction.StackOperation.Condition),
+				BneInstruction.BneStack bne => (true, bne.Instruction.StackOperation.Condition),
+				BneImmInstruction.BneImmStack bneImm => (true, bneImm.Instruction.StackOperation.Condition),
 				_ => throw new Exception()
 			};
 			//TODO: Use ToConditionStr(invert)
@@ -629,12 +632,13 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public override void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType)
 		{
-			(bool invert, IStackProducer condition) = end.Instruction switch
+			if(end is not IFlowBranch endBranch){throw new Exception();}
+			(bool invert, IStackProducer condition) = endBranch.FlowStatement.StackStatement switch
 			{
-				BeqInstruction beqInstruction => (false, beqInstruction.StackStatement.Condition),
-				BeqImmInstruction beqImmInstruction => (false, beqImmInstruction.StackStatement.Condition),
-				BneInstruction bneInstruction => (true, bneInstruction.StackStatement.Condition),
-				BneImmInstruction bneImmInstruction => (true, bneImmInstruction.StackStatement.Condition),
+				BeqInstruction.BeqStack beq => (false, beq.Instruction.StackOperation.Condition),
+				BeqImmInstruction.BeqImmStack beqImm => (false, beqImm.Instruction.StackOperation.Condition),
+				BneInstruction.BneStack bne => (true, bne.Instruction.StackOperation.Condition),
+				BneImmInstruction.BneImmStack bneImm => (true, bneImm.Instruction.StackOperation.Condition),
 				_ => throw new Exception()
 			};
 			//TODO: Use ToConditionStr(invert)
@@ -769,7 +773,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			
 			//The Unknown type check is for ProcBreak
 			//Can have a case break to an external switch
-			if(switchStart.RawNextFlow is not BaseJumpInstruction.JumpFlow switchDefaultJump /*|| switchDefaultJump.FlowType != FlowStatementType.Unknown*/)
+			if(switchStart.RawNextFlow is not IFlowJump switchDefaultJump /*|| switchDefaultJump.FlowType != FlowStatementType.Unknown*/)
 			{
 				throw new Exception("Invalid switch");
 			}
@@ -777,13 +781,13 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			//Get cases
 
 			//Switch should always be followed by a jump. If a default case exists, this will go to it. Otherwise this goes to the end of the main cases.
-			SwitchEndJumpFlowData switchEndJumpFlow = new SwitchEndJumpFlowData(switchDefaultJump);
+			SwitchEndJumpFlowData switchEndJumpFlow = new SwitchEndJumpFlowData(switchDefaultJump.FlowStatement);
 
 			FlowStatement caseBreakDest;
 			//If there is no default case, then the switch's default jump will go a location that directly leads into it.
 			//If there is a jump there, then that is the goto for the prior case indicating we jumped into a default case.
 			//TODO: This may not always be true. Consider if the prior case uses a procbreak.
-			if(switchDefaultJump.FlowDestination.RawPrevFlow is BaseJumpInstruction.JumpFlow flowGoto)
+			if(switchDefaultJump.FlowDestination.RawPrevFlow is IFlowJump flowGoto)
 			{
 				caseBreakDest = flowGoto.FlowDestination;
 			}
@@ -800,7 +804,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			{
 				//A jump to the break destination that happens within the scope of the while is considered a break.
 				//The scope starts right after the default jump
-				if(switchDefaultJump.StatementIndex<breakSource.StatementIndex && breakSource.StatementIndex<=endSwitch.StatementIndex)
+				if(switchDefaultJump.FlowStatement.StatementIndex<breakSource.StatementIndex && breakSource.StatementIndex<=endSwitch.StatementIndex)
 				{
 					switchFlowData.AddBreak(breakSource);
 				}
@@ -819,7 +823,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			{
 				var caseStart = switchStart.FlowCaseDestinations[i];
 				var caseEnd = switchStart.FlowCaseDestinations[i+1].RawPrevFlow;
-				if(caseEnd is not BaseJumpInstruction.JumpFlow caseGoto || caseGoto.FlowDestination != caseBreakDest)
+				if(caseEnd is not IFlowJump caseGoto || caseGoto.FlowDestination != caseBreakDest)
 				{
 					throw new Exception();
 				}
@@ -854,7 +858,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
-			writer.WriteLine($"switch {((IndexJumpInstruction.SwitchFlow)start).Instruction.StackStatement.Value.ToExpressionString()}");
+			writer.WriteLine($"switch {((IndexJumpInstruction.SwitchFlow)start).Instruction.StackOperation.Value.ToExpressionString()}");
 			writer.Indent();
 		}
 
@@ -939,7 +943,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 				foreach(var source in subroutineEnd.FlowSources)
 				{
 					//Unconditional Jump to a return is a ProcBreak
-					if(source is BaseJumpInstruction.JumpFlow)
+					if(source is IFlowJump)
 					{
 						subroutineFlowData.AddBreak(source);
 					}
@@ -1033,8 +1037,6 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 	public abstract class FlowStatement
 	{
-		public abstract Instruction Instruction{get;}
-
 		public FlowStatementType FlowType{get;set;}
 		public FlowData FlowData{get;set;}
 
@@ -1095,9 +1097,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public abstract void Analyze(FlowAnalyzer flow);
 	}
-	public abstract class FlowStatement<TInstruction>(TInstruction instruction):FlowStatement where TInstruction:Instruction
+	public abstract class FlowStatement<TInstruction>:FlowStatement where TInstruction:Instruction
 	{
-		public sealed override TInstruction Instruction => instruction;
+		public required TInstruction Instruction{get;init;}
 	}
 
 	/// <summary>A flow with no flow change.</summary>
@@ -1109,6 +1111,17 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public interface IFlowControl
 	{
 		public abstract IStackStatement ControlStatement{get;}
+	}
+	public interface IFlowBranch
+	{
+		public abstract FlowStatement FlowStatement{get;}
+		public abstract FlowStatement FlowConditionalDest{get;}
+	}
+
+	public interface IFlowJump
+	{
+		public abstract FlowStatement FlowStatement{get;}
+		public abstract FlowStatement FlowDestination{get;}
 	}
 
 	public sealed class FlowAnalyzer

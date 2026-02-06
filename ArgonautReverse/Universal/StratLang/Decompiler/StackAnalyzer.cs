@@ -39,12 +39,16 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public abstract void Analyze(StackAnalyzer stack);
 
 		public abstract IEnumerable<IStackOperation> GetRootOperations();
-	}
-	public interface IStackLabellable:IStackOperation
-	{
+
 		public abstract bool TryGetSubroutine([MaybeNullWhen(false)]out AsmInstruction subroutine);
 		public abstract bool TryGetLabel([MaybeNullWhen(false)]out AsmInstruction label);
 	}
+
+	//public interface IStackOperation<TInstruction>:IStackOperation where TInstruction:Instruction
+	//{
+	//	public TInstruction Instruction{get;init;}
+	//	Instruction IStackOperation.OperationInstruction => Instruction;
+	//}
 
 	public interface IStackProducer:IStackOperation
 	{
@@ -74,7 +78,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 	//This represents a statement which can be a pure consumer or a NoStack operation
 	//In other words, a non-producer
-	public interface IStackStatement:IStackOperation,IStackLabellable
+	public interface IStackStatement:IStackOperation
 	{
 		public abstract FlowStatement FlowStatement{get;}
 
@@ -150,11 +154,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 					break;
 				}
 
-				if (cur.StackOperation is IStackOperation operation)
-				{
-					operation.Analyze(this);
-					analyzed.Add(cur.Index);
-				}
+				cur.StackOperation.Analyze(this);
+				analyzed.Add(cur.Index);
+
 				if(cur.StackOperation is IStackStatement statement)
 				{
 					AssertStackEmpty();
