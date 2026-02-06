@@ -14,7 +14,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public Instruction AsmPrev;
 		public Instruction AsmNext;
 
-		public Instruction RawAsmPrev;
+		public Instruction? RawAsmPrev;
 		public Instruction RawAsmNext;
 
 		//Indicated that this instructions terminates the current flow.
@@ -31,6 +31,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public readonly List<Instruction> ReferencedFrom = new List<Instruction>();//Strat, Trigger
 
 		public SubroutineType SubroutineType = SubroutineType.None;
+
+		public abstract IStackOperation? StackOperation{get;}
 
 		public virtual void Create(AsmInstruction label, AsmInstruction operation)
 		{
@@ -54,10 +56,21 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public virtual void Setup(AsmParser parser){}
 
-		public abstract bool TryGetSubroutine([MaybeNullWhen(false)]out AsmInstruction subroutine);
-
-		public abstract bool TryGetLabel([MaybeNullWhen(false)]out AsmInstruction label);
-
 		public TAsmInstruction GetAsmInstruction<TAsmInstruction>() where TAsmInstruction:AsmInstruction => (TAsmInstruction)AsmOperation;
+
+		public abstract class Stack<TInstruction>(TInstruction instruction):IStackOperation,IStackLabellable where TInstruction:Instruction
+		{
+			//TODO: Swap to required proterty for construction
+			public TInstruction Instruction => instruction;
+			Instruction IStackOperation.OperationInstruction => Instruction;
+
+			public abstract IStackStatement Statement{get;}
+			public abstract void Analyze(StackAnalyzer stack);
+
+			public abstract IEnumerable<IStackOperation> GetRootOperations();
+
+			public abstract bool TryGetSubroutine([MaybeNullWhen(false)]out AsmInstruction subroutine);
+			public abstract bool TryGetLabel([MaybeNullWhen(false)]out AsmInstruction label);
+		}
 	}
 }

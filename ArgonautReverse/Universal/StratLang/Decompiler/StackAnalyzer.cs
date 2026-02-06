@@ -33,12 +33,19 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public abstract Instruction OperationInstruction{get;}
 
+		//The statement this operation is connected to.
 		public abstract IStackStatement Statement{get;}
 
 		public abstract void Analyze(StackAnalyzer stack);
 
 		public abstract IEnumerable<IStackOperation> GetRootOperations();
 	}
+	public interface IStackLabellable:IStackOperation
+	{
+		public abstract bool TryGetSubroutine([MaybeNullWhen(false)]out AsmInstruction subroutine);
+		public abstract bool TryGetLabel([MaybeNullWhen(false)]out AsmInstruction label);
+	}
+
 	public interface IStackProducer:IStackOperation
 	{
 		public abstract IStackConsumer Consumer{get;set;}
@@ -67,36 +74,33 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 	//This represents a statement which can be a pure consumer or a NoStack operation
 	//In other words, a non-producer
-	public interface IStackStatement:IStackOperation
+	public interface IStackStatement:IStackOperation,IStackLabellable
 	{
+		public abstract FlowStatement FlowStatement{get;}
+
 		public abstract AsmInstruction StatementLabel{get;}
 		public abstract Instruction FirstInstruction{get;}
 
 		//The specific instruction ending this expression chain.
 		public abstract Instruction StatementInstruction{get;}
 
-		public abstract IFlowStatement FlowStatement{get;}
-
 		public abstract IStackStatement NextStatement{get;set;}
 		public abstract IStackStatement PrevStatement{get;set;}
 
 		public abstract string ToStatement();
-
-		public abstract bool TryGetSubroutine([MaybeNullWhen(false)]out AsmInstruction subroutine);
-		public abstract bool TryGetLabel([MaybeNullWhen(false)]out AsmInstruction label);
 	}
 
 	public sealed class StackAnalyzer
 	{
-		private readonly Stack<IStackProducer> stack = new Stack<IStackProducer>();
+		private readonly Stack<IStackProducer> stack = new();
 
-		private readonly HashSet<int> analyzed = new HashSet<int>();
+		private readonly HashSet<int> analyzed = new();
 
-		private readonly Queue<Instruction> pending = new Queue<Instruction>();
+		private readonly Queue<Instruction> pending = new();
 
-		private readonly List<IStackStatement> statements = new List<IStackStatement>();
+		private readonly List<IStackStatement> statements = new();
 
-		public readonly List<IStackStatement> Subroutines = new List<IStackStatement>();
+		public readonly List<IStackStatement> Subroutines = new();
 
 		public Instruction CurrentStatementFirstInstruction{get;private set;}
 
@@ -137,7 +141,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 				if(alreadyAnalyzed)
 				{
-					var stackStatement = ((IStackOperation)cur).Statement;
+					var stackStatement = cur.StackOperation.Statement;
 					if(prevStatement != null)
 					{
 						stackStatement.PrevStatement = prevStatement;
@@ -146,12 +150,12 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 					break;
 				}
 
-				if (cur is IStackOperation operation)
+				if (cur.StackOperation is IStackOperation operation)
 				{
 					operation.Analyze(this);
 					analyzed.Add(cur.Index);
 				}
-				if(cur is IStackStatement statement)
+				if(cur.StackOperation is IStackStatement statement)
 				{
 					AssertStackEmpty();
 					statements.Add(statement);
@@ -191,7 +195,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			{
 				AnalyzeDestination(dest);
 			}
-			Subroutines.Add(((IStackOperation)subroutine).Statement);
+			Subroutines.Add(subroutine.StackOperation.Statement);
 		}
 
 		public void Write(List<string> lines)

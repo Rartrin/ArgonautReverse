@@ -1,6 +1,4 @@
-﻿using ArgonautReverse.Universal.StratLang;
-
-namespace ArgonautReverse.Universal.StratLang.Disassembler
+﻿namespace ArgonautReverse.Universal.StratLang.Disassembler
 {
 	public abstract class AsmInstruction
 	{

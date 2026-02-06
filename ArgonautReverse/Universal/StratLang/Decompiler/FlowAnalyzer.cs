@@ -1,4 +1,6 @@
-﻿namespace ArgonautReverse.Universal.StratLang.Decompiler
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace ArgonautReverse.Universal.StratLang.Decompiler
 {
 	//Breaks are only Jumps. They will still be surrounded by conditionals.
 
@@ -114,8 +116,8 @@
 		public BlockFlowData Scope{get;internal set;}
 
 		public abstract FlowStatementType StartType{get;}
-		private readonly IFlowStatement _start;
-		public IFlowStatement Start
+		private readonly FlowStatement _start;
+		public FlowStatement Start
 		{
 			get => _start;
 			init
@@ -135,13 +137,13 @@
 		//Indicates that the start is based on a label and is not associated with the specifics of the instruction.
 		public abstract bool LabelStart{get;}
 
-		public bool IsStart(IFlowStatement statement, FlowStatementType statementType)
+		public bool IsStart(FlowStatement statement, FlowStatementType statementType)
 		{
 			return statement == Start && statementType == StartType;
 		}
 
 		//Returns true when new things have been identified. Returns false when there is nothing left to identify.
-		public static bool TryIdentifyFlows(IFlowStatement flow, BlockFlowData scope)
+		public static bool TryIdentifyFlows(FlowStatement flow, BlockFlowData scope)
 		{
 			//Already identified FlowType
 			if (flow.FlowType != FlowStatementType.Unknown)
@@ -175,7 +177,7 @@
 			//}
 
 			//An unidentified unconditional forward jump is a Break
-			if(flow is IFlowGoto jump && flow.StatementIndex<jump.FlowDestination.StatementIndex)
+			if(flow is BaseJumpInstruction.JumpFlow jump && flow.StatementIndex<jump.FlowDestination.StatementIndex)
 			{
 				//TODO: Anything needed here?
 			}
@@ -194,8 +196,8 @@
 			{
 				//While, Repeat, Loop
 
-				bool conditionalStart = flow.ControlStatement is IFlowBranch conditionalStartBranch && conditionalStartBranch.FlowConditionalDest == backwardFlow.RawNextFlow;
-				bool conditionalEnd = backwardFlow.ControlStatement is IFlowBranch;
+				bool conditionalStart = flow is IFlowControl flowControl && flowControl.ControlStatement.FlowStatement is BranchInstruction.BranchFlow conditionalStartBranch && conditionalStartBranch.FlowConditionalDest == backwardFlow.RawNextFlow;
+				bool conditionalEnd = backwardFlow is IFlowControl backwardFlowControl && backwardFlowControl.ControlStatement.FlowStatement is BranchInstruction.BranchFlow;
 
 				BreakableBlockFlowData blockFlow;
 				if(conditionalStart && !conditionalEnd)
@@ -230,10 +232,10 @@
 				scope.AddSubflow(blockFlow);
 				return true;
 			}
-			if(flow is IFlowBranch branch)
+			if(flow is BranchInstruction.BranchFlow branch)
 			{
 				//TODO: Better way to handle breaks. We should check if the jump happeneds within the current scope.
-				if(branch.FlowConditionalDest.RawPrevFlow is IFlowGoto jumpToEnd && jumpToEnd.FlowType == FlowStatementType.Unknown)
+				if(branch.FlowConditionalDest.RawPrevFlow is BaseJumpInstruction.JumpFlow jumpToEnd && jumpToEnd.FlowType == FlowStatementType.Unknown)
 				{
 					//If Else
 					if(jumpToEnd.FlowDestination.StatementIndex <= branch.FlowConditionalDest.StatementIndex)
@@ -267,7 +269,7 @@
 		}
 
 
-		public static void UpdateScopePre(IFlowStatement statement, ref BlockFlowData scope)
+		public static void UpdateScopePre(FlowStatement statement, ref BlockFlowData scope)
 		{
 			foreach(var preflow in statement.PreFlows)
 			{
@@ -286,7 +288,7 @@
 				scope = blockData;
 			}
 		}
-		public static void UpdateScopePost(IFlowStatement statement, ref BlockFlowData scope)
+		public static void UpdateScopePost(FlowStatement statement, ref BlockFlowData scope)
 		{
 			if(statement.FlowData is BlockFlowData blockData && blockData.IsEnd(statement, statement.FlowType))
 			{
@@ -306,7 +308,7 @@
 			}
 		}
 
-		public virtual void Write(Writer writer, IFlowStatement statement, FlowStatementType statementType)
+		public virtual void Write(Writer writer, FlowStatement statement, FlowStatementType statementType)
 		{
 			//Always check type in cases where the statement can be both Start and End or other points
 			if(statement == Start && statementType == StartType)
@@ -318,14 +320,14 @@
 				throw new Exception();
 			}
 		}
-		public abstract void WriteStart(Writer writer, IFlowStatement start, FlowStatementType statementType);
+		public abstract void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType);
 	}
 
 	public abstract class BlockFlowData:FlowData
 	{
 		public abstract FlowStatementType EndType{get;}
-		protected IFlowStatement _end;
-		public virtual IFlowStatement End
+		protected FlowStatement _end;
+		public virtual FlowStatement End
 		{
 			get => _end;
 			init
@@ -347,7 +349,7 @@
 		private readonly List<FlowData> subflows = new List<FlowData>();
 		public IReadOnlyList<FlowData> Subflows => subflows;
 
-		public bool IsEnd(IFlowStatement statement, FlowStatementType statementType)
+		public bool IsEnd(FlowStatement statement, FlowStatementType statementType)
 		{
 			return statement == End && statementType == EndType;
 		}
@@ -362,7 +364,7 @@
 			subflows.Add(flow);
 		}
 
-		public override void Write(Writer writer, IFlowStatement statement, FlowStatementType statementType)
+		public override void Write(Writer writer, FlowStatement statement, FlowStatementType statementType)
 		{
 			//Always check type in cases where the statement can be both Start and End or other points
 			if(statement == End && statementType == EndType)
@@ -374,7 +376,7 @@
 				base.Write(writer, statement, statementType);
 			}
 		}
-		public abstract void WriteEnd(Writer writer, IFlowStatement end, FlowStatementType statementType);
+		public abstract void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType);
 	}
 
 	public class IfFlowData:BlockFlowData
@@ -385,33 +387,35 @@
 		public override bool LabelStart => false;
 		public override bool LabelEnd => true;
 
-		public IFlowStatement If => Start;
+		public FlowStatement If => Start;
 
-		public IfFlowData(IFlowStatement start, IFlowStatement end)
+		public IfFlowData(FlowStatement start, FlowStatement end)
 		{
 			Start = start;
 			End = end;
 		}
 
-		public override void WriteStart(Writer writer, IFlowStatement start, FlowStatementType statementType)
+		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
-			bool invert = start switch
+			(bool invert, IStackProducer condition) = start.Instruction switch
 			{
-				BeqInstruction or BeqImmInstruction => false,
-				BneInstruction or BneImmInstruction => true,
+				BeqInstruction beqInstruction => (false, beqInstruction.StackStatement.Condition),
+				BeqImmInstruction beqImmInstruction => (false, beqImmInstruction.StackStatement.Condition),
+				BneInstruction bneInstruction => (true, bneInstruction.StackStatement.Condition),
+				BneImmInstruction bneImmInstruction => (true, bneImmInstruction.StackStatement.Condition),
 				_ => throw new Exception()
 			};
-			var branch = (BranchInstruction)start;
-			var condition = branch.Condition.ToExpressionString();
+			//TODO: Use ToConditionStr(invert)
+			var conditionString = condition.ToExpressionString();
 			if(invert)
 			{
-				condition = "not " + condition;
+				conditionString = "not " + conditionString;
 			}
 
-			writer.WriteLine($"if {condition} then");
+			writer.WriteLine($"if {conditionString} then");
 			writer.Indent();
 		}
-		public override void WriteEnd(Writer writer, IFlowStatement end, FlowStatementType statementType)
+		public override void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType)
 		{
 			writer.Unindent();
 			writer.WriteLine("endif");
@@ -426,11 +430,11 @@
 		public override bool LabelStart => false;
 		public override bool LabelEnd => true;
 
-		public IFlowStatement If => Start;
+		public FlowStatement If => Start;
 		/// <summary>The Else is considered the goto statement at the end of the first block</summary>
-		public IFlowStatement Else{get;}
+		public FlowStatement Else{get;}
 
-		public IfElseFlowData(IFlowStatement start, IFlowStatement elseFlow, IFlowStatement end)
+		public IfElseFlowData(FlowStatement start, FlowStatement elseFlow, FlowStatement end)
 		{
 			Start = start;
 			End = end;
@@ -442,7 +446,7 @@
 			Else = elseFlow;
 		}
 
-		public override void Write(Writer writer, IFlowStatement statement, FlowStatementType statementType)
+		public override void Write(Writer writer, FlowStatement statement, FlowStatementType statementType)
 		{
 			//Always check type in cases where the statement can be both Start and End or other points
 			if(statement == Else && statementType == FlowStatementType.Else)
@@ -455,32 +459,34 @@
 			}
 		}
 
-		public override void WriteStart(Writer writer, IFlowStatement start, FlowStatementType statementType)
+		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
-			bool invert = start switch
+			(bool invert, IStackProducer condition) = start.Instruction switch
 			{
-				BeqInstruction or BeqImmInstruction => false,
-				BneInstruction or BneImmInstruction => true,
+				BeqInstruction beqInstruction => (false, beqInstruction.StackStatement.Condition),
+				BeqImmInstruction beqImmInstruction => (false, beqImmInstruction.StackStatement.Condition),
+				BneInstruction bneInstruction => (true, bneInstruction.StackStatement.Condition),
+				BneImmInstruction bneImmInstruction => (true, bneImmInstruction.StackStatement.Condition),
 				_ => throw new Exception()
 			};
-			var branch = (BranchInstruction)start;
-			var condition = branch.Condition.ToExpressionString();
+			//TODO: Use ToConditionStr(invert)
+			var conditionString = condition.ToExpressionString();
 			if(invert)
 			{
-				condition = "not " + condition;
+				conditionString = "not " + conditionString;
 			}
 
-			writer.WriteLine($"if {condition} then");
+			writer.WriteLine($"if {conditionString} then");
 			writer.Indent();
 		}
-		public override void WriteEnd(Writer writer, IFlowStatement end, FlowStatementType statementType)
+		public override void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType)
 		{
 			writer.Unindent();
 			writer.WriteLine("endif");
 		}
-		public void WriteElse(Writer writer, IFlowStatement elseStatement, FlowStatementType statementType)
+		public void WriteElse(Writer writer, FlowStatement elseStatement, FlowStatementType statementType)
 		{
-			if(elseStatement is not IFlowGoto){throw new Exception();}
+			if(elseStatement is not BaseJumpInstruction.JumpFlow){throw new Exception();}
 
 			writer.Unindent();
 			writer.WriteLine("else");
@@ -492,22 +498,22 @@
 	{
 		public abstract FlowStatementType BreakType{get;}
 
-		private readonly List<IFlowStatement> breaks = new List<IFlowStatement>();
-		public IReadOnlyList<IFlowStatement> Breaks => breaks;
+		private readonly List<FlowStatement> breaks = new();
+		public IReadOnlyList<FlowStatement> Breaks => breaks;
 
-		public BreakableBlockFlowData(IFlowStatement start, IFlowStatement end)
+		public BreakableBlockFlowData(FlowStatement start, FlowStatement end)
 		{
 			Start = start;
 			End = end;
 		}
 
-		public void AddBreak(IFlowStatement breakStatement)
+		public void AddBreak(FlowStatement breakStatement)
 		{
 			breakStatement.SetFlowBreak(BreakType, this);
 			breaks.Add(breakStatement);
 		}
 
-		public override void Write(Writer writer, IFlowStatement statement, FlowStatementType statementType)
+		public override void Write(Writer writer, FlowStatement statement, FlowStatementType statementType)
 		{
 			foreach(var breakFlow in Breaks)
 			{
@@ -520,10 +526,10 @@
 			base.Write(writer, statement, statementType);
 		}
 
-		public abstract void WriteBreak(Writer writer, IFlowStatement breakStatement, FlowStatementType statementType);
+		public abstract void WriteBreak(Writer writer, FlowStatement breakStatement, FlowStatementType statementType);
 	}
 
-	public sealed class WhileFlowData(IFlowStatement start, IFlowStatement end):BreakableBlockFlowData(start, end)
+	public sealed class WhileFlowData(FlowStatement start, FlowStatement end):BreakableBlockFlowData(start, end)
 	{
 		public override FlowStatementType StartType => FlowStatementType.While;
 		public override FlowStatementType EndType => FlowStatementType.EndWhile;
@@ -532,37 +538,39 @@
 		public override bool LabelStart => false;
 		public override bool LabelEnd => false;
 
-		public override void WriteStart(Writer writer, IFlowStatement start, FlowStatementType statementType)
+		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
-			bool invert = start switch
+			(bool invert, IStackProducer condition) = start.Instruction switch
 			{
-				BeqInstruction or BeqImmInstruction => false,
-				BneInstruction or BneImmInstruction => true,
+				BeqInstruction beqInstruction => (false, beqInstruction.StackStatement.Condition),
+				BeqImmInstruction beqImmInstruction => (false, beqImmInstruction.StackStatement.Condition),
+				BneInstruction bneInstruction => (true, bneInstruction.StackStatement.Condition),
+				BneImmInstruction bneImmInstruction => (true, bneImmInstruction.StackStatement.Condition),
 				_ => throw new Exception()
 			};
-			var branch = (BranchInstruction)start;
-			var condition = branch.Condition.ToExpressionString();
+			//TODO: Use ToConditionStr(invert)
+			var conditionString = condition.ToExpressionString();
 			if(invert)
 			{
-				condition = "not " + condition;
+				conditionString = "not " + conditionString;
 			}
-			writer.WriteLine($"while {condition}");
+			writer.WriteLine($"while {conditionString}");
 			writer.Indent();
 		}
 
-		public override void WriteEnd(Writer writer, IFlowStatement end, FlowStatementType statementType)
+		public override void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType)
 		{
 			writer.Unindent();
 			writer.WriteLine("endwhile");
 		}
 
-		public override void WriteBreak(Writer writer, IFlowStatement breakStatement, FlowStatementType statementType)
+		public override void WriteBreak(Writer writer, FlowStatement breakStatement, FlowStatementType statementType)
 		{
 			writer.WriteLine("whilebreak");
 		}
 	}
 
-	public sealed class LoopFlowData(IFlowStatement start, IFlowStatement end):BreakableBlockFlowData(start, end)
+	public sealed class LoopFlowData(FlowStatement start, FlowStatement end):BreakableBlockFlowData(start, end)
 	{
 		public override FlowStatementType StartType => FlowStatementType.Loop;
 		public override FlowStatementType EndType => FlowStatementType.EndLoop;
@@ -571,25 +579,25 @@
 		public override bool LabelStart => true;
 		public override bool LabelEnd => false;
 
-		public override void WriteStart(Writer writer, IFlowStatement start, FlowStatementType statementType)
+		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
 			writer.WriteLine("loop");
 			writer.Indent();
 		}
 
-		public override void WriteEnd(Writer writer, IFlowStatement end, FlowStatementType statementType)
+		public override void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType)
 		{
 			writer.Unindent();
 			writer.WriteLine("endloop");
 		}
 
-		public override void WriteBreak(Writer writer, IFlowStatement breakStatement, FlowStatementType statementType)
+		public override void WriteBreak(Writer writer, FlowStatement breakStatement, FlowStatementType statementType)
 		{
 			writer.WriteLine("breakloop");
 		}
 	}
 
-	public sealed class RepeatFlowData(IFlowStatement start, IFlowStatement end):BreakableBlockFlowData(start, end)
+	public sealed class RepeatFlowData(FlowStatement start, FlowStatement end):BreakableBlockFlowData(start, end)
 	{
 		public override FlowStatementType StartType => FlowStatementType.Repeat;
 		public override FlowStatementType EndType => FlowStatementType.Until;
@@ -613,32 +621,34 @@
 		//	}
 		//}
 
-		public override void WriteStart(Writer writer, IFlowStatement start, FlowStatementType statementType)
+		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
 			writer.WriteLine("repeat");
 			writer.Indent();
 		}
 
-		public override void WriteEnd(Writer writer, IFlowStatement end, FlowStatementType statementType)
+		public override void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType)
 		{
-			bool invert = end switch
+			(bool invert, IStackProducer condition) = end.Instruction switch
 			{
-				BeqInstruction or BeqImmInstruction => false,
-				BneInstruction or BneImmInstruction => true,
+				BeqInstruction beqInstruction => (false, beqInstruction.StackStatement.Condition),
+				BeqImmInstruction beqImmInstruction => (false, beqImmInstruction.StackStatement.Condition),
+				BneInstruction bneInstruction => (true, bneInstruction.StackStatement.Condition),
+				BneImmInstruction bneImmInstruction => (true, bneImmInstruction.StackStatement.Condition),
 				_ => throw new Exception()
 			};
-			var branch = (BranchInstruction)end;
-			var condition = branch.Condition.ToExpressionString();
+			//TODO: Use ToConditionStr(invert)
+			var conditionString = condition.ToExpressionString();
 			if(invert)
 			{
-				condition = "not " + condition;
+				conditionString = "not " + conditionString;
 			}
 
 			writer.Unindent();
-			writer.WriteLine($"until {condition}");
+			writer.WriteLine($"until {conditionString}");
 		}
 
-		public override void WriteBreak(Writer writer, IFlowStatement breakStatement, FlowStatementType statementType)
+		public override void WriteBreak(Writer writer, FlowStatement breakStatement, FlowStatementType statementType)
 		{
 			writer.WriteLine("repeatbreak");
 		}
@@ -660,7 +670,7 @@
 		public override bool LabelStart => true;
 		public override bool LabelEnd => false;
 
-		public override IFlowStatement End
+		public override FlowStatement End
 		{
 			get => _end;
 			init
@@ -686,15 +696,15 @@
 			}
 		}
 
-		public Index_JumpInstruction SwitchStatement{get;}
+		public IndexJumpInstruction SwitchStatement{get;}
 		//Default case uses -1
 		public int CaseIndex{get;}
 
-		public CaseFlowData(IFlowStatement start, IFlowStatement end, IFlowStatement switchStatement, int caseIndex)
+		public CaseFlowData(FlowStatement start, FlowStatement end, FlowStatement switchStatement, int caseIndex)
 		{
 			Start = start;
 			End = end;
-			SwitchStatement = (Index_JumpInstruction)switchStatement;
+			SwitchStatement = ((IndexJumpInstruction.SwitchFlow)switchStatement).Instruction;
 			CaseIndex = caseIndex;
 		}
 
@@ -704,7 +714,7 @@
 		//	base.Write(writer, statement, statementType);
 		//}
 
-		public override void WriteStart(Writer writer, IFlowStatement start, FlowStatementType statementType)
+		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
 			var comparands = SwitchStatement.Cases[CaseIndex].Comparands;
 			foreach(var comparand in comparands)
@@ -714,21 +724,21 @@
 			writer.Indent();
 		}
 
-		public override void WriteEnd(Writer writer, IFlowStatement end, FlowStatementType statementType)
+		public override void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType)
 		{
 			writer.Unindent();
 			writer.WriteLine("endcase");
 		}
 	}
 
-	public class LastCaseFlowData(IFlowStatement start, IFlowStatement end, IFlowStatement switchStatement, int caseIndex):CaseFlowData(start, end, switchStatement, caseIndex)
+	public class LastCaseFlowData(FlowStatement start, FlowStatement end, FlowStatement switchStatement, int caseIndex):CaseFlowData(start, end, switchStatement, caseIndex)
 	{
 		public override bool LabelEnd => true;
 	}
 
-	public sealed class DefaultCaseFlowData(IFlowStatement start, IFlowStatement end, IFlowStatement switchStatement):LastCaseFlowData(start, end, switchStatement, -1)
+	public sealed class DefaultCaseFlowData(FlowStatement start, FlowStatement end, FlowStatement switchStatement):LastCaseFlowData(start, end, switchStatement, -1)
 	{
-		public override void WriteStart(Writer writer, IFlowStatement start, FlowStatementType statementType)
+		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
 			writer.WriteLine("default");
 			writer.Indent();
@@ -747,11 +757,11 @@
 		public DefaultCaseFlowData DefaultCase{get;private set;}
 		public IReadOnlyList<CaseFlowData> Cases{get;private set;}
 
-		private SwitchFlowData(IFlowStatement start, IFlowStatement end):base(start, end){}
+		private SwitchFlowData(FlowStatement start, FlowStatement end):base(start, end){}
 
-		public static bool TryIdentifySwitchFlow(IFlowStatement flow, BlockFlowData scope, out SwitchFlowData switchFlowData)
+		public static bool TryIdentifySwitchFlow(FlowStatement flow, BlockFlowData scope, [MaybeNullWhen(false)]out SwitchFlowData switchFlowData)
 		{
-			if(flow.ControlStatement is not IFlowSwitch switchStart)
+			if(flow is not IFlowControl flowControl || flowControl.ControlStatement.FlowStatement is not IndexJumpInstruction.SwitchFlow switchStart)
 			{
 				switchFlowData = null;
 				return false;
@@ -759,7 +769,7 @@
 			
 			//The Unknown type check is for ProcBreak
 			//Can have a case break to an external switch
-			if(switchStart.RawNextFlow is not IFlowGoto switchDefaultJump /*|| switchDefaultJump.FlowType != FlowStatementType.Unknown*/)
+			if(switchStart.RawNextFlow is not BaseJumpInstruction.JumpFlow switchDefaultJump /*|| switchDefaultJump.FlowType != FlowStatementType.Unknown*/)
 			{
 				throw new Exception("Invalid switch");
 			}
@@ -769,12 +779,19 @@
 			//Switch should always be followed by a jump. If a default case exists, this will go to it. Otherwise this goes to the end of the main cases.
 			SwitchEndJumpFlowData switchEndJumpFlow = new SwitchEndJumpFlowData(switchDefaultJump);
 
+			FlowStatement caseBreakDest;
 			//If there is no default case, then the switch's default jump will go a location that directly leads into it.
 			//If there is a jump there, then that is the goto for the prior case indicating we jumped into a default case.
 			//TODO: This may not always be true. Consider if the prior case uses a procbreak.
-			bool hasDefault = switchDefaultJump.FlowDestination.RawPrevFlow is IFlowGoto;
-			IFlowStatement caseBreakDest = hasDefault ? ((IFlowGoto)switchDefaultJump.FlowDestination.RawPrevFlow).FlowDestination : switchDefaultJump.FlowDestination;
-			IFlowStatement endSwitch = caseBreakDest.RawPrevFlow;
+			if(switchDefaultJump.FlowDestination.RawPrevFlow is BaseJumpInstruction.JumpFlow flowGoto)
+			{
+				caseBreakDest = flowGoto.FlowDestination;
+			}
+			else
+			{
+				caseBreakDest = switchDefaultJump.FlowDestination;
+			}
+			FlowStatement endSwitch = caseBreakDest.RawPrevFlow;
 			
 			switchFlowData = new SwitchFlowData(switchStart, endSwitch);
 
@@ -802,7 +819,7 @@
 			{
 				var caseStart = switchStart.FlowCaseDestinations[i];
 				var caseEnd = switchStart.FlowCaseDestinations[i+1].RawPrevFlow;
-				if(caseEnd is not IFlowGoto caseGoto || caseGoto.FlowDestination != caseBreakDest)
+				if(caseEnd is not BaseJumpInstruction.JumpFlow caseGoto || caseGoto.FlowDestination != caseBreakDest)
 				{
 					throw new Exception();
 				}
@@ -835,19 +852,19 @@
 			return true;
 		}
 
-		public override void WriteStart(Writer writer, IFlowStatement start, FlowStatementType statementType)
+		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
-			writer.WriteLine($"switch {((Index_JumpInstruction)start).Value.ToExpressionString()}");
+			writer.WriteLine($"switch {((IndexJumpInstruction.SwitchFlow)start).Instruction.StackStatement.Value.ToExpressionString()}");
 			writer.Indent();
 		}
 
-		public override void WriteEnd(Writer writer, IFlowStatement end, FlowStatementType statementType)
+		public override void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType)
 		{
 			writer.Unindent();
 			writer.WriteLine("endswitch");
 		}
 
-		public override void WriteBreak(Writer writer, IFlowStatement breakStatement, FlowStatementType statementType)
+		public override void WriteBreak(Writer writer, FlowStatement breakStatement, FlowStatementType statementType)
 		{
 			writer.WriteLine("casebreak");
 		}
@@ -859,14 +876,14 @@
 
 		public override bool LabelStart => false;
 
-		public SimpleFlowData(IFlowStatement statement)
+		public SimpleFlowData(FlowStatement statement)
 		{
 			Start = statement;
 		}
 
-		public override void WriteStart(Writer writer, IFlowStatement start, FlowStatementType statementType)
+		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
-			writer.WriteLine(((IStackStatement)start).ToStatement());
+			writer.WriteLine(start.StackStatement.ToStatement());
 		}
 	}
 
@@ -879,13 +896,13 @@
 		public override bool LabelStart => true;
 		public override bool LabelEnd => throw new NotImplementedException();
 
-		public override IFlowStatement End
+		public override FlowStatement End
 		{
 			get => _end;
 			init
 			{
 				//If this is a return or endstrat, than the instruction itself is the end, otherwise, it may be something else, like the end of a loop.
-				if(value is ReturnInstruction or EndStratInstruction)
+				if(value is ReturnInstruction.ReturnFlow or EndStratInstruction.EndStratFlow)
 				{
 					value.SetFlow(EndType, this);
 				}
@@ -897,9 +914,9 @@
 			}
 		}
 
-		private SubroutineFlowData(IFlowStatement start, IFlowStatement end):base(start, end){}
+		private SubroutineFlowData(FlowStatement start, FlowStatement end):base(start, end){}
 
-		public static bool TryIdentifySubroutine(IFlowStatement flow, BlockFlowData scope, out SubroutineFlowData subroutineFlowData)
+		public static bool TryIdentifySubroutine(FlowStatement flow, BlockFlowData scope, out SubroutineFlowData subroutineFlowData)
 		{
 			//If this is not a subroutine or if it has already been identified.
 			if(!flow.StackStatement.StatementLabel.IsSubroutineEntry || flow.HasPreflow(FlowStatementType.StartSubroutine))
@@ -916,13 +933,13 @@
 				subroutineEnd = subroutineEnd.RawNextFlow;
 			}
 			subroutineFlowData = new SubroutineFlowData(subroutineStart, subroutineEnd);
-			if(subroutineEnd is ReturnInstruction or EndStratInstruction && subroutineEnd.FlowSources.Count>0)
+			if(subroutineEnd is ReturnInstruction.ReturnFlow or EndStratInstruction.EndStratFlow && subroutineEnd.FlowSources.Count>0)
 			{
 				//var breakList = new List<IFlowStatement>();
 				foreach(var source in subroutineEnd.FlowSources)
 				{
 					//Unconditional Jump to a return is a ProcBreak
-					if(source is IFlowGoto)
+					if(source is BaseJumpInstruction.JumpFlow)
 					{
 						subroutineFlowData.AddBreak(source);
 					}
@@ -932,7 +949,7 @@
 			scope.AddSubflow(subroutineFlowData);
 			return true;
 		}
-		public override void WriteStart(Writer writer, IFlowStatement start, FlowStatementType statementType)
+		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
 			var defKeyword = start.StackStatement.FirstInstruction.SubroutineType switch
 			{
@@ -946,7 +963,7 @@
 			writer.Indent();
 		}
 
-		public override void WriteEnd(Writer writer, IFlowStatement end, FlowStatementType statementType)
+		public override void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType)
 		{
 			var endKeyword = Start.StackStatement.FirstInstruction.SubroutineType switch
 			{
@@ -963,7 +980,7 @@
 			writer.AssertNoIndent();
 		}
 
-		public override void WriteBreak(Writer writer, IFlowStatement breakStatement, FlowStatementType statementType)
+		public override void WriteBreak(Writer writer, FlowStatement breakStatement, FlowStatementType statementType)
 		{
 			var breakKeyword = Start.StackStatement.FirstInstruction.SubroutineType switch
 			{
@@ -986,11 +1003,11 @@
 	//	}
 	//}
 
-	public class SwitchEndJumpFlowData(IFlowStatement flow):SimpleFlowData(flow)
+	public class SwitchEndJumpFlowData(FlowStatement flow):SimpleFlowData(flow)
 	{
 		public override FlowStatementType StartType => FlowStatementType.SwitchEndJump;
 
-		public override void WriteStart(Writer writer, IFlowStatement start, FlowStatementType statementType)
+		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
 			//Do nothing, this should be invisible
 		}
@@ -1004,23 +1021,25 @@
 		public override bool LabelStart => true;
 		public override bool LabelEnd => true;
 
-		public ProgramFlowData(IFlowStatement start, IFlowStatement end)
+		public ProgramFlowData(FlowStatement start, FlowStatement end)
 		{
 			Start = start;
 			End = end;
 		}
 
-		public override void WriteStart(Writer writer, IFlowStatement start, FlowStatementType statementType){}
-		public override void WriteEnd(Writer writer, IFlowStatement end, FlowStatementType statementType){}
+		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType){}
+		public override void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType){}
 	}
 
-	public interface IFlowStatement
+	public abstract class FlowStatement
 	{
+		public abstract Instruction Instruction{get;}
+
 		public FlowStatementType FlowType{get;set;}
 		public FlowData FlowData{get;set;}
 
-		public Queue<(FlowStatementType Type, FlowData Data)> PreFlows{get;}
-		public Stack<(FlowStatementType Type, FlowData Data)> PostFlows{get;}
+		public readonly Queue<(FlowStatementType Type, FlowData Data)> PreFlows = new();
+		public readonly Stack<(FlowStatementType Type, FlowData Data)> PostFlows = new();
 
 		public bool HasPreflow(FlowStatementType type) => PreFlows.Any(p => p.Type == type);
 		public bool HasPostflow(FlowStatementType type) => PostFlows.Any(p => p.Type == type);
@@ -1058,70 +1077,61 @@
 			PostFlows.Push((type, data));
 		}
 
-		public abstract IStackStatement ControlStatement{get;}
-
 		public int StatementIndex => StackStatement.OperationInstruction.Index;
 		public abstract IStackStatement StackStatement{get;}
 
-		public IFlowStatement NextFlow => StackStatement.NextStatement.FlowStatement;
-		public IFlowStatement PrevFlow => StackStatement.PrevStatement.FlowStatement;
+		public FlowStatement NextFlow => StackStatement.NextStatement.FlowStatement;
+		public FlowStatement PrevFlow => StackStatement.PrevStatement.FlowStatement;
 
 		//Ignores terminal statements and just get the next/prev flow based on the instruction order.
 		//Returns null if at the end
-		public IFlowStatement? RawNextFlow => (IFlowStatement?)((IStackOperation)StackStatement.OperationInstruction.RawAsmNext)?.Statement;
-		public IFlowStatement? RawPrevFlow => (IFlowStatement?)StackStatement.FirstInstruction.RawAsmPrev;
+		public FlowStatement? RawNextFlow => StackStatement.OperationInstruction.RawAsmNext?.StackOperation!.Statement?.FlowStatement;
+		public FlowStatement? RawPrevFlow => (StackStatement.FirstInstruction.RawAsmPrev?.StackOperation as IStackStatement)?.FlowStatement;
 
 		//Jump sources
-		public abstract IList<IFlowStatement> FlowSources{get;}
+		public readonly List<FlowStatement> FlowSources = new();
 
-		public abstract IList<IFlowStatement> FlowDestinations{get;}
+		public readonly List<FlowStatement> FlowDestinations = new();
 
 		public abstract void Analyze(FlowAnalyzer flow);
 	}
+	public abstract class FlowStatement<TInstruction>(TInstruction instruction):FlowStatement where TInstruction:Instruction
+	{
+		public sealed override TInstruction Instruction => instruction;
+	}
 
 	/// <summary>A flow with no flow change.</summary>
-	public interface IFlowSimple:IFlowStatement;
+	//public interface IFlowSimple:IFlowStatement;
 
 	/// <summary>A flow with no next flow.</summary>
-	public interface IFlowTerminal:IFlowStatement;
+	public interface IFlowTerminal;
 
-	public interface IFlowControl:IFlowStatement;
-
-	public interface IFlowGoto:IFlowTerminal,IFlowControl
+	public interface IFlowControl
 	{
-		public IFlowStatement FlowDestination => FlowDestinations[0];
-	}
-
-	public interface IFlowBranch:IFlowStatement,IFlowControl
-	{
-		public IFlowStatement FlowConditionalDest => FlowDestinations[0];
-	}
-
-	public interface IFlowSwitch:IFlowStatement,IFlowControl
-	{
-		public IReadOnlyList<IFlowStatement> FlowCaseDestinations => (IReadOnlyList<IFlowStatement>)FlowDestinations;
+		public abstract IStackStatement ControlStatement{get;}
 	}
 
 	public sealed class FlowAnalyzer
 	{
-		public readonly List<IFlowStatement> Statements = new List<IFlowStatement>();
+		public readonly List<FlowStatement> Statements = new();
 
 		//private readonly Dictionary<string,IFlowStatement> statementLabels = new Dictionary<string,IFlowStatement>();
 
-		private readonly Queue<(IFlowStatement instr,IStackStatement dest)> destinationsToAdd = new Queue<(IFlowStatement instr,IStackStatement dest)>();
+		private readonly Queue<(FlowStatement instr,IStackStatement dest)> destinationsToAdd = new();
 
-		private readonly HashSet<IFlowStatement> analyzed = new HashSet<IFlowStatement>();
+		private readonly HashSet<FlowStatement> analyzed = new();
 
-		public void AddDest(IFlowStatement instr, Instruction dest)
+		public void AddDest(FlowStatement instr, Instruction dest)
 		{
-			var destStatement = ((IStackOperation)dest).Statement;
+			var destStatement = dest.StackOperation!.Statement;
 			destinationsToAdd.Enqueue((instr, destStatement));
 
-			instr.FlowDestinations.Add((IFlowStatement)destStatement);
-			((IFlowStatement)destStatement).FlowSources.Add(instr);
+			var destFlowStatement = destStatement.FlowStatement;
+			instr.FlowDestinations.Add(destFlowStatement);
+			destFlowStatement.FlowSources.Add(instr);
 		}
 
-		private void AnalyzeBlock(List<IFlowStatement> outputStatements, IStackStatement dest)
+		private void AnalyzeBlock(List<FlowStatement> outputStatements, IStackStatement dest)
 		{
 			//var currentStatements = new List<IStackStatement>();
 			var cur = dest;
@@ -1130,7 +1140,7 @@
 
 			while(true)
 			{
-				var flowStatement = (IFlowStatement)cur;
+				var flowStatement = cur.FlowStatement;
 
 				//Connect with an existing statement
 				if(analyzed.Contains(flowStatement))
@@ -1187,7 +1197,7 @@
 
 		public void Setup(IStackStatement startingStackStatement)
 		{
-			var statements = new List<IFlowStatement>();
+			var statements = new List<FlowStatement>();
 
 			AnalyzeBlock(statements, startingStackStatement);
 
