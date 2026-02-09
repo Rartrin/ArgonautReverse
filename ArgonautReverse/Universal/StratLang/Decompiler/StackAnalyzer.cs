@@ -82,8 +82,6 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 	public interface IStackConsumer:IStackOperation
 	{
-		public int PopCount{get;}
-
 		public IStackProducer[] Operands{get;}
 	}
 
@@ -104,19 +102,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public abstract IStackStatement NextStatement{get;set;}
 		public abstract IStackStatement PrevStatement{get;set;}
 
-		public abstract string ToStatement();
+		public abstract void WriteStatement(Writer writer);
 	}
 
 	public sealed class StackAnalyzer
 	{
 		private readonly Stack<IStackProducer> stack = new();
-
 		private readonly HashSet<int> analyzed = new();
-
 		private readonly Queue<Instruction> pending = new();
-
 		private readonly List<IStackStatement> statements = new();
-
 		public readonly List<IStackStatement> Subroutines = new();
 
 		public Instruction CurrentStatementFirstInstruction{get;private set;}
@@ -213,15 +207,18 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			Subroutines.Add(subroutine.StackOperation.Statement);
 		}
 
-		public void Write(List<string> lines)
+		public void Write(Writer writer)
 		{
 			var sortedStatements = statements.OrderBy(s => s.StatementInstruction.Index);
 
+			writer.Indent();
 			foreach(var statement in sortedStatements)
 			{
 				if(statement.TryGetSubroutine(out var subroutine))
 				{
-					lines.Add(subroutine.SubroutineName() + ":");
+					writer.Unindent();
+					writer.WriteLine(subroutine.SubroutineName() + ":");
+					writer.Indent();
 					if(statement.StatementLabel != subroutine)
 					{
 						throw new Exception();
@@ -234,7 +231,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 				if(statement.TryGetLabel(out var label))
 				{
-					lines.Add(label.GetLabel() + ":");
+					writer.Unindent();
+					writer.WriteLine(label.GetLabel() + ":");
+					writer.Indent();
 					if(statement.StatementLabel != label)
 					{
 						throw new Exception();
@@ -245,7 +244,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 					throw new Exception();
 				}
 				
-				lines.Add("\t" + statement.ToStatement());
+				statement.WriteStatement(writer);
+				writer.WriteLine();
 			}
 		}
 	}

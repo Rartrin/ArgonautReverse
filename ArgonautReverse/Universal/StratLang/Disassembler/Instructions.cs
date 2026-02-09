@@ -1,5 +1,5 @@
 ﻿using System.Text;
-using ArgonautReverse.Universal.StratLang;
+using ArgonautReverse.PC;
 
 namespace ArgonautReverse.Universal.StratLang.Disassembler
 {
@@ -8,7 +8,7 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 	/// <summary>Non-terminal instruction that without any extra operands that can pop and push any number of args.</summary>
 	public class BasicInstruction(Script script, int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 0, popCount, pushCount, address, opcode)
 	{
-		public override string ToAsmString(bool exportForParsing) => OpCode.ToString();
+		public override void WriteAsmString(Decompiler.Writer output) => output.Write(OpCode.ToString());
 	}
 
 	public sealed class UnimplementedInstruction:BaseInstruction
@@ -17,9 +17,10 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 		{
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return $"{OpCode} $ UNIMPLEMENTED";
+			output.Write(OpCode.ToString());
+			output.WriteLine(" $ UNIMPLEMENTED");
 		}
 	}
 
@@ -30,9 +31,10 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 		{
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return $"{OpCode} $ USED UNIMPLEMENTED";
+			output.Write(OpCode.ToString());
+			output.WriteLine(" $ USED UNIMPLEMENTED");
 		}
 	}
 
@@ -111,30 +113,32 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 
 		public override bool Export => !Consumed;
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
 			if(/*exportForParsing && */Consumed)
 			{
-				return "";
+				return;
 			}
-			var stream = new StringBuilder();
-			if(Consumed)
-			{
-				stream.Append("$ CONSUMED: ");
-			}
+			//if(Consumed)
+			//{
+			//	output.Write("$ CONSUMED: ");
+			//}
 			if(IsDataLoad)
 			{
-				stream.Append(OpCode).Append(" DataOffset ").Append(DataOffset);
+				output.Write(OpCode.ToString());
+				output.Write(" DataOffset ");
+				output.WriteInt(DataOffset);
 			}
 			else if(IsAnimLoad)
 			{
-				stream.Append(OpCode).Append(" animload Anim_").Append(AnimationIndex);//animload
+				output.Write(OpCode.ToString());
+				output.Write(" animload Anim_");
+				output.WriteInt(AnimationIndex);//animload
 			}
 			else
 			{
 				throw new Exception("Unknown stAddress type");
 			}
-			return stream.ToString();
 		}
 	}
 
@@ -147,9 +151,11 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			State = reader.ReadInt();
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return $"{OpCode} {State}";
+			output.Write(OpCode.ToString());
+			output.Write(' ');
+			output.WriteInt(State);
 		}
 	}
 
@@ -162,9 +168,11 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			Count = reader.ReadInt();
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return $"{OpCode} {Count}";
+			output.Write(OpCode.ToString());
+			output.Write(' ');
+			output.WriteInt(Count);
 		}
 	}
 
@@ -183,11 +191,11 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			this.ConditionalDest = parser.ParseInstruction(this.ConditionalDestPtr, null, this);
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			var name = OpCode.ToString();
-			var label = ConditionalDest.GetLabel();
-			return $"{name} {label}";
+			output.Write(OpCode.ToString());
+			output.Write(' ');
+			output.Write(ConditionalDest.GetLabel());
 		}
 	}
 
@@ -201,14 +209,11 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			CollisionType = reader.ReadUInt();
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return OpCode switch
-			{
-				InstructionOpcode.CollisionOn => $"CollisionOn {CollisionType}",
-				InstructionOpcode.CollisionOff => $"CollisionOff {CollisionType}",
-				_ => throw new Exception("Unsupported opcode"),
-			};
+			output.Write(OpCode.ToString());
+			output.Write(' ');
+			output.WriteInt((int)CollisionType);
 		}
 	}
 
@@ -219,9 +224,9 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			Terminal = true;
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return "COMMAND ERROR";
+			output.Write("COMMAND ERROR");
 		}
 	}
 
@@ -234,9 +239,11 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			Operand = reader.ReadInt();
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return $"{OpCode} {Operand}";
+			output.Write(OpCode.ToString());
+			output.Write(' ');
+			output.WriteInt(Operand);
 		}
 	}
 
@@ -249,9 +256,11 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			Value = reader.ReadInt();
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return $"{OpCode} {Value}";
+			output.Write(OpCode.ToString());
+			output.Write(' ');
+			output.WriteInt(Value);
 		}
 	}
 
@@ -269,9 +278,12 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			EnglishString = $"STRING_ID:{StringId}";
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return $"{OpCode} \"{EnglishString}\"";
+			output.Write(OpCode.ToString());
+			output.Write(' ');//output.Write(" \"");
+			output.Write(EnglishString);
+			//output.Write('"');
 		}
 	}
 
@@ -284,9 +296,11 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			Operand = reader.ReadInt();
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return $"{OpCode} {Operand}";
+			output.Write(OpCode.ToString());
+			output.Write(' ');
+			output.WriteInt(Operand);
 		}
 	}
 
@@ -306,9 +320,12 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			Name = reader.ReadString(nameAddr);
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return $"{OpCode} {Name}";
+			output.Write(OpCode.ToString());
+			output.Write(" \"");
+			output.Write(Name);
+			output.Write('"');
 		}
 	}
 
@@ -321,9 +338,9 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			Terminal = true;
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return "EndStrat";
+			output.Write("EndStrat");
 		}
 	}
 
@@ -343,9 +360,10 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			};
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return NewState ? $"{OpCode} on" : $"{OpCode} off";
+			output.Write(OpCode.ToString());
+			output.Write(NewState ? " on" : " off");
 		}
 	}
 
@@ -358,9 +376,11 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			Value = reader.ReadInt();
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return $"{OpCode} {Value}";
+			output.Write(OpCode.ToString());
+			output.Write(' ');
+			output.WriteInt(Value);
 		}
 	}
 
@@ -399,28 +419,20 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			}
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			var stream = new StringBuilder();
-			if(exportForParsing)
+			//TODO: Incorrect indenting on cases?
+			output.OpenLine("switch");
+			for(int i=0; i<CaseCount; i++)
 			{
-				stream.Append(OpCode);
-				for(int i=0; i<CaseCount; i++)
-				{
-					stream.Append(' ').Append(CaseComparands[i]).Append(',').Append(this.CaseDestinations[i].GetLabel());
-				}
+				output.Write("case ");
+				output.WriteInt(CaseComparands[i]);
+				output.OpenLine();
+				output.Write("goto ");
+				output.Write(CaseDestinations[i].GetLabel());
+				output.CloseLine("endcase");
 			}
-			else
-			{
-				stream.Append("switch");
-				for(int i=0; i<CaseCount; i++)
-				{
-					stream.Append("\n\t\tcase ").Append(CaseComparands[i]);
-					stream.Append("\n\t\t\tgoto ").Append(this.CaseDestinations[i].GetLabel());
-				}
-				stream.Append("\n\tendswitch");
-			}
-			return stream.ToString();
+			output.CloseLine("endswitch");
 		}
 	}
 
@@ -434,9 +446,12 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			Item = reader.ReadInt();
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return $"{OpCode}({Item})";
+			output.Write(OpCode.ToString());
+			output.Write('(');
+			output.WriteInt(Item);
+			output.Write(')');
 		}
 	}
 
@@ -452,9 +467,11 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			Item = reader.ReadInt();
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return $"{OpCode} {Item}";
+			output.Write(OpCode.ToString());
+			output.Write(' ');
+			output.WriteInt(Item);
 		}
 	}
 
@@ -474,9 +491,11 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			this.Destination = parser.ParseInstruction(this.DestinationPtr, null, this);
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return $"{OpCode} {Destination.GetLabel()}";
+			output.Write(OpCode.ToString());
+			output.Write(' ');
+			output.Write(Destination.GetLabel());
 		}
 	}
 
@@ -498,9 +517,11 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			this.Proc = parser.ParseProc(this.ProcPtr, this);
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return $"{OpCode} {Proc.SubroutineName()}";
+			output.Write(OpCode.ToString());
+			output.Write(' ');
+			output.Write(Proc.SubroutineName());
 		}
 	}
 
@@ -513,9 +534,11 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			Value = reader.ReadInt();
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return $"{OpCode} {Value}";
+			output.Write(OpCode.ToString());
+			output.Write(' ');
+			output.WriteInt(Value);
 		}
 	}
 
@@ -557,7 +580,7 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 					}
 					case InstructionOpcode.Number:
 					{
-						value = reader.ReadInt();
+						value = Fixed32.FromRaw(reader.ReadInt());
 						break;
 					}
 					case InstructionOpcode.Ext_AlienVar:
@@ -575,7 +598,7 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 						value = (AlienVarID)reader.ReadInt();
 						break;
 					}
-					case InstructionOpcode.String or (InstructionOpcode)225://225 is for DUMMY
+					case InstructionOpcode.String:
 					{
 						var strOffset = reader.ReadRelativeAddress();
 						value = reader.ReadString(strOffset);
@@ -587,6 +610,7 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 					}
 				}
 				bool negate = false;
+				//TODO: Mapping for different platforms
 				if(reader.PeekInt() == 257+(int)InstructionOpcode.UMinus)
 				{
 					OperandCount++;
@@ -599,70 +623,77 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			Elements = elements;
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			var stream = new StringBuilder();
-			stream.Append(OpCode);
+			output.Write(OpCode.ToString());
 			foreach((var type,var value,var negate) in Elements)
 			{
-				stream.Append(' ');
+				output.Write(' ');
 				if(negate)
 				{
-					stream.Append('-');
+					output.Write('-');
 				}
 				switch(type)
 				{
 					case InstructionOpcode.Local:
 					{
 						int localValue = (int)value;
-						stream.Append($"Local_{localValue}");
+						output.Write("Local_");
+						output.WriteInt(localValue);
 						break;
 					}
 					case InstructionOpcode.Global:
 					{
 						int globalValue = (int)value;
-						stream.AppendFormat("{0:X5}.{1:X3}", globalValue >> 12, globalValue & 0xFFF);//"%05x.%03x"
+						output.Write("Global_");
+						output.WriteInt(globalValue);//"%05x.%03x"
 						break;
 					}
 					case InstructionOpcode.WorldGlobal:
 					{
 						int worldGlobalValue = (int)value;
-						stream.Append($"WorldGlobal_{worldGlobalValue}");
+						output.Write("WorldGlobal_");
+						output.WriteInt(worldGlobalValue);
 						break;
 					}
 					case InstructionOpcode.AlienVar:
 					{
-						stream.Append("this@").Append(((AlienVarID)value).GetCommandString());
+						output.Write("this@");
+						output.Write(((AlienVarID)value).GetCommandString());
 						break;
 					}
 					case InstructionOpcode.Number:
 					{
-						int number = (int)value;
-						stream.AppendFormat("{0:X5}.{1:X3}", number >> 12, number & 0xFFF);//"%05x.%03x"
+						var number = (Fixed32)value;
+						output.Write(number.ToHexString());
 						break;
 					}
 					case InstructionOpcode.Ext_AlienVar:
 					{
-						stream.Append("parent@").Append(((AlienVarID)value).GetCommandString());
+						output.Write("parent@");
+						output.Write(((AlienVarID)value).GetCommandString());
 						break;
 					}
 					case InstructionOpcode.Player_AlienVar:
 					{
-						stream.Append("player@").Append(((AlienVarID)value).GetCommandString());
+						output.Write("player@");
+						output.Write(((AlienVarID)value).GetCommandString());
 						break;
 					}
 					case InstructionOpcode.Camera_AlienVar:
 					{
-						stream.Append("camera@").Append(((AlienVarID)value).GetCommandString());
+						output.Write("camera@");
+						output.Write(((AlienVarID)value).GetCommandString());
 						break;
 					}
-					//TODO: Modify String Opcode mapping for DUMMY
-					case InstructionOpcode.String or (InstructionOpcode)225://225 is for DUMMY
+					case InstructionOpcode.String:
 					{
 						var str = (string)value;
 						//TODO: Sanitize strings
 						str = str.Replace("\n", "\\n");
-						stream.Append('\"').Append(str).Append('\"');
+						output.Write('\"');
+						output.Write(str);
+						output.Write('\"');
 						break;
 					}
 					default:
@@ -671,7 +702,6 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 					}
 				}
 			}
-			return stream.ToString();
 		}
 	}
 
@@ -686,9 +716,9 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			Terminal = true;
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return "return";
+			output.Write("return");
 		}
 	}
 
@@ -701,13 +731,15 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			Value = reader.ReadInt();
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return $"{OpCode} {Value}";
+			output.Write(OpCode.ToString());
+			output.Write(' ');
+			output.WriteInt(Value);
 		}
 	}
 
-	public abstract class BaseSpawnInstruction(Script script, int opCount, InstructionAddress address, InstructionOpcode opcode):AsmInstruction(script, address, opcode, opCount, 1, 0)
+	public abstract class BaseSpawnInstruction(Script script, int opCount, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, opCount, 1, 0, address, opcode)
 	{
 		public int LocalVarsToPop;
 		public int LocalCount;
@@ -747,16 +779,28 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			SpawnStratProc = SpawnStratProcScript.Parser.ParseStrat(SpawnStratProcAddr, this, false);
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
+			output.Write(OpCode.ToString());
+			output.Write(' ');
 			if(SpawnStratProc != null)
 			{
-				return $"{OpCode} {SpawnStratProc.SubroutineName()} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount}";
+				output.Write(SpawnStratProc.SubroutineName());
 			}
 			else
 			{
-				return $"{OpCode} {((AddressInstruction)Prev!).DataOffset:X8} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount}";
+				output.Write(((AddressInstruction)Prev!).DataOffset.ToString("X8"));
 			}
+			output.Write(' ');
+			output.WriteInt(LocalVarsToPop);
+			output.Write(' ');
+			output.WriteInt(LocalCount);
+			output.Write(' ');
+			output.WriteInt(TriggerCount);
+			output.Write(' ');
+			output.WriteInt(CollisionSize);
+			output.Write(' ');
+			output.WriteInt(CollisionBoneCount);
 		}
 	}
 
@@ -793,16 +837,31 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			SpawnStratProc = SpawnStratProcScript.Parser.ParseStrat(SpawnStratProcAddr, this, false);
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
+			output.Write(OpCode.ToString());
+			output.Write(' ');
 			if(SpawnStratProc != null)
 			{
-				return $"{OpCode} {SpawnStratProc.SubroutineName()} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount} {BoneToSpawnFrom}";
+				output.Write(SpawnStratProc.SubroutineName());
 			}
 			else
 			{
-				return $"{OpCode} {((AddressInstruction)Prev!).DataOffset:X8} {LocalVarsToPop} {LocalCount} {TriggerCount} {CollisionSize} {CollisionBoneCount} {BoneToSpawnFrom}";
+				output.Write(((AddressInstruction)Prev!).DataOffset.ToString("X8"));
 			}
+			output.Write(' ');
+			output.WriteInt(LocalVarsToPop);
+			output.Write(' ');
+			output.WriteInt(LocalCount);
+			output.Write(' ');
+			output.WriteInt(TriggerCount);
+			output.Write(' ');
+			output.WriteInt(CollisionSize);
+			output.Write(' ');
+			output.WriteInt(CollisionBoneCount);
+
+			output.Write(' ');
+			output.WriteInt(BoneToSpawnFrom);
 		}
 	}
 
@@ -827,9 +886,11 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			Comparand = reader.ReadInt();
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return $"{OpCode} {Comparand}";
+			output.Write(OpCode.ToString());
+			output.Write(' ');
+			output.WriteInt(Comparand);
 		}
 	}
 
@@ -862,9 +923,15 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			Stream = parser.ParseTrigger(StreamPtr, TriggerIndex, this);
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			return $"{OpCode} {(int)Type} {Arg} {Stream.SubroutineName()}";
+			output.Write(OpCode.ToString());
+			output.Write(' ');
+			output.Write(Type.ToString());
+			output.Write(' ');
+			output.WriteInt(Arg);
+			output.Write(' ');
+			output.Write(Stream.SubroutineName());
 		}
 	}
 
@@ -883,10 +950,12 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			TriggerProc = parser.ParseTrigger(null, TriggerIndex, this);
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
 			//TODO: TriggerIndex should be replaced with trigger function name
-			return $"{OpCode} {TriggerProc.SubroutineName()}";
+			output.Write(OpCode.ToString());
+			output.Write(' ');
+			output.Write(TriggerProc.SubroutineName());
 		}
 	}
 
@@ -953,37 +1022,29 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			};
 		}
 
-		public override string ToAsmString(bool exportForParsing)
+		public override void WriteAsmString(Decompiler.Writer output)
 		{
-			var stream = new StringBuilder();
-			if(exportForParsing)
+			if(GetAddress)
 			{
-				stream.Append(OpCode).Append(' ');
+				output.Write('&');
 			}
-			else
-			{
-				if(GetAddress)
-				{
-					stream.Append('&');
-				}
 
-				string sourceString = Source switch
-				{
-					SourceStrat.This => "this",
-					SourceStrat.Parent => "parent",
-					SourceStrat.Child => "child",
-					SourceStrat.Player => "player",
-					SourceStrat.Camera => "camera",
-					SourceStrat.Boss => "boss",
-					SourceStrat.Dialog => "dialog",
-					SourceStrat.Target => "target",
-					SourceStrat.Target2 => "target2",
-					SourceStrat.Collide => "collide",
-					_ => throw new Exception("VarInstruction Unknown SourceStrat"),
-				};
-				stream.Append(sourceString);
-				stream.Append('@');
-			}
+			string sourceString = Source switch
+			{
+				SourceStrat.This => "this",
+				SourceStrat.Parent => "parent",
+				SourceStrat.Child => "child",
+				SourceStrat.Player => "player",
+				SourceStrat.Camera => "camera",
+				SourceStrat.Boss => "boss",
+				SourceStrat.Dialog => "dialog",
+				SourceStrat.Target => "target",
+				SourceStrat.Target2 => "target2",
+				SourceStrat.Collide => "collide",
+				_ => throw new Exception("VarInstruction Unknown SourceStrat"),
+			};
+			output.Write(sourceString);
+			output.Write('@');
 
 			string typeString = Type switch
 			{
@@ -993,8 +1054,7 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 				VarType.Alien => ((AlienVarID)VarId).GetCommandString(),
 				_ => throw new Exception("VarInstruction Unknown VarType"),
 			};
-			stream.Append(typeString);
-			return stream.ToString();
+			output.Write(typeString);
 		}
 	}
 }

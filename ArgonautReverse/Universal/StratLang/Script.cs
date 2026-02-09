@@ -66,15 +66,14 @@ namespace ArgonautReverse.Universal.StratLang
 		{
 			try
 			{
-				var output = new StringWriter();
 				if(Failed || !Processed)
 				{
 					Console.WriteLine($"Failed or no script to export {baseFilePath}:");
 					return false;
 				}
-				Parser.Write(output, exportForParsing:/*true*/false);
-				using var file = File.CreateText($"{baseFilePath}.asm.strat");
-				file.Write(output.GetStringBuilder());
+				var writer = new Decompiler.Writer();
+				Parser.Write(writer);
+				File.WriteAllText($"{baseFilePath}.asm.strat", writer.GetString());
 				return true;
 			}
 			catch(Exception e)

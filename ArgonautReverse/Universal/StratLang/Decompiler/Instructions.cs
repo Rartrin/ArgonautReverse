@@ -8,11 +8,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 {
 	public static class InstructionLookup
 	{
-		private delegate Instruction DelCreateInstruction();
-		private static readonly Dictionary<string,DelCreateInstruction> byName = new Dictionary<string,DelCreateInstruction>(StringComparer.OrdinalIgnoreCase);
+		private delegate Instruction DelCreateInstruction(AsmInstruction label, AsmInstruction operation);
 		private static readonly Dictionary<InstructionOpcode,DelCreateInstruction> byOpcode = new Dictionary<InstructionOpcode,DelCreateInstruction>();
 
-		public static readonly HashSet<string> Used = new HashSet<string>();//TODO: Make InstructionOpcode
+		public static readonly HashSet<InstructionOpcode> Used = new HashSet<InstructionOpcode>();
 
 		static InstructionLookup()
 		{
@@ -23,37 +22,33 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 				if(type.GetCustomAttribute<OpcodeAttribute>() is OpcodeAttribute opcodeAttribute)
 				{
 					var createInstruction = createInstructionGenericInfo.MakeGenericMethod(type).CreateDelegate<DelCreateInstruction>();
-					byName.Add(opcodeAttribute.Opcode.ToString(), createInstruction);
 					byOpcode.Add(opcodeAttribute.Opcode, createInstruction);
 				}
 			}
 
-			static Instruction CreateInstructionInner<T>() where T:Instruction,new()
+			static Instruction CreateInstructionInner<T>(AsmInstruction label, AsmInstruction operation) where T:Instruction,new()
 			{
-				var instr = new T();
+				var instr = new T
+				{
+					AsmOperation = operation,
+					AsmLabel = label,
+				};
 				return instr;
 			}
 		}
 
-		public static Instruction CreateInstruction(string name)
+		public static Instruction CreateInstruction(AsmInstruction label, AsmInstruction operation)
 		{
-			Used.Add(name);
+			Used.Add(operation.OpCode);
 
-			return byName[name]();
-		}
-
-		public static Instruction CreateInstruction(InstructionOpcode opcode)
-		{
-			Used.Add(opcode.ToString());
-
-			return byOpcode[opcode]();
+			return byOpcode[operation.OpCode](label, operation);
 		}
 	}
 
 	[AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
 	public sealed class OpcodeAttribute(InstructionOpcode opcode):Attribute
 	{
-		public InstructionOpcode Opcode{get;} = opcode;
+		public InstructionOpcode Opcode => opcode;
 	}
 
 	public abstract class UnimplementedInstruction:BaseOperationInstruction<UnimplementedInstruction,UnimplementedInstruction.UnimplementedStack>
@@ -96,7 +91,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public abstract class BaseConsumerInstruction<TInstruction,TStack>:BaseOperationInstruction<TInstruction,TStack> where TInstruction:BaseConsumerInstruction<TInstruction,TStack> where TStack:BaseConsumerStack<TInstruction,TStack>,new();
 	public abstract class BaseConsumerStack<TInstruction,TStack>:BaseOperationStack<TInstruction,TStack>,IStackConsumer where TInstruction:BaseConsumerInstruction<TInstruction,TStack> where TStack:BaseConsumerStack<TInstruction,TStack>,new()
 	{
-		public abstract int PopCount{get;}
+		protected abstract int PopCount{get;}
 
 		public IStackProducer[] Operands{get;private set;}
 
@@ -175,7 +170,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public IStackStatement NextStatement{get;set;}
 		public IStackStatement PrevStatement{get;set;}
 
-		public abstract string ToStatement();
+		public abstract void WriteStatement(Writer writer);
 
 		public override void Analyze(StackAnalyzer stack)
 		{
@@ -193,11 +188,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 	public abstract class SimplePureConsumerInstruction<TInstruction,TStack>:PureConsumerInstruction<TInstruction,TStack,SimplePureConsumerFlow<TInstruction,TStack>> where TInstruction:SimplePureConsumerInstruction<TInstruction,TStack> where TStack:SimplePureConsumerStack<TInstruction,TStack>,new();
 	public abstract class SimplePureConsumerStack<TInstruction,TStack>:PureConsumerStack<TInstruction,TStack,SimplePureConsumerFlow<TInstruction,TStack>> where TInstruction:SimplePureConsumerInstruction<TInstruction,TStack> where TStack:SimplePureConsumerStack<TInstruction,TStack>,new();
-
-	public sealed class SimplePureConsumerFlow<TInstruction,TStack>:PureConsumerFlow<TInstruction,TStack,SimplePureConsumerFlow<TInstruction,TStack>> where TInstruction:SimplePureConsumerInstruction<TInstruction,TStack> where TStack:SimplePureConsumerStack<TInstruction,TStack>,new()
-	{
-		public override void Analyze(FlowAnalyzer flow){}
-	}
+	public sealed class SimplePureConsumerFlow<TInstruction,TStack>:PureConsumerFlow<TInstruction,TStack,SimplePureConsumerFlow<TInstruction,TStack>> where TInstruction:SimplePureConsumerInstruction<TInstruction,TStack> where TStack:SimplePureConsumerStack<TInstruction,TStack>,new();
 
 	public abstract class PureProducerInstruction<TInstruction,TStack>:BaseOperationInstruction<TInstruction,TStack> where TInstruction:PureProducerInstruction<TInstruction,TStack> where TStack:PureProducerStack<TInstruction,TStack>,new();
 	public abstract class PureProducerStack<TInstruction,TStack>:BaseOperationStack<TInstruction,TStack>,IStackProducer where TInstruction:PureProducerInstruction<TInstruction,TStack> where TStack:PureProducerStack<TInstruction,TStack>,new()
@@ -278,7 +269,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public override void Analyze(StackAnalyzer stack){}
 
-		public abstract string ToStatement();
+		public abstract void WriteStatement(Writer writer);
 
 		public sealed override IEnumerable<IStackOperation> GetRootOperations() => [this];
 
@@ -313,26 +304,23 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public abstract class SimpleNoStackInstruction<TInstruction,TStack>:NoStackInstruction<TInstruction,TStack,SimpleNoStackFlow<TInstruction,TStack>> where TInstruction:SimpleNoStackInstruction<TInstruction,TStack> where TStack:SimpleNoStackStack<TInstruction,TStack>,new();
 	public abstract class SimpleNoStackStack<TInstruction,TStack>:NoStackStack<TInstruction,TStack,SimpleNoStackFlow<TInstruction,TStack>> where TInstruction:SimpleNoStackInstruction<TInstruction,TStack> where TStack:SimpleNoStackStack<TInstruction,TStack>,new();
 
-	public sealed class SimpleNoStackFlow<TInstruction,TStack>:NoStackFlow<TInstruction,TStack,SimpleNoStackFlow<TInstruction,TStack>> where TInstruction:SimpleNoStackInstruction<TInstruction,TStack> where TStack:SimpleNoStackStack<TInstruction,TStack>,new()
-	{
-		public override void Analyze(FlowAnalyzer flow){}
-	}
+	public sealed class SimpleNoStackFlow<TInstruction,TStack>:NoStackFlow<TInstruction,TStack,SimpleNoStackFlow<TInstruction,TStack>> where TInstruction:SimpleNoStackInstruction<TInstruction,TStack> where TStack:SimpleNoStackStack<TInstruction,TStack>,new();
 
 	public abstract class SimpleNoOperandsNoStackInstruction:SimpleNoStackInstruction<SimpleNoOperandsNoStackInstruction,SimpleNoOperandsNoStackStack>;
 	public sealed class SimpleNoOperandsNoStackStack:SimpleNoStackStack<SimpleNoOperandsNoStackInstruction,SimpleNoOperandsNoStackStack>
 	{
-		public sealed override string ToStatement()
+		public sealed override void WriteStatement(Writer writer)
 		{
 			//TODO: Make this better
 			string name = Instruction.GetType().GetCustomAttribute<OpcodeAttribute>()!.Opcode.ToString();
-			return name;
+			writer.Write(name);
 		}
 	}
 
 	public abstract class BinaryOperationInstruction<TInstruction,TStack>:BaseExpressionInstruction<TInstruction,TStack> where TInstruction:BinaryOperationInstruction<TInstruction,TStack> where TStack:BinaryOperationStack<TInstruction,TStack>,new();
 	public abstract class BinaryOperationStack<TInstruction,TStack>:BaseExpressionStack<TInstruction,TStack> where TInstruction:BinaryOperationInstruction<TInstruction,TStack> where TStack:BinaryOperationStack<TInstruction,TStack>,new()
 	{
-		public override int PopCount => 2;
+		protected sealed override int PopCount => 2;
 
 		public IStackProducer ValueA => Operands[0];
 		public IStackProducer ValueB => Operands[1];
@@ -341,7 +329,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public abstract class UnaryOperationInstruction<TInstruction,TStack>:BaseExpressionInstruction<TInstruction,TStack> where TInstruction:UnaryOperationInstruction<TInstruction,TStack> where TStack:UnaryOperationStack<TInstruction,TStack>,new();
 	public abstract class UnaryOperationStack<TInstruction,TStack>:BaseExpressionStack<TInstruction,TStack> where TInstruction:UnaryOperationInstruction<TInstruction,TStack> where TStack:UnaryOperationStack<TInstruction,TStack>,new()
 	{
-		public override int PopCount => 1;
+		protected sealed override int PopCount => 1;
 
 		public IStackProducer Value => Operands[0];
 	}
@@ -360,7 +348,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 	public abstract class BranchStack<TInstruction,TStack>:PureConsumerStack<TInstruction,TStack,BranchFlow<TInstruction,TStack>> where TInstruction:BranchInstruction<TInstruction,TStack> where TStack:BranchStack<TInstruction,TStack>,new()
 	{
-		public override int PopCount => 1;
+		protected override int PopCount => 1;
 
 		public IStackProducer Condition => Operands[0];
 
@@ -379,7 +367,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public FlowStatement FlowConditionalDest => FlowDestinations[0];
 
-		public override void Analyze(FlowAnalyzer flow)
+		public void Analyze(FlowAnalyzer flow)
 		{
 			flow.AddDest(this, Instruction.ConditionalDest);
 		}
@@ -444,7 +432,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 	public sealed class FlagStack:SimpleNoStackStack<FlagInstruction,FlagStack>
 	{
-		public override string ToStatement() => $"{Instruction.Flag} {(Instruction.NewState ? "on" : "off")}";
+		public override void WriteStatement(Writer writer)
+		{
+			writer.Write(Instruction.Flag);
+			writer.Write(Instruction.NewState ? " on" : " off");
+		}
 	}
 
 	public abstract class ItemChangeInstruction:SimpleNoStackInstruction<ItemChangeInstruction,ItemChangeStack>
@@ -467,12 +459,16 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 	public sealed class ItemChangeStack:SimpleNoStackStack<ItemChangeInstruction,ItemChangeStack>
 	{
-		public override string ToStatement() => Instruction.Change switch
+		public override void WriteStatement(Writer writer)
 		{
-			-1 => $"DelInv {Instruction.Item}",
-			+1 => $"AddInv {Instruction.Item}",
-			_ => throw new Exception()
-		};
+			writer.Write(Instruction.Change switch
+			{
+				-1 => "DelInv ",
+				+1 => "AddInv ",
+				_ => throw new Exception()
+			});
+			writer.WriteInt(Instruction.Item);
+		}
 	}
 
 	public abstract class BaseJumpInstruction<TInstruction,TStack,TFlow>:NoStackInstruction<TInstruction,TStack,TFlow> where TInstruction:BaseJumpInstruction<TInstruction,TStack,TFlow> where TStack:BaseJumpStack<TInstruction,TStack,TFlow>,new() where TFlow:BaseJumpFlow<TInstruction,TStack,TFlow>,new()
@@ -506,7 +502,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public FlowStatement FlowDestination => FlowDestinations[0];
 
-		public override void Analyze(FlowAnalyzer flow)
+		public void Analyze(FlowAnalyzer flow)
 		{
 			flow.AddDest(this, Instruction.Destination);
 		}
@@ -530,7 +526,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public abstract class BaseMoveInstruction<TInstruction,TStack>:SimplePureConsumerInstruction<TInstruction,TStack> where TInstruction:BaseMoveInstruction<TInstruction,TStack> where TStack:BaseMoveStack<TInstruction,TStack>,new();
 	public abstract class BaseMoveStack<TInstruction,TStack>:SimplePureConsumerStack<TInstruction,TStack> where TInstruction:BaseMoveInstruction<TInstruction,TStack> where TStack:BaseMoveStack<TInstruction,TStack>,new()
 	{
-		public override int PopCount => 1;
+		protected sealed override int PopCount => 1;
 
 		public IStackProducer Amount => Operands[0];
 	}
@@ -555,8 +551,6 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 				string part;
 				switch(type)
 				{
-					//TODO: Modify Opcode mappings for DUMMY
-
 					case InstructionOpcode.Local:
 					{
 						int localValue = (int)value;
@@ -601,7 +595,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 						part = $"camera@{((AlienVarID)value).GetCommandString()}";
 						break;
 					}
-					case InstructionOpcode.String or (InstructionOpcode)225://225 is for DUMMY
+					case InstructionOpcode.String:
 					{
 						var str = (string)value;
 						//TODO: More string sanitization
@@ -742,13 +736,13 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 	public sealed class CommandErrorStack:NoStackStack<CommandErrorInstruction,CommandErrorStack,CommandErrorFlow>
 	{
-		public override string ToStatement() => "COMMAND ERROR";
+		public override void WriteStatement(Writer writer)
+		{
+			writer.Write("COMMAND ERROR");
+		}
 	}
 
-	public sealed class CommandErrorFlow:NoStackFlow<CommandErrorInstruction,CommandErrorStack,CommandErrorFlow>,IFlowTerminal
-	{
-		public override void Analyze(FlowAnalyzer flow){}
-	}
+	public sealed class CommandErrorFlow:NoStackFlow<CommandErrorInstruction,CommandErrorStack,CommandErrorFlow>,IFlowTerminal;
 
 	[Opcode(InstructionOpcode.Local)]
 	public sealed class LocalInstruction:VarInstruction
@@ -819,7 +813,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class PrintStack:SimpleNoStackStack<PrintInstruction,PrintStack>
 		{
-			public override string ToStatement() => $"print {Instruction.Data}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("print ");
+				writer.Write(Instruction.Data);
+			}
 		}
 	}
 
@@ -836,34 +834,6 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			Value = numberAsmInstr.Value;
 		}
 
-		//TODO: We will want to move away from this
-		private static bool TryGetValue(int fixed12, out double value)
-		{
-			//Numbers were converted to ASL using the following formal:
-			//((Floor(value)*0xFFFFF)<<12) | (Floor(value*4096)&0xFFF)
-			//A lot of common numbers would have been truncated so this is a lookup for common values
-
-			if((fixed12&0xFFF) == 0)
-			{
-				value = fixed12 >> 12;
-				return true;
-			}
-
-			switch(fixed12)
-			{
-				case 81:	value = 0.02;return true;
-				case 204:	value = 0.05;return true;
-				case 409:	value = 0.10;return true;
-				case 2048:	value = 0.50;return true;
-				case 2867:	value = 0.70;return true;
-				case 4915:	value = 1.20;return true;
-				case 5120:	value = 1.25;return true;
-				case 6144:	value = 1.50;return true;
-			};
-			value = 0;
-			return false;
-		}
-
 		public sealed class NumberStack:PureProducerStack<NumberInstruction,NumberStack>
 		{
 			public sealed override bool Literal => true;
@@ -871,7 +841,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			//TODO: We will want to move away from this
 			private static bool TryGetValue(int fixed12, out double value)
 			{
-				//Numbers were converted to ASL using the following formal:
+				//Numbers were converted to ASL using the following format:
 				//((Floor(value)*0xFFFFF)<<12) | (Floor(value*4096)&0xFFF)
 				//A lot of common numbers would have been truncated so this is a lookup for common values
 
@@ -929,11 +899,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class IncreaseStack:SimplePureConsumerStack<IncreaseInstruction,IncreaseStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public VarInstruction.VarStack Address => (VarInstruction.VarStack)Operands[0];
 
-			public override string ToStatement() => $"{Address.ToExpressionString(ExpressionType.Dereference)}++";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write(Address.ToExpressionString(ExpressionType.Dereference));
+				writer.Write("++");
+			}
 		}
 	}
 
@@ -942,11 +916,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class DecreaseStack:SimplePureConsumerStack<DecreaseInstruction,DecreaseStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public VarInstruction.VarStack Address => (VarInstruction.VarStack)Operands[0];
 
-			public override string ToStatement() => $"{Address.ToExpressionString(ExpressionType.Dereference)}--";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write(Address.ToExpressionString(ExpressionType.Dereference));
+				writer.Write("--");
+			}
 		}
 	}
 
@@ -991,13 +969,18 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class EqualsStack:SimplePureConsumerStack<EqualsInstruction,EqualsStack>
 		{
-			public override int PopCount => 2;
+			protected override int PopCount => 2;
 
 			public VarInstruction.VarStack Address => (VarInstruction.VarStack)Operands[0];
 			public IStackProducer Value => Operands[1];
 
 			//TODO: Value isn't always fixed point, if it is a NumberInstruction, it generally will be.
-			public override string ToStatement() => $"{Address.ToExpressionString(ExpressionType.Dereference)} = {Value.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write(Address.ToExpressionString(ExpressionType.Dereference));
+				writer.Write(" = ");
+				writer.Write(Value.ToFxString());
+			}
 		}
 	}
 
@@ -1036,11 +1019,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SetModelStack:SimplePureConsumerStack<SetModelInstruction,SetModelStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer Model => Operands[0];
 
-			public override string ToStatement() => $"setmodel {Model.ToExpressionString(ExpressionType.Reference)}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("setmodel ");
+				writer.Write(Model.ToExpressionString(ExpressionType.Reference));
+			}
 		}
 	}
 
@@ -1049,11 +1036,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class ScaleStack:SimplePureConsumerStack<ScaleInstruction,ScaleStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer Scale => Operands[0];
 
-			public override string ToStatement() => $"scale {Scale.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("scale ");
+				writer.Write(Scale.ToFxString());
+			}
 		}
 	}
 
@@ -1062,11 +1053,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class ScaleXStack:SimplePureConsumerStack<ScaleXInstruction,ScaleXStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer ScaleX => Operands[0];
 
-			public override string ToStatement() => $"scalex {ScaleX.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("scalex ");
+				writer.Write(ScaleX.ToFxString());
+			}
 		}
 	}
 
@@ -1075,11 +1070,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class ScaleYStack:SimplePureConsumerStack<ScaleYInstruction,ScaleYStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer ScaleY => Operands[0];
 
-			public override string ToStatement() => $"scaley {ScaleY.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("scaley ");
+				writer.Write(ScaleY.ToFxString());
+			}
 		}
 	}
 
@@ -1088,11 +1087,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class ScaleZStack:SimplePureConsumerStack<ScaleZInstruction,ScaleZStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer ScaleZ => Operands[0];
 
-			public override string ToStatement() => $"scalez {ScaleZ.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("scalez ");
+				writer.Write(ScaleZ.ToFxString());
+			}
 		}
 	}
 
@@ -1104,11 +1107,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class ShadowSizeStack:SimplePureConsumerStack<ShadowSizeInstruction,ShadowSizeStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer ShadowSize => Operands[0];
 
-			public override string ToStatement() => $"ShadowSize {ShadowSize.ToIntStr()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("ShadowSize ");
+				writer.Write(ShadowSize.ToIntStr());
+			}
 		}
 	}
 
@@ -1117,11 +1124,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class ShadowTypeStack:SimplePureConsumerStack<ShadowTypeInstruction,ShadowTypeStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer ShadowType => Operands[0];
 
-			public override string ToStatement() => $"ShadowType {ShadowType.ToIntStr()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("ShadowType ");
+				writer.Write(ShadowType.ToIntStr());
+			}
 		}
 	}
 
@@ -1139,7 +1150,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class MoveUpStack:BaseMoveStack<MoveUpInstruction,MoveUpStack>
 		{
-			public override string ToStatement() => $"MoveUp {Amount.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("MoveUp ");
+				writer.Write(Amount.ToFxString());
+			}
 		}
 	}
 
@@ -1148,7 +1163,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class MoveDownStack:BaseMoveStack<MoveDownInstruction,MoveDownStack>
 		{
-			public override string ToStatement() => $"MoveDown {Amount.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("MoveDown ");
+				writer.Write(Amount.ToFxString());
+			}
 		}
 	}
 
@@ -1157,7 +1176,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class MoveForwardStack:BaseMoveStack<MoveForwardInstruction,MoveForwardStack>
 		{
-			public override string ToStatement() => $"MoveForward {Amount.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("MoveForward ");
+				writer.Write(Amount.ToFxString());
+			}
 		}
 	}
 
@@ -1166,7 +1189,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class MoveBackwardStack:BaseMoveStack<MoveBackwardInstruction,MoveBackwardStack>
 		{
-			public override string ToStatement() => $"MoveBackward {Amount.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("MoveBackward ");
+				writer.Write(Amount.ToFxString());
+			}
 		}
 	}
 
@@ -1175,7 +1202,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class MoveLeftStack:BaseMoveStack<MoveLeftInstruction,MoveLeftStack>
 		{
-			public override string ToStatement() => $"MoveLeft {Amount.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("MoveLeft ");
+				writer.Write(Amount.ToFxString());
+			}
 		}
 	}
 
@@ -1184,7 +1215,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class MoveRightStack:BaseMoveStack<MoveRightInstruction,MoveRightStack>
 		{
-			public override string ToStatement() => $"MoveRight {Amount.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("MoveRight ");
+				writer.Write(Amount.ToFxString());
+			}
 		}
 	}
 
@@ -1193,7 +1228,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class TurnRightStack:BaseMoveStack<TurnRightInstruction,TurnRightStack>
 		{
-			public override string ToStatement() => $"TurnRight {Amount.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("TurnRight ");
+				writer.Write(Amount.ToFxString());
+			}
 		}
 	}
 
@@ -1202,7 +1241,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class TurnLeftStack:BaseMoveStack<TurnLeftInstruction,TurnLeftStack>
 		{
-			public override string ToStatement() => $"TurnLeft {Amount.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("TurnLeft ");
+				writer.Write(Amount.ToFxString());
+			}
 		}
 	}
 
@@ -1211,7 +1254,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class TiltLeftStack:BaseMoveStack<TiltLeftInstruction,TiltLeftStack>
 		{
-			public override string ToStatement() => $"TiltLeft {Amount.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("TiltLeft ");
+				writer.Write(Amount.ToFxString());
+			}
 		}
 	}
 
@@ -1220,7 +1267,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class TiltRightStack:BaseMoveStack<TiltRightInstruction,TiltRightStack>
 		{
-			public override string ToStatement() => $"TiltRight {Amount.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("TiltRight ");
+				writer.Write(Amount.ToFxString());
+			}
 		}
 	}
 
@@ -1229,7 +1280,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class TiltForwardStack:BaseMoveStack<TiltForwardInstruction,TiltForwardStack>
 		{
-			public override string ToStatement() => $"TiltForward {Amount.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("TiltForward ");
+				writer.Write(Amount.ToFxString());
+			}
 		}
 	}
 
@@ -1238,7 +1293,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class TiltBackwardStack:BaseMoveStack<TiltBackwardInstruction,TiltBackwardStack>
 		{
-			public override string ToStatement() => $"TiltBackward {Amount.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("TiltBackward ");
+				writer.Write(Amount.ToFxString());
+			}
 		}
 	}
 
@@ -1247,11 +1306,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class TurnToPlayerXStack:SimplePureConsumerStack<TurnToPlayerXInstruction,TurnToPlayerXStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer MaxTurnSpeed => Operands[0];
 
-			public override string ToStatement() => $"TurnToPlayerX {MaxTurnSpeed.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("TurnToPlayerX ");
+				writer.Write(MaxTurnSpeed.ToFxString());
+			}
 		}
 	}
 
@@ -1260,11 +1323,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class TurnToPlayerYStack:SimplePureConsumerStack<TurnToPlayerYInstruction,TurnToPlayerYStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer MaxTurnSpeed => Operands[0];
 
-			public override string ToStatement() => $"TurnToPlayerY {MaxTurnSpeed.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("TurnToPlayerY ");
+				writer.Write(MaxTurnSpeed.ToFxString());
+			}
 		}
 	}
 
@@ -1273,11 +1340,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class TurnToPlayerXYStack:SimplePureConsumerStack<TurnToPlayerXYInstruction,TurnToPlayerXYStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer MaxTurnSpeed => Operands[0];
 
-			public override string ToStatement() => $"TurnToPlayerXY {MaxTurnSpeed.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("TurnToPlayerXY ");
+				writer.Write(MaxTurnSpeed.ToFxString());
+			}
 		}
 	}
 
@@ -1286,14 +1357,24 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class TurnToXStack:SimplePureConsumerStack<TurnToXInstruction,TurnToXStack>
 		{
-			public override int PopCount => 4;
+			protected override int PopCount => 4;
 
 			public IStackProducer X => Operands[0];
 			public IStackProducer Y => Operands[1];
 			public IStackProducer Z => Operands[2];
 			public IStackProducer MaxTurnSpeed => Operands[3];
 
-			public override string ToStatement() => $"TurnToX {X.ToFxString()}, {Y.ToFxString()}, {Z.ToFxString()}, {MaxTurnSpeed.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("TurnToX ");
+				writer.Write(X.ToFxString());
+				writer.Write(", ");
+				writer.Write(Y.ToFxString());
+				writer.Write(", ");
+				writer.Write(Z.ToFxString());
+				writer.Write(", ");
+				writer.Write(MaxTurnSpeed.ToFxString());
+			}
 		}
 	}
 
@@ -1302,14 +1383,24 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class TurnToYStack:SimplePureConsumerStack<TurnToYInstruction,TurnToYStack>
 		{
-			public override int PopCount => 4;
+			protected override int PopCount => 4;
 
 			public IStackProducer X => Operands[0];
 			public IStackProducer Y => Operands[1];
 			public IStackProducer Z => Operands[2];
 			public IStackProducer MaxTurnSpeed => Operands[3];
 
-			public override string ToStatement() => $"TurnToY {X.ToFxString()}, {Y.ToFxString()}, {Z.ToFxString()}, {MaxTurnSpeed.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("TurnToY ");
+				writer.Write(X.ToFxString());
+				writer.Write(", ");
+				writer.Write(Y.ToFxString());
+				writer.Write(", ");
+				writer.Write(Z.ToFxString());
+				writer.Write(", ");
+				writer.Write(MaxTurnSpeed.ToFxString());
+			}
 		}
 	}
 
@@ -1318,14 +1409,24 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class TurnToXYStack:SimplePureConsumerStack<TurnToXYInstruction,TurnToXYStack>
 		{
-			public override int PopCount => 4;
+			protected override int PopCount => 4;
 
 			public IStackProducer X => Operands[0];
 			public IStackProducer Y => Operands[1];
 			public IStackProducer Z => Operands[2];
 			public IStackProducer MaxTurnSpeed => Operands[3];
 
-			public override string ToStatement() => $"TurnToXY {X.ToFxString()}, {Y.ToFxString()}, {Z.ToFxString()}, {MaxTurnSpeed.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("TurnToXY ");
+				writer.Write(X.ToFxString());
+				writer.Write(", ");
+				writer.Write(Y.ToFxString());
+				writer.Write(", ");
+				writer.Write(Z.ToFxString());
+				writer.Write(", ");
+				writer.Write(MaxTurnSpeed.ToFxString());
+			}
 		}
 	}
 
@@ -1334,11 +1435,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class WobbleStack:SimplePureConsumerStack<WobbleInstruction,WobbleStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer Value => Operands[0];
 
-			public override string ToStatement() => $"Wobble {Value.ToExpressionString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("Wobble ");
+				writer.Write(Value.ToExpressionString());
+			}
 		}
 	}
 
@@ -1353,7 +1458,12 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class JumpStack:BaseJumpStack<JumpInstruction,JumpStack,JumpFlow>
 		{
-			public override string ToStatement() => $"goto {Instruction.Destination.AsmLabel.GetLabel()} $ DONE";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("goto ");
+				writer.Write(Instruction.Destination.AsmLabel.GetLabel());
+				writer.Write(" $ DONE");
+			}
 		}
 		public sealed class JumpFlow:BaseJumpFlow<JumpInstruction,JumpStack,JumpFlow>;
 	}
@@ -1393,11 +1503,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class WPTurnToXStack:SimplePureConsumerStack<WPTurnToXInstruction,WPTurnToXStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer MaxTurnSpeed => Operands[0];
 
-			public override string ToStatement() => $"WPTurnToX {MaxTurnSpeed.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("WPTurnToX ");
+				writer.Write(MaxTurnSpeed.ToFxString());
+			}
 		}
 	}
 
@@ -1406,11 +1520,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class WPTurnToYStack:SimplePureConsumerStack<WPTurnToYInstruction,WPTurnToYStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer MaxTurnSpeed => Operands[0];
 
-			public override string ToStatement() => $"WPTurnToY {MaxTurnSpeed.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("WPTurnToY ");
+				writer.Write(MaxTurnSpeed.ToFxString());
+			}
 		}
 	}
 
@@ -1419,11 +1537,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class WPTurnToXYStack:SimplePureConsumerStack<WPTurnToXYInstruction,WPTurnToXYStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer MaxTurnSpeed => Operands[0];
 
-			public override string ToStatement() => $"WPTurnToXY {MaxTurnSpeed.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("WPTurnToXY ");
+				writer.Write(MaxTurnSpeed.ToFxString());
+			}
 		}
 	}
 
@@ -1432,11 +1554,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class AnimPlayStack:SimplePureConsumerStack<AnimPlayInstruction,AnimPlayStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer AnimationAddr => Operands[0];
 
-			public override string ToStatement() => $"AnimPlay {AnimationAddr.ToExpressionString(ExpressionType.Reference)}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("AnimPlay ");
+				writer.Write(AnimationAddr.ToExpressionString(ExpressionType.Reference));
+			}
 		}
 	}
 
@@ -1454,12 +1580,16 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class CollisionTypeStack:SimplePureConsumerStack<CollisionTypeInstruction,CollisionTypeStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer CollisionType => Operands[0];
 
 			//TODO: This may use custom values for it.
-			public override string ToStatement() => $"CollisionType {CollisionType.ToIntStr()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("CollisionType ");
+				writer.Write(CollisionType.ToIntStr());
+			}
 		}
 	}
 
@@ -1468,11 +1598,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class CollisionRadiusStack:SimplePureConsumerStack<CollisionRadiusInstruction,CollisionRadiusStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer CollRadius => Operands[0];
 
-			public override string ToStatement() => $"CollisionRadius {CollRadius.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("CollisionRadius ");
+				writer.Write(CollRadius.ToFxString());
+			}
 		}
 	}
 
@@ -1484,11 +1618,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class CollisionExtentStack:SimplePureConsumerStack<CollisionExtentInstruction,CollisionExtentStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer CollExtent => Operands[0];
 
-			public override string ToStatement() => $"CollisionExtent {CollExtent.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("CollisionExtent ");
+				writer.Write(CollExtent.ToFxString());
+			}
 		}
 	}
 
@@ -1500,11 +1638,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class CollisionPointsStack:SimplePureConsumerStack<CollisionPointsInstruction,CollisionPointsStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer Value => Operands[0];
 
-			public override string ToStatement() => $"CollisionPoints {Value.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("CollisionPoints ");
+				writer.Write(Value.ToFxString());
+			}
 		}
 	}
 
@@ -1513,14 +1655,24 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class CollSetPointStack:SimplePureConsumerStack<CollSetPointInstruction,CollSetPointStack>
 		{
-			public override int PopCount => 4;
+			protected override int PopCount => 4;
 
 			public IStackProducer PointIndex => Operands[0];
 			public IStackProducer X => Operands[1];
 			public IStackProducer Y => Operands[2];
 			public IStackProducer Z => Operands[3];
 
-			public override string ToStatement() => $"CollisionSetPoint {PointIndex.ToFxString()}, {X.ToFxString()}, {Y.ToFxString()}, {Z.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("CollisionSetPoint ");
+				writer.Write(PointIndex.ToFxString());
+				writer.Write(", ");
+				writer.Write(X.ToFxString());
+				writer.Write(", ");
+				writer.Write(Y.ToFxString());
+				writer.Write(", ");
+				writer.Write(Z.ToFxString());
+			}
 		}
 	}
 
@@ -1542,20 +1694,22 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public sealed class CreateTriggerStack:SimpleNoStackStack<CreateTriggerInstruction,CreateTriggerStack>
 		{
-			public override string ToStatement()
+			public override void WriteStatement(Writer writer)
 			{
 				var ret = new StringBuilder();
-				ret.Append($"CreateTrigger {Instruction.Type} ");
+				writer.Write("CreateTrigger ");
+				writer.Write(Instruction.Type.ToString());
+				writer.Write(' ');
 				switch(Instruction.Type)
 				{
 					case TriggerType.Every or TriggerType.In://Frame Count
 					case TriggerType.Anim://Animation Number
 					case TriggerType.WhenNear or TriggerType.WhenFar://Distance
-						ret.Append(Instruction.Arg + " ");
+						writer.WriteInt(Instruction.Arg);
+						writer.Write(' ');
 						break;
 				}
-				ret.Append(Instruction.TriggerProc.AsmLabel.SubroutineName());
-				return ret.ToString();
+				writer.Write(Instruction.TriggerProc.AsmLabel.SubroutineName());
 			}
 		}
 	}
@@ -1565,7 +1719,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class KillTriggerStack:TriggerUpdateStack<KillTriggerInstruction,KillTriggerStack>
 		{
-			public override string ToStatement() => $"KillTrigger {Instruction.TriggerProc.AsmLabel.SubroutineName()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("KillTrigger ");
+				writer.Write(Instruction.TriggerProc.AsmLabel.SubroutineName());
+			}
 		}
 	}
 
@@ -1580,7 +1738,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class HoldTriggerStack:TriggerUpdateStack<HoldTriggerInstruction,HoldTriggerStack>
 		{
-			public override string ToStatement() => $"HoldTrigger {Instruction.TriggerProc.AsmLabel.SubroutineName()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("HoldTrigger ");
+				writer.Write(Instruction.TriggerProc.AsmLabel.SubroutineName());
+			}
 		}
 	}
 
@@ -1589,7 +1751,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class ReleaseTriggerStack:TriggerUpdateStack<ReleaseTriggerInstruction,ReleaseTriggerStack>
 		{
-			public override string ToStatement() => $"ReleaseTrigger {Instruction.TriggerProc.AsmLabel.SubroutineName()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("ReleaseTrigger ");
+				writer.Write(Instruction.TriggerProc.AsmLabel.SubroutineName());
+			}
 		}
 	}
 
@@ -1598,11 +1764,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class WaitStack:SimplePureConsumerStack<WaitInstruction,WaitStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer Value => Operands[0];
 
-			public override string ToStatement() => $"Wait {Value.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("Wait ");
+				writer.Write(Value.ToFxString());
+			}
 		}
 	}
 
@@ -1635,7 +1805,21 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SpawnStack:BaseSpawnStack<SpawnInstruction,SpawnStack>
 		{
-			public override string ToStatement() => $"Spawn {Instruction.SpawnStratProc.AsmLabel.SubroutineName()}, {Instruction.LocalVarsToPop}, {Instruction.LocalCount}, {Instruction.TriggerCount}, {Instruction.CollisionSize}, {Instruction.CollisionBoneCount}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("Spawn ");
+				writer.Write(Instruction.SpawnStratProc.AsmLabel.SubroutineName());
+				writer.Write(", ");
+				writer.WriteInt(Instruction.LocalVarsToPop);
+				writer.Write(", ");
+				writer.WriteInt(Instruction.LocalCount);
+				writer.Write(", ");
+				writer.WriteInt(Instruction.TriggerCount);
+				writer.Write(", ");
+				writer.WriteInt(Instruction.CollisionSize);
+				writer.Write(", ");
+				writer.WriteInt(Instruction.CollisionBoneCount);
+			}
 		}
 	}
 
@@ -1654,7 +1838,23 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public sealed class SpawnFromStack:BaseSpawnStack<SpawnFromInstruction,SpawnFromStack>
 		{
-			public override string ToStatement() => $"SpawnFrom {Instruction.SpawnStratProc.AsmLabel.SubroutineName()}, {Instruction.LocalVarsToPop}, {Instruction.LocalCount}, {Instruction.TriggerCount}, {Instruction.CollisionSize}, {Instruction.CollisionBoneCount}, {Instruction.BoneToSpawnFrom}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("SpawnFrom ");
+				writer.Write(Instruction.SpawnStratProc.AsmLabel.SubroutineName());
+				writer.Write(", ");
+				writer.WriteInt(Instruction.LocalVarsToPop);
+				writer.Write(", ");
+				writer.WriteInt(Instruction.LocalCount);
+				writer.Write(", ");
+				writer.WriteInt(Instruction.TriggerCount);
+				writer.Write(", ");
+				writer.WriteInt(Instruction.CollisionSize);
+				writer.Write(", ");
+				writer.WriteInt(Instruction.CollisionBoneCount);
+				writer.Write(", ");
+				writer.WriteInt(Instruction.BoneToSpawnFrom);
+			}
 		}
 	}
 
@@ -1669,12 +1869,18 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SoundShiftStack:SimplePureConsumerStack<SoundShiftInstruction,SoundShiftStack>
 		{
-			public override int PopCount => 2;
+			protected override int PopCount => 2;
 
 			public IStackProducer Channel => Operands[0];
 			public IStackProducer Pitch => Operands[1];
 
-			public override string ToStatement() => $"SoundShift {Channel.ToIntStr()}, {Pitch.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("SoundShift ");
+				writer.Write(Channel.ToIntStr());
+				writer.Write(", ");
+				writer.Write(Pitch.ToFxString());
+			}
 		}
 	}
 
@@ -1683,11 +1889,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SoundStopStack:SimplePureConsumerStack<SoundStopInstruction,SoundStopStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer Channel => Operands[0];
 
-			public override string ToStatement() => $"SoundStop {Channel.ToIntStr()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("SoundStop ");
+				writer.Write(Channel.ToIntStr());
+			}
 		}
 	}
 
@@ -1696,11 +1906,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class CdPlayStack:SimplePureConsumerStack<CdPlayInstruction,CdPlayStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer MusicId => Operands[0];
 
-			public override string ToStatement() => $"CdPlay {MusicId.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("CdPlay ");
+				writer.Write(MusicId.ToFxString());
+			}
 		}
 	}
 
@@ -1715,11 +1929,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class CdFadeStack:SimplePureConsumerStack<CdFadeInstruction,CdFadeStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer TimeLength => Operands[0];
 
-			public override string ToStatement() => $"CdFade {TimeLength.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("CdFade ");
+				writer.Write(TimeLength.ToFxString());
+			}
 		}
 	}
 
@@ -1763,7 +1981,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public sealed class BaseCollisionStack:SimpleNoStackStack<BaseCollisionInstruction,BaseCollisionStack>
 		{
-			public override string ToStatement() => $"collision {(Instruction.NewState ? "on" : "off")} {Instruction.CollisionFlag}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write(Instruction.NewState ? "collision on " : "collision off ");
+				writer.WriteInt((int)Instruction.CollisionFlag);
+			}
 		}
 	}
 
@@ -1781,13 +2003,21 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SoundPlay3Stack:SimplePureConsumerStack<SoundPlay3Instruction,SoundPlay3Stack>
 		{
-			public override int PopCount => 3;
+			protected override int PopCount => 3;
 
 			public IStackProducer SoundIndex => Operands[0];
 			public IStackProducer Volume => Operands[1];
 			public IStackProducer Flags => Operands[2];
 
-			public override string ToStatement() => $"SoundPlay {SoundIndex.ToIntStr()}, {Volume.ToFxString()}, {Flags.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("SoundPlay ");
+				writer.Write(SoundIndex.ToIntStr());
+				writer.Write(", ");
+				writer.Write(Volume.ToFxString());
+				writer.Write(", ");
+				writer.Write(Flags.ToFxString());
+			}
 		}
 	}
 
@@ -1799,7 +2029,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SoundPlay3AssignmentStack:BaseExpressionStack<SoundPlay3AssignmentInstruction,SoundPlay3AssignmentStack>
 		{
-			public override int PopCount => 3;
+			protected override int PopCount => 3;
 
 			public IStackProducer SoundIndex => Operands[0];
 			public IStackProducer Volume => Operands[1];
@@ -1853,11 +2083,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class PopStack:SimplePureConsumerStack<PopInstruction,PopStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer Discarded => Operands[0];
 
-			public override string ToStatement() => $"Pop {Discarded.ToExpressionString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("Pop ");
+				writer.Write(Discarded.ToExpressionString());
+			}
 		}
 	}
 
@@ -1925,7 +2159,12 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class JsrStack:BaseJumpSubroutineStack<JsrInstruction,JsrStack>
 		{
-			public override string ToStatement() => $"proc {Instruction.Proc.AsmLabel.SubroutineName()} $ DONE";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("proc ");
+				writer.Write(Instruction.Proc.AsmLabel.SubroutineName());
+				writer.Write(" $ DONE");
+			}
 		}
 	}
 
@@ -1934,7 +2173,12 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class JsrImmStack:BaseJumpSubroutineStack<JsrImmInstruction,JsrImmStack>
 		{
-			public override string ToStatement() => $"proc {Instruction.Proc.AsmLabel.SubroutineName()} $ IMM";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("proc ");
+				writer.Write(Instruction.Proc.AsmLabel.SubroutineName());
+				writer.Write(" $ IMM");
+			}
 		}
 	}
 
@@ -1947,13 +2191,13 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public sealed class ReturnStack:NoStackStack<ReturnInstruction,ReturnStack,ReturnFlow>
 		{
-			public override string ToStatement() => "Return";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("Return");
+			}
 		}
 
-		public sealed class ReturnFlow:NoStackFlow<ReturnInstruction,ReturnStack,ReturnFlow>,IFlowTerminal
-		{
-			public override void Analyze(FlowAnalyzer flow){}
-		}
+		public sealed class ReturnFlow:NoStackFlow<ReturnInstruction,ReturnStack,ReturnFlow>,IFlowTerminal;
 	}
 
 	[Opcode(InstructionOpcode.Beq)]
@@ -1962,7 +2206,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public sealed class BeqStack:BranchStack<BeqInstruction,BeqStack>
 		{
 			//Branch if equal to zero
-			public override string ToStatement() => $"if {Condition.ToConditionStr(false)} then goto {Instruction.ConditionalDest.AsmLabel.GetLabel()} endif $ DONE";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("if ");
+				writer.Write(Condition.ToConditionStr(false));
+				writer.OpenLine(" then");
+				writer.Write("goto ");
+				writer.WriteLine(Instruction.ConditionalDest.AsmLabel.GetLabel());
+				writer.CloseLine("endif $ DONE");
+			}
 		}
 	}
 
@@ -1972,7 +2224,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public sealed class BneStack:BranchStack<BneInstruction,BneStack>
 		{
 			//Branch if not equal to zero
-			public override string ToStatement() => $"if {Condition.ToConditionStr(true)} then goto {Instruction.ConditionalDest.AsmLabel.GetLabel()} endif $ DONE";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("if ");
+				writer.Write(Condition.ToConditionStr(true));
+				writer.OpenLine(" then");
+				writer.Write("goto ");
+				writer.WriteLine(Instruction.ConditionalDest.AsmLabel.GetLabel());
+				writer.CloseLine("endif $ DONE");
+			}
 		}
 	}
 
@@ -1982,7 +2242,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public sealed class BeqImmStack:BranchStack<BeqImmInstruction,BeqImmStack>
 		{
 			//Branch if equal to zero
-			public override string ToStatement() => $"if {Condition.ToConditionStr(false)} then goto {Instruction.ConditionalDest.AsmLabel.GetLabel()} endif $ IMM";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("if ");
+				writer.Write(Condition.ToConditionStr(false));
+				writer.OpenLine(" then");
+				writer.Write("goto ");
+				writer.WriteLine(Instruction.ConditionalDest.AsmLabel.GetLabel());
+				writer.CloseLine("endif $ IMM");
+			}
 		}
 	}
 
@@ -1992,7 +2260,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public sealed class BneImmStack:BranchStack<BneImmInstruction,BneImmStack>
 		{
 			//Branch if not equal to zero
-			public override string ToStatement() => $"if {Condition.ToConditionStr(true)} then goto {Instruction.ConditionalDest.AsmLabel.GetLabel()} endif $ IMM";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("if ");
+				writer.Write(Condition.ToConditionStr(true));
+				writer.OpenLine(" then");
+				writer.Write("goto ");
+				writer.WriteLine(Instruction.ConditionalDest.AsmLabel.GetLabel());
+				writer.CloseLine("endif $ IMM");
+			}
 		}
 	}
 
@@ -2001,7 +2277,12 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class JumpImmStack:BaseJumpStack<JumpImmInstruction,JumpImmStack,JumpImmFlow>
 		{
-			public override string ToStatement() => $"goto {Instruction.Destination.AsmLabel.GetLabel()} $ IMM";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("goto ");
+				writer.Write(Instruction.Destination.AsmLabel.GetLabel());
+				writer.Write(" $ IMM");
+			}
 		}
 
 		public sealed class JumpImmFlow:BaseJumpFlow<JumpImmInstruction,JumpImmStack,JumpImmFlow>;
@@ -2014,13 +2295,13 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public sealed class EndStratStack:NoStackStack<EndStratInstruction,EndStratStack,EndStratFlow>
 		{
-			public override string ToStatement() => "EndStrat";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("EndStrat");
+			}
 		}
 
-		public sealed class EndStratFlow:NoStackFlow<EndStratInstruction,EndStratStack,EndStratFlow>,IFlowTerminal
-		{
-			public override void Analyze(FlowAnalyzer flow){}
-		}
+		public sealed class EndStratFlow:NoStackFlow<EndStratInstruction,EndStratStack,EndStratFlow>,IFlowTerminal;
 	}
 
 	[Opcode(InstructionOpcode.IsPlayer)]
@@ -2081,7 +2362,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public sealed class SwitchStack:PureConsumerStack<IndexJumpInstruction,SwitchStack,SwitchFlow>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer Value => Operands[0];
 
@@ -2095,24 +2376,27 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 				}
 			}
 
-			public override string ToStatement()
+			public override void WriteStatement(Writer writer)
 			{
 				//TODO: This was commented out. Might fail.
 
-				var ret = new StringBuilder();
-				ret.AppendLine($"switch {Value.ToExpressionString()}");
+				writer.Write("switch ");
+				writer.Write(Value.ToExpressionString());
+				writer.OpenLine();
 				foreach(var c in Instruction.Cases)
 				{
 					foreach(var comparand in c.Comparands)
 					{
-						ret.AppendLine($"\tcase {comparand}");
+						writer.Write("case ");
+						writer.WriteInt(comparand);
+						writer.WriteLine();
 					}
-					ret.AppendLine($"\t\tgoto {c.Destination.AsmLabel.GetLabel()}");
-					ret.AppendLine($"\tendcase");
+					writer.OpenLine();
+					writer.Write("goto ");
+					writer.WriteLine(c.Destination.AsmLabel.GetLabel());
+					writer.CloseLine("endcase");
 				}
-				ret.AppendLine("endswitch");
-
-				return ret.ToString();
+				writer.CloseLine("endswitch");
 			}
 		}
 
@@ -2122,7 +2406,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 			public IReadOnlyList<FlowStatement> FlowCaseDestinations => FlowDestinations;
 
-			public override void Analyze(FlowAnalyzer flow)
+			public void Analyze(FlowAnalyzer flow)
 			{
 				for(int i=0; i<Instruction.Cases.Length; i++)
 				{
@@ -2168,11 +2452,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class ObjectJumpStack:SimplePureConsumerStack<ObjectJumpInstruction,ObjectJumpStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer VerticalVelocity => Operands[0];
 
-			public override string ToStatement() => $"ObjectJump {VerticalVelocity.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("ObjectJump ");
+				writer.Write(VerticalVelocity.ToFxString());
+			}
 		}
 	}
 
@@ -2225,11 +2513,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class AnimAdvanceStack:SimplePureConsumerStack<AnimAdvanceInstruction,AnimAdvanceStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer DesiredIndex => Operands[0];
 
-			public override string ToStatement() => $"AnimAdvance {DesiredIndex.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("AnimAdvance ");
+				writer.Write(DesiredIndex.ToFxString());
+			}
 		}
 	}
 
@@ -2258,7 +2550,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class RndStack:BaseExpressionStack<RndInstruction,RndStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer MaxExclusive => Operands[0];
 
@@ -2281,13 +2573,17 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public sealed class BlinkStack:SimplePureConsumerStack<BlinkInstruction,BlinkStack>
 		{
-			public override int PopCount => Instruction.Count;
+			protected override int PopCount => Instruction.Count;
 
 			//This is just the operands but in reverse
 			//TODO: Cache this
 			public IStackProducer[] Bones => Operands.Reverse().ToArray();
 
-			public override string ToStatement() => $"blink {string.Join(", ", Bones.Select(b => b.ToFxString()))}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("blink ");
+				writer.Write(string.Join(", ", Bones.Select(b => b.ToFxString())));
+			}
 		}
 	}
 
@@ -2305,11 +2601,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class TurnFromPlayerYStack:SimplePureConsumerStack<TurnFromPlayerYInstruction,TurnFromPlayerYStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer MaxTurnSpeed => Operands[0];
 
-			public override string ToStatement() => $"TurnFromPlayerY {MaxTurnSpeed.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("TurnFromPlayerY ");
+				writer.Write(MaxTurnSpeed.ToFxString());
+			}
 		}
 	}
 
@@ -2321,12 +2621,18 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class RumbleStack:SimplePureConsumerStack<RumbleInstruction,RumbleStack>
 		{
-			public override int PopCount => 2;
+			protected override int PopCount => 2;
 
 			public IStackProducer Rumble => Operands[0];
 			public IStackProducer RumbleDecay => Operands[1];
 
-			public override string ToStatement() => $"Rumble {Rumble.ToFxString()}, {RumbleDecay.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("Rumble ");
+				writer.Write(Rumble.ToFxString());
+				writer.Write(", ");
+				writer.Write(RumbleDecay.ToFxString());
+			}
 		}
 	}
 
@@ -2335,11 +2641,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class VibrateStack:SimplePureConsumerStack<VibrateInstruction,VibrateStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer Vibrate => Operands[0];
 
-			public override string ToStatement() => $"Vibrate {Vibrate.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("Vibrate ");
+				writer.Write(Vibrate.ToFxString());
+			}
 		}
 	}
 
@@ -2351,12 +2661,18 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class CollisionBoneStack:SimplePureConsumerStack<CollisionBoneInstruction,CollisionBoneStack>
 		{
-			public override int PopCount => 2;
+			protected override int PopCount => 2;
 
 			public IStackProducer Bone => Operands[0];
 			public IStackProducer Radius => Operands[1];
 
-			public override string ToStatement() => $"CollisionBone {Bone.ToFxString()}, {Radius.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("CollisionBone ");
+				writer.Write(Bone.ToFxString());
+				writer.Write(", ");
+				writer.Write(Radius.ToFxString());
+			}
 		}
 	}
 
@@ -2365,11 +2681,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class UseBoneStack:SimplePureConsumerStack<UseBoneInstruction,UseBoneStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer Frame => Operands[0];
 
-			public override string ToStatement() => $"UseBone {Frame.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("UseBone ");
+				writer.Write(Frame.ToFxString());
+			}
 		}
 	}
 
@@ -2408,11 +2728,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class GainCrystalStack:SimplePureConsumerStack<GainCrystalInstruction,GainCrystalStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer CrystalType => Operands[0];
 
-			public override string ToStatement() => $"GainCrystal {CrystalType.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("GainCrystal ");
+				writer.Write(CrystalType.ToFxString());
+			}
 		}
 	}
 
@@ -2421,11 +2745,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class CutsceneStack:SimplePureConsumerStack<CutsceneInstruction,CutsceneStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer CutsceneAddr => Operands[0];
 
-			public override string ToStatement() => $"Cutscene {CutsceneAddr.ToExpressionString(ExpressionType.Reference)}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("Cutscene ");
+				writer.Write(CutsceneAddr.ToExpressionString(ExpressionType.Reference));
+			}
 		}
 	}
 
@@ -2464,7 +2792,12 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public sealed class DebugNameStack:SimpleNoStackStack<DebugNameInstruction,DebugNameStack>
 		{
-			public override string ToStatement() => $"DebugName \"{Instruction.Name}\"";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("DebugName \"");
+				writer.Write(Instruction.Name);
+				writer.Write('"');
+			}
 		}
 	}
 
@@ -2476,11 +2809,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SoundPlay1Stack:SimplePureConsumerStack<SoundPlay1Instruction,SoundPlay1Stack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer SoundIndex => Operands[0];
 
-			public override string ToStatement() => $"SoundPlay {SoundIndex.ToIntStr()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("SoundPlay ");
+				writer.Write(SoundIndex.ToIntStr());
+			}
 		}
 	}
 
@@ -2489,7 +2826,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SoundPlay1AssignmentStack:BaseExpressionStack<SoundPlay1AssignmentInstruction,SoundPlay1AssignmentStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer SoundIndex => Operands[0];
 
@@ -2543,13 +2880,21 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class CollisionOffsetStack:SimplePureConsumerStack<CollisionOffsetInstruction,CollisionOffsetStack>
 		{
-			public override int PopCount => 3;
+			protected override int PopCount => 3;
 
 			public IStackProducer X => Operands[0];
 			public IStackProducer Y => Operands[1];
 			public IStackProducer Z => Operands[2];
 
-			public override string ToStatement() => $"CollisionOffset {X.ToFxString()}, {Y.ToFxString()}, {Z.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("CollisionOffset ");
+				writer.Write(X.ToFxString());
+				writer.Write(", ");
+				writer.Write(Y.ToFxString());
+				writer.Write(", ");
+				writer.Write(Z.ToFxString());
+			}
 		}
 	}
 
@@ -2634,7 +2979,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public sealed class SpawnParticleStack:SimplePureConsumerStack<SpawnParticleInstruction,SpawnParticleStack>
 		{
-			public override int PopCount => 6;
+			protected override int PopCount => 6;
 
 			public IStackProducer Type => Operands[0];
 			public IStackProducer Count => Operands[1];
@@ -2643,18 +2988,28 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			public IStackProducer Z => Operands[4];
 			public IStackProducer Arg6 => Operands[5];
 
-			public override string ToStatement()
+			public override void WriteStatement(Writer writer)
 			{
-				string typeStr;
+				
+				writer.Write("SpawnParticle ");
 				if(Type.OperationInstruction is NumberInstruction typeNum)
 				{
-					typeStr = ((ParticleType)typeNum.Value).ToString();
+					writer.Write(((ParticleType)typeNum.Value).ToString());
 				}
 				else
 				{
-					typeStr = Type.ToIntStr();
+					writer.Write(Type.ToIntStr());
 				}
-				return $"SpawnParticle {typeStr}, {Count.ToFxString()}, {X.ToFxString()}, {Y.ToFxString()}, {Z.ToFxString()}, {Arg6.ToIntStr()}";
+				writer.Write(", ");
+				writer.Write(Count.ToFxString());
+				writer.Write(", ");
+				writer.Write(X.ToFxString());
+				writer.Write(", ");
+				writer.Write(Y.ToFxString());
+				writer.Write(", ");
+				writer.Write(Z.ToFxString());
+				writer.Write(", ");
+				writer.Write(Arg6.ToIntStr());
 			}
 		}
 	}
@@ -2673,7 +3028,21 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SpawnAfterStack:BaseSpawnStack<SpawnAfterInstruction,SpawnAfterStack>
 		{
-			public override string ToStatement() => $"SpawnAfter {Instruction.SpawnStratProc.AsmLabel.SubroutineName()}, {Instruction.LocalVarsToPop}, {Instruction.LocalCount}, {Instruction.TriggerCount}, {Instruction.CollisionSize}, {Instruction.CollisionBoneCount}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("SpawnAfter ");
+				writer.Write(Instruction.SpawnStratProc.AsmLabel.SubroutineName());
+				writer.Write(", ");
+				writer.WriteInt(Instruction.LocalVarsToPop);
+				writer.Write(", ");
+				writer.WriteInt(Instruction.LocalCount);
+				writer.Write(", ");
+				writer.WriteInt(Instruction.TriggerCount);
+				writer.Write(", ");
+				writer.WriteInt(Instruction.CollisionSize);
+				writer.Write(", ");
+				writer.WriteInt(Instruction.CollisionBoneCount);
+			}
 		}
 	}
 
@@ -2742,7 +3111,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class MoveForwardqStack:BaseMoveStack<MoveForwardqInstruction,MoveForwardqStack>
 		{
-			public override string ToStatement() => $"MoveForwardQ {Amount.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("MoveForwardQ ");
+				writer.Write(Amount.ToFxString());
+			}
 		}
 	}
 
@@ -2751,7 +3124,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class MoveBackwardqStack:BaseMoveStack<MoveBackwardqInstruction,MoveBackwardqStack>
 		{
-			public override string ToStatement() => $"MoveBackwardQ {Amount.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("MoveBackwardQ ");
+				writer.Write(Amount.ToFxString());
+			}
 		}
 	}
 
@@ -2760,7 +3137,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class ScreenPrintStack:SimpleNoStackStack<ScreenPrintInstruction,ScreenPrintStack>
 		{
-			public override string ToStatement() => $"screenprint {Instruction.Data}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("screenprint ");
+				writer.Write(Instruction.Data);
+			}
 		}
 	}
 
@@ -2769,12 +3150,18 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SoundPlay2Stack:SimplePureConsumerStack<SoundPlay2Instruction,SoundPlay2Stack>
 		{
-			public override int PopCount => 2;
+			protected override int PopCount => 2;
 
 			public IStackProducer SoundIndex => Operands[0];
 			public IStackProducer Volume => Operands[1];
 
-			public override string ToStatement() => $"SoundPlay {SoundIndex.ToIntStr()}, {Volume.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("SoundPlay ");
+				writer.Write(SoundIndex.ToIntStr());
+				writer.Write(", ");
+				writer.Write(Volume.ToFxString());
+			}
 		}
 	}
 
@@ -2783,7 +3170,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SoundPlay2AssignmentStack:BaseExpressionStack<SoundPlay2AssignmentInstruction,SoundPlay2AssignmentStack>
 		{
-			public override int PopCount => 2;
+			protected override int PopCount => 2;
 
 			public IStackProducer SoundIndex => Operands[0];
 			public IStackProducer Volume => Operands[1];
@@ -2803,12 +3190,18 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SoundVolumeStack:SimplePureConsumerStack<SoundVolumeInstruction,SoundVolumeStack>
 		{
-			public override int PopCount => 2;
+			protected override int PopCount => 2;
 
 			public IStackProducer Channel => Operands[0];
 			public IStackProducer Volume => Operands[1];
 
-			public override string ToStatement() => $"SoundVolume {Channel.ToIntStr()}, {Volume.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("SoundVolume ");
+				writer.Write(Channel.ToIntStr());
+				writer.Write(", ");
+				writer.Write(Volume.ToFxString());
+			}
 		}
 	}
 
@@ -2823,11 +3216,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SetBossHeartsStack:SimplePureConsumerStack<SetBossHeartsInstruction,SetBossHeartsStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer Health => Operands[0];
 
-			public override string ToStatement() => $"SetBossHearts {Health.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("SetBossHearts ");
+				writer.Write(Health.ToFxString());
+			}
 		}
 	}
 
@@ -2839,12 +3236,18 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SoundShiftRelativeStack:SimplePureConsumerStack<SoundShiftRelativeInstruction,SoundShiftRelativeStack>
 		{
-			public override int PopCount => 2;
+			protected override int PopCount => 2;
 
 			public IStackProducer Channel => Operands[0];
 			public IStackProducer Pitch => Operands[1];
 
-			public override string ToStatement() => $"SoundShiftRelative {Channel.ToIntStr()}, {Pitch.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("SoundShiftRelative ");
+				writer.Write(Channel.ToIntStr());
+				writer.Write(", ");
+				writer.Write(Pitch.ToFxString());
+			}
 		}
 	}
 
@@ -2865,7 +3268,12 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class TopSayStack:DialogSayStack<TopSayInstruction,TopSayStack>
 		{
-			public override string ToStatement() => $"TopSay \"{Instruction.EnglishString}\"";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("TopSay \"");
+				writer.Write(Instruction.EnglishString);
+				writer.Write('"');
+			}
 		}
 	}
 
@@ -2920,11 +3328,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class TopHeadStack:SimplePureConsumerStack<TopHeadInstruction,TopHeadStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer Sprite => Operands[0];
 
-			public override string ToStatement() => $"TopHead {Sprite.ToIntStr()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("TopHead ");
+				writer.Write(Sprite.ToIntStr());
+			}
 		}
 	}
 
@@ -2933,7 +3345,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class TopDialogStack:DialogSetStack<TopDialogInstruction,TopDialogStack>
 		{
-			public override string ToStatement() => Instruction.State ? "TopDialog on" : "TopDialog off";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write(Instruction.State ? "TopDialog on" : "TopDialog off");
+			}
 		}
 	}
 
@@ -2942,7 +3357,12 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class BottomSayStack:DialogSayStack<BottomSayInstruction,BottomSayStack>
 		{
-			public override string ToStatement() => $"BottomSay \"{Instruction.EnglishString}\"";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("BottomSay \"");
+				writer.Write(Instruction.EnglishString);
+				writer.Write('"');
+			}
 		}
 	}
 
@@ -2951,11 +3371,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class BottomHeadStack:SimplePureConsumerStack<BottomHeadInstruction,BottomHeadStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer Sprite => Operands[0];
 
-			public override string ToStatement() => $"BottomHead {Sprite.ToIntStr()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("BottomHead ");
+				writer.Write(Sprite.ToIntStr());
+			}
 		}
 	}
 
@@ -2964,7 +3388,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class BottomDialogStack:DialogSetStack<BottomDialogInstruction,BottomDialogStack>
 		{
-			public override string ToStatement() => Instruction.State ? "BottomDialog on" : "BottomDialog off";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write(Instruction.State ? "BottomDialog on" : "BottomDialog off");
+			}
 		}
 	}
 
@@ -2985,11 +3412,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class FadeOutStack:SimplePureConsumerStack<FadeOutInstruction,FadeOutStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer FadeType => Operands[0];
 
-			public override string ToStatement() => $"FadeOut {FadeType.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("FadeOut ");
+				writer.Write(FadeType.ToFxString());
+			}
 		}
 	}
 
@@ -2998,11 +3429,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class FadeInStack:SimplePureConsumerStack<FadeInInstruction,FadeInStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer FadeType => Operands[0];
 
-			public override string ToStatement() => $"FadeIn {FadeType.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("FadeIn ");
+				writer.Write(FadeType.ToFxString());
+			}
 		}
 	}
 
@@ -3011,7 +3446,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class MoveUpqStack:BaseMoveStack<MoveUpqInstruction,MoveUpqStack>
 		{
-			public override string ToStatement() => $"MoveUpQ {Amount.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("MoveUpQ ");
+				writer.Write(Amount.ToFxString());
+			}
 		}
 	}
 
@@ -3020,7 +3459,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class MoveDownqStack:BaseMoveStack<MoveDownqInstruction,MoveDownqStack>
 		{
-			public override string ToStatement() => $"MoveDownQ {Amount.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("MoveDownQ ");
+				writer.Write(Amount.ToFxString());
+			}
 		}
 	}
 
@@ -3032,12 +3475,16 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class ShadeTypeStack:SimplePureConsumerStack<ShadeTypeInstruction,ShadeTypeStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer ShadeType => Operands[0];
 
 			//TODO: Custom int values?
-			public override string ToStatement() => $"ShadeType {ShadeType.ToIntStr()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("ShadeType ");
+				writer.Write(ShadeType.ToIntStr());
+			}
 		}
 	}
 
@@ -3049,11 +3496,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SetAnimSpeedStack:SimplePureConsumerStack<SetAnimSpeedInstruction,SetAnimSpeedStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer AnimSpeed => Operands[0];
 
-			public override string ToStatement() => $"SetAnimSpeed {AnimSpeed.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("SetAnimSpeed ");
+				writer.Write(AnimSpeed.ToFxString());
+			}
 		}
 	}
 
@@ -3117,7 +3568,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class DistanceStack:BaseExpressionStack<DistanceInstruction,DistanceStack>
 		{
-			public override int PopCount => 3;
+			protected override int PopCount => 3;
 
 			public IStackProducer X => Operands[0];
 			public IStackProducer Y => Operands[1];
@@ -3147,7 +3598,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public sealed class BinocsStack:SimpleNoStackStack<BinocsInstruction,BinocsStack>
 		{
-			public override string ToStatement() => Instruction.State ? "Binocs on" : "Binocs off";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write(Instruction.State ? "Binocs on" : "Binocs off");
+			}
 		}
 	}
 
@@ -3186,14 +3640,22 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class WorldVectorStack:SimplePureConsumerStack<WorldVectorInstruction,WorldVectorStack>
 		{
-			public override int PopCount => 3;
+			protected override int PopCount => 3;
 
 			//This is the correct pop order
 			public IStackProducer Z => Operands[0];
 			public IStackProducer X => Operands[1];
 			public IStackProducer Angle => Operands[2];
 
-			public override string ToStatement() => $"WorldVector {Z.ToFxString()}, {X.ToFxString()}, {Angle.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("WorldVector ");
+				writer.Write(Z.ToFxString());
+				writer.Write(", ");
+				writer.Write(X.ToFxString());
+				writer.Write(", ");
+				writer.Write(Angle.ToFxString());
+			}
 		}
 	}
 
@@ -3205,17 +3667,18 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class Slope2ControllerStack:SimplePureConsumerStack<Slope2ControllerInstruction,Slope2ControllerStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer Unused => Operands[0];
 
-			public override string ToStatement()
+			public override void WriteStatement(Writer writer)
 			{ 
 				if(Unused is not NumberInstruction.NumberStack num || num.Instruction.Value != 0)
 				{
 					throw new Exception("Slope2Controller has non-zero operand");
 				}
-				return $"Slope2Controller {Unused.ToIntStr()}";
+				writer.Write("Slope2Controller ");
+				writer.Write(Unused.ToIntStr());;
 			}
 		}
 	}
@@ -3225,7 +3688,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class LevelCompleteStack:BaseExpressionStack<LevelCompleteInstruction,LevelCompleteStack>
 		{
-			public override int PopCount => 3;
+			protected override int PopCount => 3;
 
 			public IStackProducer Tribe => Operands[0];
 			public IStackProducer Level => Operands[1];
@@ -3240,11 +3703,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SetLevelFlagStack:SimplePureConsumerStack<SetLevelFlagInstruction,SetLevelFlagStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer LevelFlag => Operands[0];
 
-			public override string ToStatement() => $"SetLevelFlag {LevelFlag.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("SetLevelFlag ");
+				writer.Write(LevelFlag.ToFxString());
+			}
 		}
 	}
 
@@ -3253,7 +3720,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class GetLevelFlagStack:BaseExpressionStack<GetLevelFlagInstruction,GetLevelFlagStack>
 		{
-			public override int PopCount => 3;
+			protected override int PopCount => 3;
 
 			public IStackProducer Tribe => Operands[0];
 			public IStackProducer Level => Operands[1];
@@ -3268,7 +3735,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class CalcCarTiltStack:SimplePureConsumerStack<CalcCarTiltInstruction,CalcCarTiltStack>
 		{
-			public override int PopCount => 4;
+			protected override int PopCount => 4;
 
 			//Notice the backwards numbering
 			public IStackProducer Op4 => Operands[0];
@@ -3276,7 +3743,17 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			public IStackProducer Op2 => Operands[2];
 			public IStackProducer Op1 => Operands[3];
 
-			public override string ToStatement() => $"CalcCarTilt {Op4.ToFxString()}, {Op3.ToFxString()}, {Op2.ToFxString()}, {Op1.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("CalcCarTilt ");
+				writer.Write(Op4.ToFxString());
+				writer.Write(", ");
+				writer.Write(Op3.ToFxString());
+				writer.Write(", ");
+				writer.Write(Op2.ToFxString());
+				writer.Write(", ");
+				writer.Write(Op1.ToFxString());
+			}
 		}
 	}
 
@@ -3285,7 +3762,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class MoveLeftqStack:BaseMoveStack<MoveLeftqInstruction,MoveLeftqStack>
 		{
-			public override string ToStatement() => $"MoveLeftQ {Amount.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("MoveLeftQ ");
+				writer.Write(Amount.ToFxString());
+			}
 		}
 	}
 
@@ -3294,7 +3775,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class MoveRightqStack:BaseMoveStack<MoveRightqInstruction,MoveRightqStack>
 		{
-			public override string ToStatement() => $"MoveRightQ {Amount.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("MoveRightQ ");
+				writer.Write(Amount.ToFxString());
+			}
 		}
 	}
 
@@ -3318,7 +3803,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SoundAdsrStack:SimplePureConsumerStack<SoundAdsrInstruction,SoundAdsrStack>
 		{
-			public override int PopCount => 5;
+			protected override int PopCount => 5;
 
 			public IStackProducer Channel => Operands[0];
 			public IStackProducer A => Operands[1];
@@ -3326,7 +3811,19 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			public IStackProducer S => Operands[3];
 			public IStackProducer R => Operands[4];
 
-			public override string ToStatement() => $"SoundAdsr {Channel.ToIntStr()}, {A.ToFxString()}, {D.ToFxString()}, {S.ToFxString()}, {R.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("SoundAdsr ");
+				writer.Write(Channel.ToIntStr());
+				writer.Write(", ");
+				writer.Write(A.ToFxString());
+				writer.Write(", ");
+				writer.Write(D.ToFxString());
+				writer.Write(", ");
+				writer.Write(S.ToFxString());
+				writer.Write(", ");
+				writer.Write(R.ToFxString());
+			}
 		}
 	}
 
@@ -3335,7 +3832,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SoundAdsrRelativeStack:SimplePureConsumerStack<SoundAdsrRelativeInstruction,SoundAdsrRelativeStack>
 		{
-			public override int PopCount => 5;
+			protected override int PopCount => 5;
 
 			public IStackProducer Channel => Operands[0];
 			public IStackProducer A => Operands[1];
@@ -3343,7 +3840,19 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			public IStackProducer S => Operands[3];
 			public IStackProducer R => Operands[4];
 
-			public override string ToStatement() => $"SoundAdsrRelative {Channel.ToIntStr()}, {A.ToFxString()}, {D.ToFxString()}, {S.ToFxString()}, {R.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("SoundAdsrRelative ");
+				writer.Write(Channel.ToIntStr());
+				writer.Write(", ");
+				writer.Write(A.ToFxString());
+				writer.Write(", ");
+				writer.Write(D.ToFxString());
+				writer.Write(", ");
+				writer.Write(S.ToFxString());
+				writer.Write(", ");
+				writer.Write(R.ToFxString());
+			}
 		}
 	}
 
@@ -3367,7 +3876,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SampleStatusStack:BaseExpressionStack<SampleStatusInstruction,SampleStatusStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer ID => Operands[0];
 
@@ -3404,11 +3913,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SetItemStack:SimplePureConsumerStack<SetItemInstruction,SetItemStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer ExtraMax => Operands[0];
 
-			public override string ToStatement() => $"SetItem {ExtraMax.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("SetItem ");
+				writer.Write(ExtraMax.ToFxString());
+			}
 		}
 	}
 
@@ -3417,11 +3930,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class SetTimerStack:SimplePureConsumerStack<SetTimerInstruction,SetTimerStack>
 		{
-			public override int PopCount => 1;
+			protected override int PopCount => 1;
 
 			public IStackProducer Timer => Operands[0];
 
-			public override string ToStatement() => $"SetTimer {Timer.ToFxString()}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("SetTimer ");
+				writer.Write(Timer.ToFxString());
+			}
 		}
 	}
 
@@ -3433,7 +3950,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public sealed class DistanceNoYStack:BaseExpressionStack<DistanceNoYInstruction,DistanceNoYStack>
 		{
-			public override int PopCount => 2;
+			protected override int PopCount => 2;
 
 			public IStackProducer X => Operands[0];
 			public IStackProducer Z => Operands[1];
@@ -3487,7 +4004,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public sealed class CreditStack:SimpleNoStackStack<CreditInstruction,CreditStack>
 		{
-			public override string ToStatement() => $"Credit {Instruction.Operand}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("Credit ");
+				writer.WriteInt(Instruction.Operand);
+			}
 		}
 	}
 
@@ -3515,7 +4036,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public sealed class CwgStack:SimpleNoStackStack<CwgInstruction,CwgStack>
 		{
-			public override string ToStatement() => $"Cwg {Instruction.Value}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("Cwg ");
+				writer.WriteInt(Instruction.Value);
+			}
 		}
 	}
 
@@ -3533,7 +4058,11 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public sealed class FadeFunction_47E960Stack:SimpleNoStackStack<FadeFunction_47E960Instruction,FadeFunction_47E960Stack>
 		{
-			public override string ToStatement() => $"FadeFunction_47E960 {Instruction.Value}";
+			public override void WriteStatement(Writer writer)
+			{
+				writer.Write("FadeFunction_47E960 ");
+				writer.WriteInt(Instruction.Value);
+			}
 		}
 	}
 

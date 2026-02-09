@@ -4,8 +4,28 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 {
 	public abstract class Instruction
 	{
-		public AsmInstruction AsmLabel;
-		public AsmInstruction AsmOperation;
+		public AsmInstruction AsmLabel
+		{
+			get;
+			init
+			{
+				field = value;
+				if(value.IsSubroutineEntry)
+				{
+					SubroutineType = value.SubroutineType;
+					Start = value.Start;
+				}
+				if(value.HasLabel)
+				{
+					//TODO: Remove this once I'm sure
+					if(this is IStackConsumer)
+					{
+						throw new Exception("Conjecture failed: Label on a Consumer");
+					}
+				}
+			}
+		}
+		public AsmInstruction AsmOperation{get;init;}
 
 		//During parsing, this is the line number on the input file.
 		public int Index;
@@ -20,7 +40,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		//It can still redirect to a new flow though, like with jump/goto.
 		public virtual bool Terminal => false;
 
-		public bool Start = false;
+		public readonly bool Start = false;
 
 		public bool SetupDone = false;
 
@@ -29,29 +49,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public readonly List<Instruction> CallsFrom = new List<Instruction>();//Proc
 		public readonly List<Instruction> ReferencedFrom = new List<Instruction>();//Strat, Trigger
 
-		public SubroutineType SubroutineType = SubroutineType.None;
+		public readonly SubroutineType SubroutineType = SubroutineType.None;
 
 		public abstract IStackOperation StackOperation{get;}
-
-		public virtual void Create(AsmInstruction label, AsmInstruction operation)
-		{
-			AsmLabel = label;
-			AsmOperation = operation;
-
-			if(label.IsSubroutineEntry)
-			{
-				SubroutineType = label.SubroutineType;
-				Start = label.Start;
-			}
-			if(label.HasLabel)
-			{
-				//TODO: Remove this once I'm sure
-				if(this is IStackConsumer)
-				{
-					throw new Exception("Conjecture failed: Label on a Consumer");
-				}
-			}
-		}
 
 		public virtual void Setup(AsmParser parser){}
 

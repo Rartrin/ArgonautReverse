@@ -67,7 +67,7 @@
 		public virtual void Parse(StratReader reader){}
 		public virtual void Setup(StratParser parser){}
 
-		public abstract string ToAsmString(bool exportForParsing);
+		public abstract void WriteAsmString(Decompiler.Writer output);
 
 		public sealed override string ToString()
 		{

@@ -41,6 +41,9 @@ namespace ArgonautReverse.PC
 		{
 			writer.Write<int>(raw);
 		}
+
+        public override string ToString() => $"Fx{ToHexString()}";
+		public string ToHexString() => $"{(raw >> 12):X5}.{(raw & 0xFFF):X3}";
 	}
 
 	public struct Vector3Fx(Fixed32 x, Fixed32 y, Fixed32 z):IReadable<Vector3Fx>,IWritable

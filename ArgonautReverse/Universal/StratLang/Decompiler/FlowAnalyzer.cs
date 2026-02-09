@@ -116,22 +116,19 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public BlockFlowData Scope{get;internal set;}
 
 		public abstract FlowStatementType StartType{get;}
-		private readonly FlowStatement _start;
-		public FlowStatement Start
+		public readonly FlowStatement Start;
+
+		public FlowData(FlowStatement start)
 		{
-			get => _start;
-			init
+			if(LabelStart)
 			{
-				if(LabelStart)
-				{
-					value.SetPreFlow(StartType, this);
-				}
-				else
-				{
-					value.SetFlow(StartType, this);
-				}
-				_start = value;
+				start.SetPreFlow(StartType, this);
 			}
+			else
+			{
+				start.SetFlow(StartType, this);
+			}
+			Start = start;
 		}
 
 		//Indicates that the start is based on a label and is not associated with the specifics of the instruction.
@@ -234,7 +231,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			}
 			if(flow is IFlowBranch branch)
 			{
-				//TODO: Better way to handle breaks. We should check if the jump happeneds within the current scope.
+				//TODO: Better way to handle breaks. We should check if the jump happens within the current scope.
 				if(branch.FlowConditionalDest.RawPrevFlow is IFlowJump jumpToEnd && jumpToEnd.FlowStatement.FlowType == FlowStatementType.Unknown)
 				{
 					//If Else
@@ -267,7 +264,6 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			scope.AddSubflow(new SimpleFlowData(flow));
 			return true;
 		}
-
 
 		public static void UpdateScopePre(FlowStatement statement, ref BlockFlowData scope)
 		{
@@ -326,10 +322,9 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public abstract class BlockFlowData:FlowData
 	{
 		public abstract FlowStatementType EndType{get;}
-		protected FlowStatement _end;
 		public virtual FlowStatement End
 		{
-			get => _end;
+			get;
 			init
 			{
 				if(LabelEnd)
@@ -340,9 +335,15 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 				{
 					value.SetFlow(EndType, this);
 				}
-				_end = value;
+				field = value;
 			}
 		}
+
+		public BlockFlowData(FlowStatement start):base(start)
+		{
+
+		}
+
 		//Indicates that the end is based on a label and is not associated with the specifics of the instruction.
 		public abstract bool LabelEnd{get;}
 
@@ -379,7 +380,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public abstract void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType);
 	}
 
-	public class IfFlowData:BlockFlowData
+	public sealed class IfFlowData:BlockFlowData
 	{
 		public override FlowStatementType StartType => FlowStatementType.If;
 		public override FlowStatementType EndType => FlowStatementType.EndIf;
@@ -389,9 +390,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public FlowStatement If => Start;
 
-		public IfFlowData(FlowStatement start, FlowStatement end)
+		public IfFlowData(FlowStatement start, FlowStatement end):base(start:start)
 		{
-			Start = start;
 			End = end;
 		}
 
@@ -406,24 +406,24 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 				BneImmInstruction.BneImmStack bneImm => (true, bneImm.Instruction.StackOperation.Condition),
 				_ => throw new Exception()
 			};
+
+			writer.Write("if ");
 			//TODO: Use ToConditionStr(invert)
-			var conditionString = condition.ToExpressionString();
 			if(invert)
 			{
-				conditionString = "not " + conditionString;
+				writer.Write("not ");
 			}
-
-			writer.WriteLine($"if {conditionString} then");
-			writer.Indent();
+			writer.Write(condition.ToExpressionString());
+			writer.WriteLine(" then");
+			writer.OpenLine();
 		}
 		public override void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType)
 		{
-			writer.Unindent();
-			writer.WriteLine("endif");
+			writer.CloseLine("endif");
 		}
 	}
 
-	public class IfElseFlowData:BlockFlowData
+	public sealed class IfElseFlowData:BlockFlowData
 	{
 		public override FlowStatementType StartType => FlowStatementType.If;
 		public override FlowStatementType EndType => FlowStatementType.EndIf;
@@ -435,9 +435,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		/// <summary>The Else is considered the goto statement at the end of the first block</summary>
 		public FlowStatement Else{get;}
 
-		public IfElseFlowData(FlowStatement start, FlowStatement elseFlow, FlowStatement end)
+		public IfElseFlowData(FlowStatement start, FlowStatement elseFlow, FlowStatement end):base(start:start)
 		{
-			Start = start;
 			End = end;
 			if(Else != null)
 			{
@@ -471,28 +470,26 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 				BneImmInstruction.BneImmStack bneImm => (true, bneImm.Instruction.StackOperation.Condition),
 				_ => throw new Exception()
 			};
+			writer.Write("if ");
 			//TODO: Use ToConditionStr(invert)
-			var conditionString = condition.ToExpressionString();
 			if(invert)
 			{
-				conditionString = "not " + conditionString;
+				writer.Write("not ");
 			}
-
-			writer.WriteLine($"if {conditionString} then");
-			writer.Indent();
+			writer.Write(condition.ToExpressionString());
+			writer.WriteLine(" then");
+			writer.OpenLine();
 		}
 		public override void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType)
 		{
-			writer.Unindent();
-			writer.WriteLine("endif");
+			writer.CloseLine("endif");
 		}
 		public void WriteElse(Writer writer, FlowStatement elseStatement, FlowStatementType statementType)
 		{
 			if(elseStatement is not IFlowJump){throw new Exception();}
 
-			writer.Unindent();
-			writer.WriteLine("else");
-			writer.Indent();
+			writer.CloseLine("else");
+			writer.OpenLine();
 		}
 	}
 
@@ -503,9 +500,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		private readonly List<FlowStatement> breaks = new();
 		public IReadOnlyList<FlowStatement> Breaks => breaks;
 
-		public BreakableBlockFlowData(FlowStatement start, FlowStatement end)
+		public BreakableBlockFlowData(FlowStatement start, FlowStatement end):base(start:start)
 		{
-			Start = start;
 			End = end;
 		}
 
@@ -551,20 +547,19 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 				BneImmInstruction.BneImmStack bneImm => (true, bneImm.Instruction.StackOperation.Condition),
 				_ => throw new Exception()
 			};
+			writer.Write("while ");
 			//TODO: Use ToConditionStr(invert)
-			var conditionString = condition.ToExpressionString();
 			if(invert)
 			{
-				conditionString = "not " + conditionString;
+				writer.Write("not ");
 			}
-			writer.WriteLine($"while {conditionString}");
-			writer.Indent();
+			writer.WriteLine(condition.ToExpressionString());
+			writer.OpenLine();
 		}
 
 		public override void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType)
 		{
-			writer.Unindent();
-			writer.WriteLine("endwhile");
+			writer.CloseLine("endwhile");
 		}
 
 		public override void WriteBreak(Writer writer, FlowStatement breakStatement, FlowStatementType statementType)
@@ -584,14 +579,12 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
-			writer.WriteLine("loop");
-			writer.Indent();
+			writer.OpenLine("loop");
 		}
 
 		public override void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType)
 		{
-			writer.Unindent();
-			writer.WriteLine("endloop");
+			writer.CloseLine("endloop");
 		}
 
 		public override void WriteBreak(Writer writer, FlowStatement breakStatement, FlowStatementType statementType)
@@ -626,8 +619,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
-			writer.WriteLine("repeat");
-			writer.Indent();
+			writer.OpenLine("repeat");
 		}
 
 		public override void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType)
@@ -641,15 +633,14 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 				BneImmInstruction.BneImmStack bneImm => (true, bneImm.Instruction.StackOperation.Condition),
 				_ => throw new Exception()
 			};
+			writer.Unindent();
+			writer.Write("until ");
 			//TODO: Use ToConditionStr(invert)
-			var conditionString = condition.ToExpressionString();
 			if(invert)
 			{
-				conditionString = "not " + conditionString;
+				writer.Write("not ");
 			}
-
-			writer.Unindent();
-			writer.WriteLine($"until {conditionString}");
+			writer.WriteLine(condition.ToExpressionString());
 		}
 
 		public override void WriteBreak(Writer writer, FlowStatement breakStatement, FlowStatementType statementType)
@@ -659,7 +650,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	}
 
 	//These were deprecated in the Aladdin ASL
-	//public sealed class ForFlorData:BlockFlowData
+	//public sealed class ForFlowData:BlockFlowData
 	//{
 	//	//TODO: For Next flow
 	//	public override FlowStatementType StartType => throw new NotImplementedException();
@@ -676,7 +667,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public override FlowStatement End
 		{
-			get => _end;
+			get;
 			init
 			{
 				if(LabelEnd)
@@ -696,7 +687,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 						value.SetFlow(EndType, this);
 					}
 				}
-				_end = value;
+				field = value;
 			}
 		}
 
@@ -704,9 +695,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		//Default case uses -1
 		public int CaseIndex{get;}
 
-		public CaseFlowData(FlowStatement start, FlowStatement end, FlowStatement switchStatement, int caseIndex)
+		public CaseFlowData(FlowStatement start, FlowStatement end, FlowStatement switchStatement, int caseIndex):base(start:start)
 		{
-			Start = start;
 			End = end;
 			SwitchStatement = ((IndexJumpInstruction.SwitchFlow)switchStatement).Instruction;
 			CaseIndex = caseIndex;
@@ -723,15 +713,16 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			var comparands = SwitchStatement.Cases[CaseIndex].Comparands;
 			foreach(var comparand in comparands)
 			{
-				writer.WriteLine($"case {comparand}");
+				writer.Write("case ");
+				writer.WriteInt(comparand);
+				writer.WriteLine();
 			}
-			writer.Indent();
+			writer.OpenLine();
 		}
 
 		public override void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType)
 		{
-			writer.Unindent();
-			writer.WriteLine("endcase");
+			writer.CloseLine("endcase");
 		}
 	}
 
@@ -744,8 +735,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	{
 		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
-			writer.WriteLine("default");
-			writer.Indent();
+			writer.OpenLine("default");
 		}
 	}
 
@@ -858,14 +848,14 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
-			writer.WriteLine($"switch {((IndexJumpInstruction.SwitchFlow)start).Instruction.StackOperation.Value.ToExpressionString()}");
-			writer.Indent();
+			writer.Write("switch ");
+			writer.WriteLine(((IndexJumpInstruction.SwitchFlow)start).Instruction.StackOperation.Value.ToExpressionString());
+			writer.OpenLine();
 		}
 
 		public override void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType)
 		{
-			writer.Unindent();
-			writer.WriteLine("endswitch");
+			writer.CloseLine("endswitch");
 		}
 
 		public override void WriteBreak(Writer writer, FlowStatement breakStatement, FlowStatementType statementType)
@@ -874,20 +864,16 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		}
 	}
 
-	public class SimpleFlowData:FlowData
+	public class SimpleFlowData(FlowStatement statement):FlowData(statement)
 	{
 		public override FlowStatementType StartType => FlowStatementType.Simple;
 
 		public override bool LabelStart => false;
 
-		public SimpleFlowData(FlowStatement statement)
-		{
-			Start = statement;
-		}
-
 		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
-			writer.WriteLine(start.StackStatement.ToStatement());
+			start.StackStatement.WriteStatement(writer);
+			writer.WriteLine();
 		}
 	}
 
@@ -902,7 +888,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public override FlowStatement End
 		{
-			get => _end;
+			get;
 			init
 			{
 				//If this is a return or endstrat, than the instruction itself is the end, otherwise, it may be something else, like the end of a loop.
@@ -914,7 +900,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 				{
 					value.SetPostFlow(EndType, this);
 				}
-				_end = value;
+				field = value;
 			}
 		}
 
@@ -955,30 +941,28 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		}
 		public override void WriteStart(Writer writer, FlowStatement start, FlowStatementType statementType)
 		{
-			var defKeyword = start.StackStatement.FirstInstruction.SubroutineType switch
+			writer.Write(start.StackStatement.FirstInstruction.SubroutineType switch
 			{
 				SubroutineType.Strat => "strat",
 				SubroutineType.Trigger => "trigger",
 				SubroutineType.Proc => "defproc",
 				_ => throw new Exception("Unknown subroutine type")
-			};
-			var subroutineName = start.StackStatement.StatementLabel.SubroutineName();
-			writer.WriteLine($"{defKeyword} {subroutineName}");
-			writer.Indent();
+			});
+			writer.Write(' ');
+			writer.Write(start.StackStatement.StatementLabel.SubroutineName());
+			writer.OpenLine();
 		}
 
 		public override void WriteEnd(Writer writer, FlowStatement end, FlowStatementType statementType)
 		{
-			var endKeyword = Start.StackStatement.FirstInstruction.SubroutineType switch
+			writer.CloseLine(Start.StackStatement.FirstInstruction.SubroutineType switch
 			{
 				SubroutineType.Strat => "endstrat",
 				SubroutineType.Trigger => "endtrigger",
 				SubroutineType.Proc => "endproc",
 				_ => throw new Exception("Unknown subroutine type")
-			};
-			writer.Unindent();
-			writer.WriteLine(endKeyword);
-			writer.WriteLine("");
+			});
+			writer.WriteLine();
 
 			//At this point, there should be no indents
 			writer.AssertNoIndent();
@@ -986,14 +970,13 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		public override void WriteBreak(Writer writer, FlowStatement breakStatement, FlowStatementType statementType)
 		{
-			var breakKeyword = Start.StackStatement.FirstInstruction.SubroutineType switch
+			writer.WriteLine(Start.StackStatement.FirstInstruction.SubroutineType switch
 			{
 				SubroutineType.Strat => throw new Exception("Strat does not support break"),
 				SubroutineType.Trigger => "return # This is wrong",//throw new Exception("Trigger does not support break"),
 				SubroutineType.Proc => "procbreak",
 				_ => throw new Exception("Unknown subroutine type")
-			};
-			writer.WriteLine(breakKeyword);
+			});
 		}
 	}
 
@@ -1007,7 +990,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	//	}
 	//}
 
-	public class SwitchEndJumpFlowData(FlowStatement flow):SimpleFlowData(flow)
+	public sealed class SwitchEndJumpFlowData(FlowStatement flow):SimpleFlowData(flow)
 	{
 		public override FlowStatementType StartType => FlowStatementType.SwitchEndJump;
 
@@ -1025,9 +1008,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public override bool LabelStart => true;
 		public override bool LabelEnd => true;
 
-		public ProgramFlowData(FlowStatement start, FlowStatement end)
+		public ProgramFlowData(FlowStatement start, FlowStatement end):base(start:start)
 		{
-			Start = start;
 			End = end;
 		}
 
@@ -1092,10 +1074,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		//Jump sources
 		public readonly List<FlowStatement> FlowSources = new();
-
 		public readonly List<FlowStatement> FlowDestinations = new();
-
-		public abstract void Analyze(FlowAnalyzer flow);
 	}
 	public abstract class FlowStatement<TInstruction>:FlowStatement where TInstruction:Instruction
 	{
@@ -1111,6 +1090,8 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	public interface IFlowControl
 	{
 		public abstract IStackStatement ControlStatement{get;}
+
+		public abstract void Analyze(FlowAnalyzer flow);
 	}
 	public interface IFlowBranch
 	{
@@ -1166,7 +1147,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 					break;
 				}
 
-				flowStatement.Analyze(this);
+				if(flowStatement is IFlowControl flowControl)
+				{
+					flowControl.Analyze(this);
+				}
 				analyzed.Add(flowStatement);
 
 				//bool nextIsLabelled = cur.NextStatement != null && cur.NextStatement.TryGetLabel(out _);
@@ -1240,7 +1224,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 				var statement = Statements[i];
 
 				//TODO: For scope, nesting loops won't be an issue. Loops inside of a final switch case or at the end of a subroutine can have overlap.
-				//We should defaulting to the innermost loop (though it should work either way).
+				//We should be defaulting to the innermost loop (though it should work either way).
 				//Otherwise, pay attention to the jump destination to determine the probper scope break.
 				do
 				{

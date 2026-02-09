@@ -117,69 +117,27 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			return retInstructions;
 		}
 
-		public void Write(TextWriter output, bool exportForParsing)
+		public void Write(Decompiler.Writer output)
 		{
-			bool lastInstrMissing = false;
-
 			foreach(AsmInstruction instr in this.instructions.OrderBy(e => e.Key).Select(e => e.Value))
 			{
-				var instrStr = instr.ToAsmString(exportForParsing);
-
-				//If the last instruction is empty, it means that this one was merged with it. 
-				//In order for this to work, the current instruction should not have any calls/jump to it,
-				//then we use the jumps and calls from the previous instructions.
-				//In other words, we use the labels from the first instruction but the operation from the second.
-
-				if(exportForParsing && lastInstrMissing)
+				if(instr.IsSubroutineEntry)
 				{
-					if(instr.IsSubroutineEntry || instr.HasLabel)
-					{
-						throw new Exception("Invalid merged instruction");
-					}
+					output.WriteLine();
+					output.Write(instr.SubroutineName());
+					output.Write(':');
+					output.WriteLine();
 				}
-				else
+				if(instr.HasLabel)
 				{
-					if(instr.IsSubroutineEntry)
-					{
-						if(!exportForParsing)
-						{
-							output.WriteLine();
-						}
-						output.Write(instr.SubroutineName());
-						output.Write(':');
-						if(!exportForParsing)
-						{
-							output.WriteLine();
-						}
-					}
-					else if(exportForParsing)
-					{
-						output.Write(':');
-					}
-					if(instr.HasLabel)
-					{
-						output.Write(instr.GetLabel());
-						output.Write(':');
-						if(!exportForParsing)
-						{
-							output.WriteLine();
-						}
-					}
-					else if(exportForParsing)
-					{
-						output.Write(':');
-					}
-					if(!exportForParsing)
-					{
-						output.Write('\t');
-					}
+					output.Write(instr.GetLabel());
+					output.Write(':');
+					output.WriteLine();
 				}
-				if(!exportForParsing || instrStr.Length!=0)
-				{
-					output.WriteLine(instrStr);
-				}
-
-				lastInstrMissing = instrStr.Length == 0;
+				output.Indent();
+				instr.WriteAsmString(output);
+				output.Unindent();
+				output.WriteLine();
 			}
 		}
 

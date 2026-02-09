@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using ArgonautReverse.PC;
 using ArgonautReverse.Universal.StratLang.Disassembler;
 
 namespace ArgonautReverse.Universal.StratLang.Decompiler
@@ -14,8 +15,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 		private Instruction CreateInstruction(AsmInstruction psxLabel, AsmInstruction psxOperation)
 		{
-			var instr = InstructionLookup.CreateInstruction(psxOperation.OpCode);
-			instr.Create(psxLabel, psxOperation);
+			var instr = InstructionLookup.CreateInstruction(label:psxLabel, operation:psxOperation);
 			PsxInstructions.Add(psxLabel, instr);
 
 			if(instr.SubroutineType != SubroutineType.None)
@@ -162,6 +162,20 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 			for(int i=0; i<scriptData.Length; i++)
 			{
+				if(scriptData[i].baseFilePath == null){continue;}
+
+				unsafe
+				{
+					var data = scripts[i].Data;
+					fixed(int* data0 = data)
+					{
+						File.WriteAllBytes($"{scriptData[i].baseFilePath}.strat.bytes", new Span<byte>(data0, data.Length*sizeof(int)));
+					}
+				}
+			}
+
+			for(int i=0; i<scriptData.Length; i++)
+			{
 				ref var data = ref scriptData[i];
 				if(data.baseFilePath == null){continue;}
 				try
@@ -197,10 +211,10 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 					Console.WriteLine(e.Message);
 					continue;
 				}
-				var stackOutputLines = new List<string>();
-				data.stackAnalyzer.Write(stackOutputLines);
+				var stackWriter = new Writer();
+				data.stackAnalyzer.Write(stackWriter);
 
-				File.WriteAllLines($"{data.baseFilePath}.stack.strat", stackOutputLines);
+				File.WriteAllText($"{data.baseFilePath}.stack.strat", stackWriter.GetString());
 			}
 			for(int i=0; i<scriptData.Length; i++)
 			{
@@ -227,7 +241,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 				var flowWriter = new Writer();
 				data.flowAnalyzer.Write(flowWriter);
 
-				File.WriteAllLines($"{data.baseFilePath}.flow.strat", flowWriter.GetLines());
+				File.WriteAllText($"{data.baseFilePath}.flow.strat", flowWriter.GetString());
 			}
 		}
 	}
