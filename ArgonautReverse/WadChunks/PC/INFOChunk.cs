@@ -22,6 +22,7 @@ namespace ArgonautReverse.WadChunks.PC
 			{
 				throw new Exception("INFO chunk value is not 1");
 			}
+			reader.AssertEndOfChunk(ChunkType);
 			return new INFOChunk(this, reader.GetAllWadData());
 		}
 	}

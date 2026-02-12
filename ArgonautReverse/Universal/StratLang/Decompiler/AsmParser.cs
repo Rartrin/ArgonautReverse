@@ -147,19 +147,12 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 				//TODO: Make exporting ASM an argument
 				script.ExportAsm(baseFilePath);
 
-				if(script.Failed || !script.Processed)
+				if(script.Failed)
 				{
 					continue;
 				}
 				data.baseFilePath = baseFilePath;
 			}
-			for(int i=0; i<scriptData.Length; i++)
-			{
-				ref var data = ref scriptData[i];
-				if(data.baseFilePath == null){continue;}
-				AddScript(scripts[i]);
-			}
-
 			for(int i=0; i<scriptData.Length; i++)
 			{
 				if(scriptData[i].baseFilePath == null){continue;}
@@ -177,7 +170,14 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 			for(int i=0; i<scriptData.Length; i++)
 			{
 				ref var data = ref scriptData[i];
-				if(data.baseFilePath == null){continue;}
+				if(data.baseFilePath == null || !scripts[i].Processed){continue;}
+				AddScript(scripts[i]);
+			}
+
+			for(int i=0; i<scriptData.Length; i++)
+			{
+				ref var data = ref scriptData[i];
+				if(data.baseFilePath == null || !scripts[i].Processed){continue;}
 				try
 				{
 					ParseAndSetupInstructions(scripts[i]);

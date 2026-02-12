@@ -11,7 +11,9 @@ namespace ArgonautReverse.PC
 			var length = reader.Read<int>();
 			//TODO: Confirm chunks start after size.
 			var dataChunkAddress = reader.Position;
+			//This data is for Triggers, Switches, Placeholders for Globals (32 bit), Strings, Instructions. Likely in that order.
 			var data = reader.ReadArray<int>(length);
+
 			return new(reader.WadFile, data, dataChunkAddress);
 		}
 

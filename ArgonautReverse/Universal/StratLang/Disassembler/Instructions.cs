@@ -1,7 +1,4 @@
-﻿using System.Text;
-using ArgonautReverse.PC;
-
-namespace ArgonautReverse.Universal.StratLang.Disassembler
+﻿namespace ArgonautReverse.Universal.StratLang.Disassembler
 {
 	public abstract class BaseInstruction(Script script, int opCount,int popCount,int pushCount, InstructionAddress address, InstructionOpcode opcode):AsmInstruction(script, address, opcode, opCount, popCount, pushCount);
 
@@ -315,6 +312,8 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 			//We need its argument though which is the string offset.
 			
 			_ = reader.ReadInt();//ST_STRING token
+
+			//TODO: Strings are located at the start of the script's header data.
 			var nameOffset = reader.ReadInt();
 			var nameAddr = reader.Position + nameOffset;
 			Name = reader.ReadString(nameAddr);
@@ -396,7 +395,9 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 
 		public override void Parse(StratReader reader)
 		{
+			//TODO: Jumptables are located at the start of the script's header data.
 			var jumpTable = reader.ReadRelativeAddress();
+
 			CaseCount = reader.ReadAt(jumpTable, 1);
 			CaseComparands = new int[CaseCount];
 			CaseDestinationPtrs = new InstructionAddress[CaseCount];
@@ -907,6 +908,7 @@ namespace ArgonautReverse.Universal.StratLang.Disassembler
 
 		public override void Parse(StratReader reader)
 		{
+			//TODO: Trigger info is located at the start of the script's header data.
 			var dataOffset = reader.ReadRelativeAddress();
 			//TODO: Account for other Trigger Types
 			Type = reader.WadFile.Version.MapTriggerType(reader.ReadAt(dataOffset, 0));

@@ -1,6 +1,6 @@
 ﻿using ArgonautReverse.IO;
 
-namespace ArgonautReverse.PC
+namespace ArgonautReverse.Universal
 {
 	public readonly struct Fixed32:IReadable<Fixed32>,IWritable
 	{
@@ -46,6 +46,7 @@ namespace ArgonautReverse.PC
 		public string ToHexString() => $"{(raw >> 12):X5}.{(raw & 0xFFF):X3}";
 	}
 
+	//TODO: PSX has 32bit padding? Maybe just Croc 2 demo build.
 	public struct Vector3Fx(Fixed32 x, Fixed32 y, Fixed32 z):IReadable<Vector3Fx>,IWritable
 	{
 		public Fixed32 X = x;
