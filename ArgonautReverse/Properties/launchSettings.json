@@ -35,6 +35,10 @@
       "commandName": "Project",
       "commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/T1L1M001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract levels,textures,models,scripts"
     },
+		"Export C2PC Dante's Peak": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/t4b1m001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract levels,textures,models,scripts"
+    },
     "Export TENG - T1L7M003": {
       "commandName": "Project",
       "commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/TengPC/t1l7m003.wad\""
