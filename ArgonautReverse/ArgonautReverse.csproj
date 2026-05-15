@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
 	<OutputType>Exe</OutputType>
@@ -20,16 +20,15 @@
   </ItemGroup>
 
   <ItemGroup>
-	<Folder Include="GameFiles\Croc2PC\" />
 	<Folder Include="ExternalFormat\" />
   </ItemGroup>
 
   <ItemGroup>
-	<EditorConfigFiles Remove="N:\Rartrin\Documents\Programming Projects\ArgonautReverse\ArgonautReverse\.editorconfig" />
+	<EditorConfigFiles Remove=".editorconfig" />
   </ItemGroup>
 
   <ItemGroup>
-	<None Include="N:\Rartrin\Documents\Programming Projects\ArgonautReverse\ArgonautReverse\.editorconfig" />
+	<None Include=".editorconfig" />
   </ItemGroup>
 
 </Project>

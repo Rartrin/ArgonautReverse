@@ -141,7 +141,7 @@ namespace ArgonautReverse.PC
 			//Skip VERSION
 			//ExportMAP(args, conf);
 			//ExportTRACK(args, conf);
-			//ExportTEXT(args, conf);
+			ExportTEXT(args, conf);
 			//ExportLIGHT(args, conf);
 			ExportSTRAT(args, conf);
 			//Skip WADFLAGS
