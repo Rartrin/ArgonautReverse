@@ -36,7 +36,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		public Instruction? RawAsmPrev;
 		public Instruction RawAsmNext;
 
-		//Indicated that this instructions terminates the current flow.
+		//Indicates that this instruction terminates the current flow.
 		//It can still redirect to a new flow though, like with jump/goto.
 		public virtual bool Terminal => false;
 

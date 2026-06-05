@@ -17,7 +17,7 @@ namespace ArgonautReverse.PC
 	{
 		public Vector3I Position;
 		/// <summary>
-		/// When ThisRotY has DOOR_LEVEL set, the X,Y,Z instead corresponse to Tribe, Level, Map.
+		/// When ThisRotY has DOOR_LEVEL set, the X,Y,Z instead correspond to Tribe, Level, Map.
 		/// </summary>
 		public Vector3I Goto;
 		public WadFileType LevelType;

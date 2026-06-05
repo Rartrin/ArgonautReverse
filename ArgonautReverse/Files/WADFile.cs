@@ -69,14 +69,14 @@ namespace ArgonautReverse.Files
 					//TODO: Any better way to handle MAP size programatically?
 					if(prevChunk == ChunkType.ID_PC_MAP)
 					{
-						reader.Position -= 4;//Unread the chunkType
-						reader.Position -= 4;//Move back 4 bytes.
+						reader.Position -= 4;//Unread what we thought was the chunkType.
+						reader.Position -= 4;//Unread what should be the actual chunkType.
 						chunkType = (ChunkType)reader.Read<uint>();
 						if(!Enum.IsDefined(chunkType))
 						{
 							throw new Exception("Map chunk's size is offset more than normal");
 						}
-						chunkLocations[^1].DataLength -= 4;
+						chunkLocations[^1].DataLength -= 4;//Correct the MAP chunk's size.
 					}
 					else
 					{

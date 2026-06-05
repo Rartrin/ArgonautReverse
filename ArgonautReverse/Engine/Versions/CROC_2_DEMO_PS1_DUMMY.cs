@@ -4,7 +4,7 @@ using ArgonautReverse.Universal.StratLang;
 namespace ArgonautReverse.Engine.Versions
 {
 	//Croc 2 PS1 US Demo's DUMMY.DAT
-	//The files in here were almost certainly built prior to the rest of the demo
+	//The files in here were built prior to the rest of the demo.
 	public static class CROC_2_DEMO_PS1_DUMMY
 	{
 		public static DatVersion DatVersion => CROC_2_DEMO_PS1_DUMMY_Dat.Instance;
@@ -62,8 +62,8 @@ namespace ArgonautReverse.Engine.Versions
 			{
 				if(this != Instance_Latest)
 				{
-					//TODO Early dummy WAD opcode mapping.
-					//Console.WriteLine("WARNING: Parsing script on earlier dummy WAD, may nto be compatible with regular dummy WAD mapping.");
+					//TODO: Early dummy WAD opcode mapping.
+					//Console.WriteLine("WARNING: Parsing script on earlier dummy WAD, may not be compatible with regular dummy WAD mapping.");
 				}
 				if(value <= (int)InstructionOpcode.Spawn)
 				{

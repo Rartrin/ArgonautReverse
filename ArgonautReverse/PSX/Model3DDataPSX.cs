@@ -122,23 +122,23 @@ namespace ArgonautReverse.PSX
 						{
 							// FIXME
 							//quads.Add(new int[]{face.vertex[0], face.vertex[1], face.vertex[3], face.vertex[2]});
-							quads.Add(new int[]
-							{
+							quads.Add
+							([
 								face.vertex[0],
 								face.vertex[1],
 								face.vertex[2],
 								face.vertex[3]
-							});
+							]);
 						}
 						else
 						{
-							quads.Add(new int[]
-							{
+							quads.Add
+							([
 								face.vertex[0],
 								face.vertex[1],
 								face.vertex[2],
 								face.vertex[3]
-							});
+							]);
 						}
 					}
 					else

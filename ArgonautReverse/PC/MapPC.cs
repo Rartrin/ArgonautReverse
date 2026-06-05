@@ -9,7 +9,7 @@ namespace ArgonautReverse.PC
 		public Vector3F Pos = pos;
 		public int RawRotY = rawRotY;//Value is 0-1 in 24bit (0 to 0xFF0). Also, the lowest nibble is ignored.
 		public float RotY = Utils.Deg2Rad(rotY);
-		public int N = n, CellIndex = cellIndex;//Same field. Alladin uses n, everything else uses CellIndex. The values are not the same either.
+		public int N = n, CellIndex = cellIndex;//Same field. Aladdin uses n, everything else uses CellIndex. The values are not the same either.
 		public bool bVisible = false;
 		public int gapField6;
 		public int field7 = 0;
@@ -106,13 +106,13 @@ namespace ArgonautReverse.PC
 			
 			if(ParamBlock.HasValue)
 			{
-				writer.Write<int>(ParamBlock.Value.Count);//TODO: Determine the value of this when ptrOffest is -1
+				writer.Write<int>(ParamBlock.Value.Count);//TODO: Determine the value of this when ptrOffset is -1
 				writer.Write<int>(ParamBlock.Value.Offset);
 			}
 			else
 			{
 				ParamBlock = null;
-				writer.Write<int>(0);//TODO: Determine the value of this when ptrOffest is -1
+				writer.Write<int>(0);//TODO: Determine the value of this when ptrOffset is -1
 				writer.Write<int>(-1);
 			}
 			writer.Write<int>(LocalCount);
@@ -319,7 +319,7 @@ namespace ArgonautReverse.PC
 			map.ZoneData = zoneData;
 			map.Positions = reader.ReadArray<RotPos3Fx>(map.NumPieces);
 			map.ModelIndices = reader.ReadArray<int>(map.NumPieces);
-			if((wadFlags & WadFlagPC.WAD_FLAG_HAS_CHANGING_GEOMETRY) != 0)
+			if((wadFlags & WadFlagPC.HasOtherPieces) != 0)
 			{
 				var numberOfOtherPieces = reader.Read<int>();
 				map.TrackChangeData = reader.ReadArray<TrackChangePC,MapPiecePC>(dataPos, numberOfOtherPieces);
@@ -413,13 +413,13 @@ namespace ArgonautReverse.PC
 			}
 			map.MapStrats = mapStrats;
 
-			if((wadFlags & WadFlagPC.WAD_FLAG_CAMERAPOINTS) != 0)
+			if((wadFlags & WadFlagPC.WAD_FLAG_200000) != 0)
 			{
 				map.PolygonArraysCount = reader.Read<int>();
 				map.PolygonArrays = reader.ReadArray<PolygonArrayPC,WadFlagPC>(wadFlags, map.PolygonArraysCount);
 				//map.PolygonArraysCount--;
 			}
-			if((wadFlags & WadFlagPC.WAD_FLAG_HAS_PARTICLES) != 0)
+			if((wadFlags & WadFlagPC.ParticleSize) != 0)
 			{
 				map.MaxParticles = reader.Read<int>();
 			}
@@ -467,7 +467,7 @@ namespace ArgonautReverse.PC
 			}
 			writer.WriteSizedArray(NumPieces, Positions);
 			writer.WriteSizedArray<int>(NumPieces, ModelIndices);
-			if((wadFlags & WadFlagPC.WAD_FLAG_HAS_CHANGING_GEOMETRY) != 0)
+			if((wadFlags & WadFlagPC.HasOtherPieces) != 0)
 			{
 				writer.Write<int>(TrackChangeData.Count);
 				writer.WriteArray(TrackChangeData);
@@ -519,13 +519,13 @@ namespace ArgonautReverse.PC
 			writer.Write<int>(MaxStrats);
 			writer.WriteArray(MapStrats);
 
-			if((wadFlags & WadFlagPC.WAD_FLAG_CAMERAPOINTS) != 0)
+			if((wadFlags & WadFlagPC.WAD_FLAG_200000) != 0)
 			{
 				writer.Write<int>(PolygonArraysCount);
 				if(PolygonArrays.Count != PolygonArraysCount){throw new Exception();}
 				writer.WriteArray(wadFlags, PolygonArrays);
 			}
-			if((wadFlags & WadFlagPC.WAD_FLAG_HAS_PARTICLES) != 0)
+			if((wadFlags & WadFlagPC.ParticleSize) != 0)
 			{
 				writer.Write<int>(MaxParticles);
 			}

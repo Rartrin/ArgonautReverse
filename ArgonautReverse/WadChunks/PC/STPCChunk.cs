@@ -25,7 +25,7 @@ namespace ArgonautReverse.WadChunks.PC
 
 			IReadOnlyList<Cutscene>? cutscenes = null;
 			var wadFlags = reader.WadFile.GetChunk(WFPCChunkInfo.Instance).WadFlags;
-			if((wadFlags & WadFlagPC.WAD_FLAG_HAS_CUTSCENES) != 0)
+			if((wadFlags & WadFlagPC.HasCutscenes) != 0)
 			{
 				var cutsceneCount = reader.Read<int>();
 				cutscenes = reader.ReadArray<Cutscene>(cutsceneCount);
@@ -67,7 +67,7 @@ namespace ArgonautReverse.WadChunks.PC
 			writer.WriteArrayWithoutMultipass<AnimationStructPC>(Animations);
 
 			var wadFlags = writer.WadFile.GetChunk(WFPCChunkInfo.Instance).WadFlags;
-			if((wadFlags & WadFlagPC.WAD_FLAG_HAS_CUTSCENES) != 0)
+			if((wadFlags & WadFlagPC.HasCutscenes) != 0)
 			{
 				writer.Write<int>(Cutscenes!.Count);
 				writer.WriteArray<Cutscene>(Cutscenes);

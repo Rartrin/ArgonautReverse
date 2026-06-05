@@ -311,6 +311,7 @@
 			//DebugName has an ST_STRING token following it. We don't need it.
 			//We need its argument though which is the string offset.
 			
+			//TODO: Assert value is ST_STRING (will need to map the value).
 			_ = reader.ReadInt();//ST_STRING token
 
 			//TODO: Strings are located at the start of the script's header data.
@@ -502,7 +503,7 @@
 
 	public sealed class JumpSubroutineInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 1, 0, 0, address, opcode)
 	{
-		//Technically pushes a value but we aren't counting it because it's popped outside the subroutine.
+		//Technically pushes a value but we aren't counting it because it's popped inside the subroutine.
 		//Special: Function call
 
 		public InstructionAddress ProcPtr;
@@ -708,7 +709,7 @@
 
 	public sealed class ReturnInstruction(Script script, InstructionAddress address, InstructionOpcode opcode):BaseInstruction(script, 0, 0, 0, address, opcode)
 	{
-		//Technically pop a values but we aren't counting it because it is pushed outisde the subroutine.
+		//Technically pops a value but we aren't counting it because it is pushed outside the subroutine.
 	
 		//Special: Function Return
 
@@ -868,9 +869,9 @@
 
 	public sealed class StackCompareInstruction:BaseInstruction
 	{
-		//This is never used in Croc 2. It isn't in the Aladdin's ASL compiler either.
+		//This is never used in any version of Croc 2's wads I've looked at.
 
-		//This techniclaly could be considered pulling one value and pushing two.
+		//This technically could be considered pulling one value and pushing two.
 
 		//Special: Uses Peek on stack
 		public int Comparand;
@@ -980,8 +981,8 @@
 		public VarType Type;
 
 
-		//The address ones seem to be used exclusively for setting a particular varible, no pointer math.
-		//Strat Lang didn't have pointers
+		//The address ones seem to be used exclusively for setting a particular variable, no pointer math.
+		//Strat Lang didn't have pointers.
 		public bool GetAddress;//false to get value of var, true to get address of var
 
 		//TODO: Check enum values for Alien vars

@@ -510,7 +510,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 	public abstract class BaseJumpSubroutineInstruction<TInstruction,TStack>:SimpleNoStackInstruction<TInstruction,TStack> where TInstruction:BaseJumpSubroutineInstruction<TInstruction,TStack> where TStack:BaseJumpSubroutineStack<TInstruction,TStack>,new()
 	{
-		//Technically pushes a value but we aren't counting it because it's popped outside of this subroutine.
+		//Technically pushes a value but we aren't counting it because it's popped outside of the current subroutine.
 
 		public Instruction Proc;
 
@@ -2105,7 +2105,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		// - Load Strat Proc Address for Spawning
 		// - Loading some strings
 
-		//Might also be using in midiloading?
+		//Might also be used in midiloading?
 
 		public bool IsDataLoad;
 		public int DataOffset;
@@ -2185,7 +2185,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 	[Opcode(InstructionOpcode.Return)]
 	public sealed class ReturnInstruction:NoStackInstruction<ReturnInstruction,ReturnInstruction.ReturnStack,ReturnInstruction.ReturnFlow>
 	{
-		//Technically pops a value but we aren't counting it because it is pushed outisde the subroutine/trigger.
+		//Technically pops a value but we aren't counting it because it is pushed outside the subroutine/trigger.
 
 		public sealed override bool Terminal => true;
 

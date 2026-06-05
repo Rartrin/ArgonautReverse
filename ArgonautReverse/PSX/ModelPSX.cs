@@ -11,13 +11,13 @@ namespace ArgonautReverse.PSX
 		//32 bytes for finished version
 		//28 bytes in demo
 
-		public readonly VECTOR trn;     /* omni position */
-		public readonly CVECTOR col;    /* light colour */
-		public readonly int fade_from;  /* fade from distance */
-		public readonly int fade_to;    /* fade to distance */
+		public readonly VECTOR trn;     // Omni position
+		public readonly CVECTOR col;    // Light color
+		public readonly int fade_from;  // Fade from distance
+		public readonly int fade_to;    // Fade to distance
 
 		//Didn't exist in Demo
-		public readonly uint? level;     /* Light level (0 = off, 1 = full). (20.12 FP) */
+		public readonly uint? level;     // Light level (0 = off, 1 = full). UFx32 (20.12)
 
 		private OmniLightPSX(VECTOR trn, CVECTOR col, int fade_from, int fade_to, uint? level)
 		{
@@ -62,11 +62,11 @@ namespace ArgonautReverse.PSX
 	{
 		public const int ByteSize = 6;
 
-		public sbyte nx;    // Normal X (1.0.7 FP)
-		public sbyte ny;    // Normal Y (1.0.7 FP)
-		public sbyte nz;    // Normal Z (1.0.7 FP)
-		public byte flags;  // flags
-		public short d;     // dist from object origin (1.3.12 FP)
+		public sbyte nx;    // Normal X - (Signed FixedPoint 1.0.7)
+		public sbyte ny;    // Normal Y - (Signed FixedPoint 1.0.7)
+		public sbyte nz;    // Normal Z - (Signed FixedPoint 1.0.7)
+		public byte flags;  // Flags
+		public short d;     // Dist from object origin - Signed FixedPoint16 (1.3.12)
 
 		private BoundPSX_NEW_COLLISION(sbyte nx, sbyte ny, sbyte nz, byte flags, short d)
 		{
@@ -91,9 +91,9 @@ namespace ArgonautReverse.PSX
 	{
 		public const int ByteSize = 8;
 
-		public short xm;    /* 4.12 x multiplier */
-		public short zm;    /* 4.12 y multiplier */
-		public int c;       /* 20.12 constant */
+		public short xm;    // X Multiplier - Unsigned-FixedPoint16 (4.12)
+		public short zm;    // Y Multiplier - Unsigned-FixedPoint16 (4.12)
+		public int c;       // Constant - Unsigned-FixedPoint32 (20.12)
 
 		private BoundPSX_OLD_COLLISION(short xm, short zm, int c)
 		{

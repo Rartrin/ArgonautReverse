@@ -133,7 +133,7 @@ namespace ArgonautReverse.PSX
 		public readonly uint OtherPiece;
 
 		public readonly int PieceMemIndex;//This is the index of the mem in the Piece array
-										  //public readonly uint* PieceMem;
+		//public readonly uint* PieceMem;
 
 		private TrackChangePSX(uint x, uint y, uint z, uint normalPiece, uint otherPiece, int pieceMemIndex)
 		{
@@ -251,7 +251,6 @@ namespace ArgonautReverse.PSX
 		//Values not part of the map struct
 		public IReadOnlyList<ZoneInfoPSX> ZoneTable;
 
-		//TODO: This is part of Aladdin, possibly in other games.
 		public LightTuplePSX[] LightTuples;
 		public IReadOnlyList<OmniLightPSX> omniLights;
 		public IReadOnlyList<IReadOnlyList<PreLitPSX>> pre_map;
@@ -287,7 +286,7 @@ namespace ArgonautReverse.PSX
 				unknownField = reader.Read<ushort>();
 				if(unknownField != 0)
 				{
-
+					throw new NotImplementedException();
 				}
 			}
 
@@ -440,9 +439,10 @@ namespace ArgonautReverse.PSX
 
 			if(data_in.ReadString(4) == "fvw\x00")
 			{
-				//LightTuples was fvw_data in the original exporter
-				//TODO: Original exporter has LightTuple as 16 bits
+				//Original exporter has LightTuple as 16 bits.
 				//Aladdin has it as 32 bits.
+				//Croc 2 PSX release doesn't have code for this.
+				//TODO: Check other games. Ideally find out how to determine programmatically.
 
 				map.LightTuples = new LightTuplePSX[map.MapXY];
 				for(int i = 0; i < map.MapXY; i++)
@@ -455,7 +455,7 @@ namespace ArgonautReverse.PSX
 			else
 			{
 				map.LightTuples = null;
-				data_in.SkipBytes(-4);
+				data_in.SkipBytes(-4);//Undo the read string
 			}
 
 			map.Positions = data_in.ReadArray<POS>(map.NumberOfPieces);
@@ -467,6 +467,7 @@ namespace ArgonautReverse.PSX
 				map.DoorList = data_in.ReadArray<DoorPSX>(map.NumberOfDoors);
 
 				//TODO: Assign Background for each door
+				throw new NotImplementedException();
 			}
 
 			map.WPList = WaypointPSX.ParseWaypointList(data_in, (int)map.NumberOfWP);
@@ -482,7 +483,8 @@ namespace ArgonautReverse.PSX
 			{
 				if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 				{
-					//Getting here means that DUMMY definitely supports the WF_NOMATPOS flag
+					//Getting here means that DUMMY definitely supports the WF_NOMATPOS flag.
+					throw new NotImplementedException("The DUMMY version supports WF_NOMATPOS. Document this and remove this exception.");
 				}
 			}
 			else
@@ -528,7 +530,7 @@ namespace ArgonautReverse.PSX
 				if(data_in.DatVersion == CROC_2_DEMO_PS1.DatVersion && omniLightCount != 1)
 				{
 					//Old exporter skips 32 bytes for demo here.
-					//Thinking it may be be 1 int for count and 28 for a single OMNI_LIGHT
+					//Thinking it may be 1 int for count and 28 for a single OMNI_LIGHT
 					throw new Exception("Hypothesis is wrong");
 				}
 
@@ -631,13 +633,13 @@ namespace ArgonautReverse.PSX
 				//TODO: What is this and where does it go? (DUMMY related)
 				if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 				{
-					//This always apears at the end
+					//This always appears at the end.
 					var unknownData = data_in.ReadArray<int>(3);
 				}
 			}
 
 			var soundDataFlags = data_in.WadFile.GetChunk(SPSXChunkInfo.Instance)?.spsx_flags ?? 0;
-			if((soundDataFlags&SPSXFlagsPSX.HAS_AMBIENT_TRACKS)!=0)
+			if((soundDataFlags&SPSXFlagsPSX.HasAmbient)!=0)
 			{
 				if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 				{
@@ -647,7 +649,7 @@ namespace ArgonautReverse.PSX
 				{
 					var totalSequenceByteLength = data_in.Read<int>();
 					map.SequenceCount = 0;
-					if((soundDataFlags&SPSXFlagsPSX.AMBIENTSEP)!=0)
+					if((soundDataFlags&SPSXFlagsPSX.AmbientSeparate)!=0)
 					{
 						map.SequenceCount = data_in.Read<int>();
 					}
@@ -655,7 +657,7 @@ namespace ArgonautReverse.PSX
 					//TODO: Parse sequence data
 
 					IReadOnlyList<ALAmbiencePSX>? ambience = null;
-					if((soundDataFlags&SPSXFlagsPSX.AMBIENTSEP)!=0)
+					if((soundDataFlags&SPSXFlagsPSX.AmbientSeparate)!=0)
 					{
 						if((wadFlag&WadFlagPSX.WF_HASMULTIAMBIENT)!=0)
 						{

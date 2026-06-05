@@ -62,15 +62,15 @@ struct VersionChunk
 
 bitfield WadFlagPC
 {
-    bool WAD_FLAG_1:1;//0 Aladdin PC: MAP
-    bool WAD_FLAG_2:1;//1 Aladdin PC: BACKGROUND
-    bool WAD_FLAG_4:1;//2 Aladdin PC: HASDEFSTRAT
-    bool WAD_FLAG_8:1;//3 Aladdin PC: MAP_PRELIT
-    bool WAD_FLAG_HAS_PARTICLES:1;//4 Aladdin PC: MAP_DEPTHCUED
-    bool WAD_FLAG_20:1;//5 Aladdin PC: PACKETSIZE_SMALL
-    bool WAD_FLAG_40:1;//6 Aladdin PC: PACKETSIZE_BIG
-    bool WAD_FLAG_80:1;//7 Aladdin PC: HASLANGUAGES
-    bool WAD_FLAG_HAS_CUTSCENES:1;//8 Aladdin PC: HASCUTSCENES
+    bool WAD_FLAG_1:1;
+    bool WAD_FLAG_2:1;
+    bool WAD_FLAG_4:1;
+    bool WAD_FLAG_8:1;
+    bool WAD_FLAG_MAP_DEPTHCUED:1;
+    bool WAD_FLAG_20:1;
+    bool WAD_FLAG_40:1;
+    bool WAD_FLAG_80:1;
+    bool WAD_FLAG_HAS_CUTSCENES:1;
     bool WAD_FLAG_200:1;//9 
     bool WAD_FLAG_400:1;//10 
     bool WAD_FLAG_800:1;//11 
@@ -78,7 +78,7 @@ bitfield WadFlagPC
     bool WAD_FLAG_2000:1;//13 
     bool WAD_FLAG_4000:1;//14 
     bool WAD_FLAG_8000:1;//15 
-    bool WAD_FLAG_HAS_CHANGING_GEOMETRY:1;//16 WF_HASOTHERPIECES
+    bool WAD_FLAG_HAS_CHANGING_GEOMETRY:1;
     bool WAD_FLAG_20000:1;//17 
     bool WAD_FLAG_40000:1;//18 
     bool WAD_FLAG_80000:1;//19 

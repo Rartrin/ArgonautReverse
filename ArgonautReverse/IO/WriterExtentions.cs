@@ -15,14 +15,14 @@
 		public abstract void Write(WadWriter writer, A arg);
 	}
 
-	//Generally used when an list uses the file data space to store itself and has additional data following it.
+	//Generally used when a list uses the file data space to store itself and has additional data following it.
 	public interface IWritableArrayMultipass
 	{
 		public abstract void WriteStruct(WadWriter writer);
 		public abstract void WriteData(WadWriter writer);
 	}
 
-	//These are separate to prevent conflict with methods only differing by generic arguments
+	//These are separate to prevent conflict with methods only differing by generic arguments.
 	public static class WriterExtensions
 	{
 		extension(WadWriter that)

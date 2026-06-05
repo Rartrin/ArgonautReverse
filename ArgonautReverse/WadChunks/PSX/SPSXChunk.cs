@@ -30,10 +30,8 @@ namespace ArgonautReverse.WadChunks.PSX
 				return new SPSXChunk(spsx_flags, null, null, null, null, null, null, null);
 			}
 
-
-			Utils.Assert(!isHarryPotterGame || (spsx_flags & SPSXFlagsPSX.AMBIENTSEP) == 0);// Bit 1 is always unset
-																							//Bit 0 and 4 are identical
-			Utils.Assert((spsx_flags & SPSXFlagsPSX.HAS_AMBIENT_TRACKS) != 0 == ((spsx_flags & SPSXFlagsPSX.HAS_AMBIENT_TRACKS_) != 0));
+			Utils.Assert(!isHarryPotterGame || (spsx_flags & SPSXFlagsPSX.AmbientSeparate) == 0);// Bit 1 is always unset, bit 0 and 4 are identical
+			Utils.Assert((spsx_flags & SPSXFlagsPSX.HasAmbient) != 0 == ((spsx_flags & SPSXFlagsPSX.UNKNOWN1) != 0));
 
 			//logging.debug(f"Flags: {str(spsx_flags)}")
 
@@ -42,7 +40,7 @@ namespace ArgonautReverse.WadChunks.PSX
 
 			CommonSFXContainerPSX common_sfx = null;
 			//If it is either HP game, we need to check the flag, otherwise it is required
-			if(!isHarryPotterGame || (spsx_flags & SPSXFlagsPSX.HAS_COMMON_SFX_AND_DIALOGUES_BGMS) != 0)
+			if(!isHarryPotterGame || (spsx_flags & SPSXFlagsPSX.HasStreams) != 0)
 			{
 				var sounds = new EffectSoundPSX[n_sfx];
 				for(int i = 0; i < n_sfx; i++)
@@ -53,7 +51,7 @@ namespace ArgonautReverse.WadChunks.PSX
 			}
 
 			AmbientContainerPSX ambient_tracks = null;
-			if((spsx_flags & SPSXFlagsPSX.HAS_AMBIENT_TRACKS) != 0)
+			if((spsx_flags & SPSXFlagsPSX.HasAmbient) != 0)
 			{
 				var ambient_tracks_headers_size = data_in.Read<int>();
 				Utils.Assert(ambient_tracks_headers_size % 20 == 0);
@@ -70,7 +68,7 @@ namespace ArgonautReverse.WadChunks.PSX
 			int? idk2 = null;
 			LevelSFXContainerPSX level_sfx_groups = null;
 			LevelSFXMappingPSX level_sfx_mapping = null;
-			if((spsx_flags & SPSXFlagsPSX.HAS_LEVEL_SFX) != 0)//Only Harry Potter?
+			if((spsx_flags & SPSXFlagsPSX.HasLevelSfx) != 0)//TODO: Only Harry Potter?
 			{
 				var n_level_sfx_groups = data_in.Read<int>();
 				Utils.Assert(n_level_sfx_groups < 16);
@@ -93,11 +91,11 @@ namespace ArgonautReverse.WadChunks.PSX
 			var n_dialogues_bgms = data_in.Read<int>();
 
 
-			if((spsx_flags & SPSXFlagsPSX.HAS_COMMON_SFX_AND_DIALOGUES_BGMS) != 0)
+			if((spsx_flags & SPSXFlagsPSX.HasStreams) != 0)
 			{
 				// Gap between level sound effects and dialogues/BGMs
 				var end_gap = data_in.Read<uint>();
-				Utils.Assert(end_gap != 0 == ((spsx_flags & SPSXFlagsPSX.HAS_LEVEL_SFX) != 0));
+				Utils.Assert(end_gap != 0 == ((spsx_flags & SPSXFlagsPSX.HasLevelSfx) != 0));
 				//logging.debug(f"END (DNE) gap: {end_gap}")
 
 				var sounds = new DialogueBGMSoundPSX[n_dialogues_bgms];
@@ -113,7 +111,7 @@ namespace ArgonautReverse.WadChunks.PSX
 				common_sfx.parse_vags(data_in);
 			}
 			// Ambient tracks audio data
-			if((spsx_flags & SPSXFlagsPSX.HAS_AMBIENT_TRACKS) != 0)
+			if((spsx_flags & SPSXFlagsPSX.HasAmbient) != 0)
 			{
 				var ambient_tracks_total_size = data_in.Read<int>();
 				Utils.Assert(ambient_tracks_total_size == ambient_tracks.size);
@@ -175,16 +173,16 @@ namespace ArgonautReverse.WadChunks.PSX
 
 			data_out.WriteUInt32((uint)spsx_flags);
 			data_out.WriteInt32(n_common_sfx);
-			if((spsx_flags & SPSXFlagsPSX.HAS_COMMON_SFX_AND_DIALOGUES_BGMS) != 0)
+			if((spsx_flags & SPSXFlagsPSX.HasStreams) != 0)
 			{
 				common_sfx.serialize(data_out);
 			}
-			if((spsx_flags & SPSXFlagsPSX.HAS_AMBIENT_TRACKS) != 0)
+			if((spsx_flags & SPSXFlagsPSX.HasAmbient) != 0)
 			{
 				data_out.WriteInt32(20 * n_ambient_tracks);
 				ambient_tracks.serialize(data_out);
 			}
-			if((spsx_flags & SPSXFlagsPSX.HAS_LEVEL_SFX) != 0)
+			if((spsx_flags & SPSXFlagsPSX.HasLevelSfx) != 0)
 			{
 				data_out.WriteInt32(n_level_sfx_groups);
 				data_out.WriteInt32(idk1.Value);
@@ -199,7 +197,7 @@ namespace ArgonautReverse.WadChunks.PSX
 				level_sfx_mapping.serialize(data_out, level_sfx_groups: level_sfx_groups);
 			}
 			data_out.WriteInt32(n_dialogues_bgms);
-			if((spsx_flags & SPSXFlagsPSX.HAS_COMMON_SFX_AND_DIALOGUES_BGMS) != 0)
+			if((spsx_flags & SPSXFlagsPSX.HasStreams) != 0)
 			{
 				data_out.WriteInt32(end_gap);
 				dialogues_bgms.serialize(data_out);
@@ -209,7 +207,7 @@ namespace ArgonautReverse.WadChunks.PSX
 					data_out.WriteBytes(vag.data);
 				}
 			}
-			if((spsx_flags & SPSXFlagsPSX.HAS_AMBIENT_TRACKS) != 0)
+			if((spsx_flags & SPSXFlagsPSX.HasAmbient) != 0)
 			{
 				data_out.WriteInt32(ambient_tracks_size);
 				foreach(var vag in ambient_tracks.vags)

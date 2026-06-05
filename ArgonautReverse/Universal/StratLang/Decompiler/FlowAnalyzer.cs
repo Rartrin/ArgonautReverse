@@ -649,7 +649,6 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 		}
 	}
 
-	//These were deprecated in the Aladdin ASL
 	//public sealed class ForFlowData:BlockFlowData
 	//{
 	//	//TODO: For Next flow
@@ -1225,7 +1224,7 @@ namespace ArgonautReverse.Universal.StratLang.Decompiler
 
 				//TODO: For scope, nesting loops won't be an issue. Loops inside of a final switch case or at the end of a subroutine can have overlap.
 				//We should be defaulting to the innermost loop (though it should work either way).
-				//Otherwise, pay attention to the jump destination to determine the probper scope break.
+				//Otherwise, pay attention to the jump destination to determine the proper scope break.
 				do
 				{
 					FlowData.UpdateScopePre(statement, ref scope);
