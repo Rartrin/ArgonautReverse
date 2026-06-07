@@ -141,7 +141,7 @@ namespace ArgonautReverse.PC
 			//Skip INFO
 			//Skip VERSION
 			//ExportMAP(args, conf);
-			//ExportTRACK(args, conf);
+			ExportTRACK(args, conf);
 			ExportTEXT(args, conf);
 			//ExportLIGHT(args, conf);
 			ExportSTRAT(args, conf);
@@ -153,6 +153,11 @@ namespace ArgonautReverse.PC
 			//ExportSPRITE(args, conf);
 			//RIMGChunk.Export(this, args, conf);
 			//Skip END
+		}
+
+		private void ExportTRACK(ProgramArgs args, Configuration conf)
+		{
+			ModelExtractor.ExtractAll(args, conf, this, TrackChunk.Models);
 		}
 
 		private void ExportTEXT(ProgramArgs args, Configuration conf)

@@ -15,6 +15,17 @@ namespace ArgonautReverse.PC.Extractors
 			}
 		}
 
+		public static void ExtractAll(ProgramArgs args, Configuration conf, WadFilePC wad, IReadOnlyList<StratObjectPC> pieces)
+		{
+			if(!args.ExtractLevels){return;}
+
+			var modelDirectory = args.GetExtractDirectory(wad.Stem, "Track");
+			for(int i=0; i<pieces.Count; i++)
+			{
+				RenderModel0(wad, Path.Join(modelDirectory, $"Piece_{i}"), pieces[i], null);
+			}
+		}
+
 		public unsafe struct ObjFace
 		{
 			//Indices start at 1
@@ -26,14 +37,20 @@ namespace ArgonautReverse.PC.Extractors
 			public ColorBGRA32 color;
 		}
 
+		
+		public static unsafe bool RenderModel0(WadFilePC wad, string fileName, IStratObjectPC model, Matrix4x4F[]? animationTransforms)
+		{
+			ModelVertexPC[] vertexLookup = model.GetVertexLookup(animationTransforms);
+			return RenderModelVertices(wad, fileName, model.Model, vertexLookup);
+		}
+
 		//Based on ModelStruct.DrawModel0
-		public static unsafe bool RenderModel0(WadFilePC wad, string fileName, StratObject2PC model, Matrix4x4F[]? animationTransforms)
+		public static unsafe bool RenderModelVertices(WadFilePC wad, string fileName, StratObjectPC model, ModelVertexPC[] vertexLookup)
 		{
 			//Graphics.lighting = false;
 
 			//static UnknownRenderStruct5 positionLookup[4800];
-			var faces = new ObjFace[4800];
-			int faceCount = 0;
+			var faces = new ObjFace[model.triangles.Length];
 
 			var textCoords = new Vector2F[4800];
 			int textCoordCount = 0;
@@ -45,61 +62,25 @@ namespace ArgonautReverse.PC.Extractors
 			textCoords[textCoordCount+3] = new(1,0);
 			textCoordCount+=4;
 
-			//UInt32 modelFlags;
-			//if(!Model.RenderModelToDrawBuffer(model.model, Matrix4x4F.Identity, &modelFlags))
-			//{
-			//	return false;
-			//}
-
-			//const ModelVertexPC* vertexLookup = model.GetVertexLookup(animationTransforms != null, animationTransforms, -1, -1, -1);
-			var vertexLookup = new ModelVertexPC[4800];
-
-			//if(animationTransforms == null)
-			//{
-			//	return model.model.vertices;
-			//}
-			int v=0;
-			for(int i=0; i<model.wField0; i++)
-			{
-				vertexLookup[v] = model.model.vertices[v];
-				v++;
-			}
-			if(animationTransforms != null)
-			{
-				for(int boneIndex=0; boneIndex<model.boneVertCounts.Length; boneIndex++)
-				{
-					ref readonly Matrix4x4F currTransform = ref animationTransforms[boneIndex];
-					for(int boneVertIndex=0; boneVertIndex<model.boneVertCounts[boneIndex]; boneVertIndex++)
-					{
-						vertexLookup[v] = new
-						(
-							Position: currTransform.TransformPoint(model.model.vertices[v].Position),
-							Direction: currTransform.TransformPoint(model.model.vertices[v].Direction)
-						);
-						v++;
-					}
-				}
-			}
-
 			TextureStructPC? texture = null;
 			BrTexturePalettePC? palette = null;
-			int pendingVertCount = 0;
+			//int pendingVertCount = 0;
 			SpriteStructPC? pendingSprite = null;
-			bool useTriangleFan = false;
-			bool flatShade = false;
+			//bool useTriangleFan = false;
+			//bool flatShade = false;
 			bool alphaEnable = false;
-			bool zFuncLessOrEqual = false;
-			bool zEnable = false;
+			//bool zFuncLessOrEqual = false;
+			//bool zEnable = false;
 			//UnknownRenderStruct4? format0 = null;
 			//UnknownRenderStruct4? format1 = null;
-			bool triZBias = false;
+			//bool triZBias = false;
 			bool spriteFlag20 = false;
 			ColorBGRA32 color = new();
 
-			for(int t = 0; t<model.model.triangles.Length; t++)
+			for(int t = 0; t<model.triangles.Length; t++)
 			{
-				ref var vert = ref model.model.triangles[t];
-				if(((vert.flags & 8) != 0) || (spriteFlag20 && pendingSprite.sourceTexture != vert.sprite.sourceTexture))
+				ref var vert = ref model.triangles[t];
+				if(((vert.flags & 8) != 0) || (spriteFlag20 && pendingSprite!.sourceTexture != vert.sprite.sourceTexture))
 				{
 					//if(pendingVertCount>0)
 					//{
@@ -129,14 +110,13 @@ namespace ArgonautReverse.PC.Extractors
 				//vertices[1] = &drawVerts[vertCount0 + pendingVertCount];
 
 				//vert.ApplyTrianglePosition(vertices[1], positionLookup, true);
-				ref var face = ref faces[faceCount];
+				ref var face = ref faces[t];
 				for(int i=0; i<3; i++)
 				{
 					face.vertIndex[i] = vert.vertexIndices[i];
 					face.textCoordIndex[i] = 0;
 					face.normalIndex[i] = vert.vertexIndices[i];
 				}
-				faceCount++;
 
 				//vert.ApplyTriangleSurface(vertices[1], pendingSprite, color, null, false, false, 0);
 				if((vert.sprite.flags & SpriteFlagsPC.HasColor) != 0)
@@ -151,7 +131,7 @@ namespace ArgonautReverse.PC.Extractors
 				}
 				else
 				{
-					face.color = color;
+					face.color = color;//TODO: Only use alpha?
 					face.textSource = vert.sprite.sourceTexture;
 			
 					TextureStructPC textureSource = wad.TextChunk.Textures[face.textSource];
@@ -250,11 +230,18 @@ namespace ArgonautReverse.PC.Extractors
 				}
 			}
 
+			OutputRender(fileName, vertexLookup, faces, textCoords.AsSpan(0, textCoordCount));
+
+			return true;
+		}
+
+		private unsafe static void OutputRender(string fileName, ModelVertexPC[] vertexLookup, ObjFace[] faces, ReadOnlySpan<Vector2F> textCoords)
+		{
 			//Materials
 			string mtlFilePath = $"{fileName}.mtl";
 			using(var outputMtl = new StreamWriter(mtlFilePath, false))
 			{
-				for(int i=0; i<faceCount; i++)
+				for(int i=0; i<faces.Length; i++)
 				{
 					int faceTextSource = faces[i].textSource;
 					ColorBGRA32 faceColor = faces[i].color;
@@ -299,7 +286,7 @@ namespace ArgonautReverse.PC.Extractors
 				outputObj.WriteLine();
 	
 				outputObj.WriteLine("# Vertices");
-				for(int i=0; i<model.model.vertices.Length; i++)
+				for(int i=0; i<vertexLookup.Length; i++)
 				{
 					var pos = vertexLookup[i].Position;
 					outputObj.WriteLine($"v {pos.X} {pos.Y} {pos.Z}");
@@ -307,15 +294,15 @@ namespace ArgonautReverse.PC.Extractors
 				outputObj.WriteLine();
 
 				outputObj.WriteLine("# Texture Coords");
-				for(int i=0; i<textCoordCount; i++)
+				for(int i=0; i<textCoords.Length; i++)
 				{
-					ref var coords = ref textCoords[i];
+					ref readonly var coords = ref textCoords[i];
 					outputObj.WriteLine($"vt {coords.X} {coords.Y}");
 				}
 				outputObj.WriteLine();
 
 				outputObj.WriteLine("# Vertex Normals");
-				for(int i=0; i<model.model.vertices.Length; i++)
+				for(int i=0; i<vertexLookup.Length; i++)
 				{
 					var dir = vertexLookup[i].Direction;
 					outputObj.WriteLine($"vn {dir.X} {dir.Y} {dir.Z}");
@@ -323,9 +310,9 @@ namespace ArgonautReverse.PC.Extractors
 				outputObj.WriteLine();
 
 				outputObj.WriteLine("# Polygon faces");
-				for(int i=0; i<faceCount; i++)
+				for(int i=0; i<faces.Length; i++)
 				{
-					ref var face = ref faces[i];
+					ref readonly var face = ref faces[i];
 					if(i==0 || face.textSource != faces[i-1].textSource || face.color.Raw != faces[i-1].color.Raw)
 					{
 						if(face.textSource >= 0)
@@ -357,8 +344,6 @@ namespace ArgonautReverse.PC.Extractors
 					outputObj.WriteLine();
 				}
 			}
-
-			return true;
 		}
     }
 }

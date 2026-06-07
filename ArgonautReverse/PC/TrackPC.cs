@@ -136,7 +136,7 @@ namespace ArgonautReverse.PC
 			{
 				color = new ColorBGRA32
 				(
-					//Added other color channels
+					//Added other color channels. Originally not set.
 					blue: 0,
 					green: 0,
 					red: 0,
@@ -172,7 +172,13 @@ namespace ArgonautReverse.PC
 		}
 	}
 
-	public sealed class StratObjectPC:IReadableArrayMultipass<StratObjectPC>,IWritableArrayMultipass//ModelStruct
+	public interface IStratObjectPC
+	{
+		public StratObjectPC Model{get;}
+		public abstract ModelVertexPC[] GetVertexLookup(Matrix4x4F[]? animationBoneTransforms);
+	}
+
+	public sealed class StratObjectPC:IReadableArrayMultipass<StratObjectPC>,IWritableArrayMultipass,IStratObjectPC//ModelStruct
 	{
 		//The value of the position in the wad
 		public int WadOffset;
@@ -183,6 +189,8 @@ namespace ArgonautReverse.PC
 		public ushort wField1;
 		public ushort wField2;
 		public Model_SubStruct1PC[] array2;
+
+		StratObjectPC IStratObjectPC.Model => this;
 
 		public static StratObjectPC ParseStruct(WadReader reader)
 		{
@@ -229,14 +237,22 @@ namespace ArgonautReverse.PC
 			int array2Length = wField1 + wField2;
 			writer.WriteSizedArray<Model_SubStruct1PC>(array2Length, array2);
 		}
+
+		public ModelVertexPC[] GetVertexLookup(Matrix4x4F[]? animationBoneTransforms)
+		{
+			if(animationBoneTransforms != null){throw new Exception("Animations not supported on track object.");}
+			return vertices;
+		}
 	}
 
-	public sealed class StratObject2PC:IReadableArrayMultipass<StratObject2PC>,IWritableArrayMultipass//ModelStruct2
+	public sealed class StratObject2PC:IReadableArrayMultipass<StratObject2PC>,IWritableArrayMultipass,IStratObjectPC//ModelStruct2
 	{
 		public StratObjectPC model;
 		public ushort wField0;
 		//Number of verts in a bone
 		public ushort[] boneVertCounts;
+
+		StratObjectPC IStratObjectPC.Model => model;
 
 		public static StratObject2PC ParseStruct(WadReader reader)
 		{
@@ -267,6 +283,40 @@ namespace ArgonautReverse.PC
 		{
 			writer.WriteArray<ushort>(boneVertCounts);
 			model.WriteData(writer);
+		}
+
+		public unsafe ModelVertexPC[] GetVertexLookup(Matrix4x4F[]? animationBoneTransforms)
+		{
+			if(animationBoneTransforms == null)
+			{
+				return model.vertices;
+			}
+
+			var vertexLookup = new ModelVertexPC[model.vertices.Length];
+			int v=0;
+			for(int i=0; i<wField0; i++)
+			{
+				vertexLookup[v] = model.vertices[v];
+				v++;
+			}
+			for(int boneIndex=0; boneIndex<boneVertCounts.Length; boneIndex++)
+			{
+				Matrix4x4F currTransform = animationBoneTransforms[boneIndex];
+				for(int boneVertIndex=0; boneVertIndex<boneVertCounts[boneIndex]; boneVertIndex++)
+				{
+					vertexLookup[v] = new
+					(
+						Position: currTransform.TransformPoint(model.vertices[v].Position),
+						Direction: currTransform.TransformPoint(model.vertices[v].Direction)
+					);
+					v++;
+				}
+			}
+			if(v != model.vertices.Length)
+			{
+				throw new Exception("Incorrect number of vertices.");
+			}
+			return vertexLookup;
 		}
 	}
 }
