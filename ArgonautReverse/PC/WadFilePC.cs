@@ -9,6 +9,7 @@ using ArgonautReverse.Universal;
 using ArgonautReverse.OpenStratEngine;
 using ArgonautReverse.Universal.StratLang;
 using ArgonautReverse.Universal.StratLang.Decompiler;
+using ArgonautReverse.PC.Extractors;
 
 namespace ArgonautReverse.PC
 {
@@ -186,7 +187,7 @@ namespace ArgonautReverse.PC
 			ret.Save(path, ImageFormat.Png);
 		}
 
-		public void ExtractSPRITE(SpriteStructPC sprite, string path)
+		public void ExportSPRITE(SpriteStructPC sprite, string path)
 		{
 			throw new NotImplementedException();
 		}
@@ -194,6 +195,7 @@ namespace ArgonautReverse.PC
 		private void ExportSTRAT(ProgramArgs args, Configuration conf)
 		{
 			ExportScripts(args, conf);
+			ModelExtractor.ExtractAll(args, conf, this, StratChunk.Models);
 		}
 
 		public void ExportScripts(ProgramArgs args, Configuration conf)

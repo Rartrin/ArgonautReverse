@@ -1,4 +1,5 @@
 ﻿using ArgonautReverse.IO;
+using ArgonautReverse.Universal;
 using ArgonautReverse.WadChunks.PC;
 
 namespace ArgonautReverse.PC
@@ -109,6 +110,65 @@ namespace ArgonautReverse.PC
 			writer.Write<ushort>((ushort)SpriteIndex);
 			writer.Write<ushort>(0);//Padding
 			writer.Write<Vector4F>(pos);
+		}
+
+		public void GetRenderInfo(WadFilePC wad, out TextureStructPC? texture, out BrTexturePalettePC? palette, out bool alphaEnable, out bool spriteFlag20, out ColorBGRA32 color/*, out UnknownRenderStruct4* format0, out UnknownRenderStruct4* format1*/)
+		{
+			alphaEnable = (this.sprite.flags & SpriteFlagsPC.HasAlpha) != 0;
+			spriteFlag20 = (this.sprite.flags & SpriteFlagsPC._20) != 0;
+			int v83 = ((int)this.sprite.flags >> 8) & 7;
+			int v84 = ((int)this.sprite.flags >> 12) & 7;
+			if((this.sprite.flags & SpriteFlagsPC.HasColor) != 0)
+			{
+				color = new ColorBGRA32
+				(
+					blue: this.sprite.ColorB,
+					green: this.sprite.ColorG,
+					red: this.sprite.ColorR,
+					alpha: this.sprite.ColorAlpha
+				);
+				texture = null;
+				palette = null;
+				//format0 = &Graphics.textureFormats0[v84];
+				//format1 = &Graphics.textureFormats2[v84];
+			}
+			else
+			{
+				color = new ColorBGRA32
+				(
+					//Added other color channels
+					blue: 0,
+					green: 0,
+					red: 0,
+					alpha: v84 switch
+					{
+						0 => 0xFF,
+						1 => 0x80,
+						2 => 0xC0,
+						3 => 0x80,
+						4 => 0x40,
+						_ => throw new Exception()
+					}
+				);
+				if(this.sprite.sourceTexture == -1)
+				{
+					texture = null;
+				}
+				else
+				{
+					texture = wad.TextChunk.Textures[this.sprite.sourceTexture];
+				}
+				if(this.sprite.paletteIndex == -1)
+				{
+					palette = null;
+				}
+				else
+				{
+					palette = wad.TextChunk.Palettes[this.sprite.paletteIndex];
+				}
+				//format0 = &Graphics.textureFormats1[v83][v84];
+				//format1 = &Graphics.textureFormats3[v83][v84];
+			}
 		}
 	}
 

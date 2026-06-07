@@ -1,22 +1,30 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using ArgonautReverse.IO;
 
 namespace ArgonautReverse.Universal
 {
+	[StructLayout(LayoutKind.Explicit, Size = 16 * sizeof(float))]
 	public unsafe struct Matrix4x4F:IReadable<Matrix4x4F>, IWritable, IEquatable<Matrix4x4F>
 	{
 		public static readonly Matrix4x4F Identity = new Matrix4x4F(new Vector4F(1,0,0,0), new Vector4F(0,1,0,0), new Vector4F(0,0,1,0), new Vector4F(0,0,0,1));
 
 		//[column][row]. This is reverse standard in math
-		//float m[4][4];
-		public Vector3F rot0;	//[0][0-2]
-		public float data0;		//[0][3]
-		public Vector3F rot1;	//[1][0-2]
-		public float data1;		//[1][3]
-		public Vector3F rot2;	//[2][0-2]
-		public float data2;		//[2][3]
-		public Vector3F trans;	//[3][0-2]
-		public float scale;		//[3][3]
+		[FieldOffset(0)]public fixed float m[4*4];
+		[FieldOffset(sizeof(float)*0)]public Vector3F rot0;		//[0][0-2]
+		[FieldOffset(sizeof(float)*3)]public float data0;		//[0][3]
+		[FieldOffset(sizeof(float)*4)]public Vector3F rot1;		//[1][0-2]
+		[FieldOffset(sizeof(float)*7)]public float data1;		//[1][3]
+		[FieldOffset(sizeof(float)*8)]public Vector3F rot2;		//[2][0-2]
+		[FieldOffset(sizeof(float)*11)]public float data2;		//[2][3]
+		[FieldOffset(sizeof(float)*12)]public Vector3F trans;	//[3][0-2]
+		[FieldOffset(sizeof(float)*15)]public float scale;		//[3][3]
+
+		public float this[int col, int row]
+		{
+			readonly get => m[4*col + row];
+			set => m[4*col + row] = value;
+		}
 
 		public Matrix4x4F(in Vector4F value0, in Vector4F value1, in Vector4F value2, in Vector4F value3)
 		{
@@ -53,5 +61,12 @@ namespace ArgonautReverse.Universal
 		}
 
 		public readonly void Write(WadWriter writer) => writer.WriteData(this);
+
+		public readonly Vector3F TransformPoint(in Vector3F v) => new
+		(
+			x: this[0,0] * v.X + this[1,0] * v.Y + this[2,0] * v.Z + trans.X,
+			y: this[0,1] * v.X + this[1,1] * v.Y + this[2,1] * v.Z + trans.Y,
+			z: this[0,2] * v.X + this[1,2] * v.Y + this[2,2] * v.Z + trans.Z
+		);
 	}
 }

@@ -29,47 +29,74 @@ namespace ArgonautReverse
 			return path;
 		}
 	}
+	public sealed class Option
+	{
+		public readonly int OperandCount;
+		public readonly Action<ProgramArgs,ReadOnlySpan<string>> Apply;
+
+		public Option(Action<ProgramArgs> apply)
+		{
+			OperandCount = 0;
+			Apply = (args, rawArgs) => apply(args);
+		}
+
+		public Option(Action<ProgramArgs,string> apply)
+		{
+			OperandCount = 1;
+			Apply = (args, rawArgs) => apply(args, rawArgs[0]);
+		}
+	}
 	public static class ExportAssets
 	{
-		public static ProgramArgs ParseArgs(string[] args)
+		private static readonly Dictionary<string,Option> programOptions = new()
+		{
+			["--read-format"] = new((args, raw) => args.ReadFormat = raw),
+			["--read-psx-dirdat"] = new((args, raw) => args.PsxDirDat = raw),
+			["--read-wads"] = new((args, raw) => args.ReadWads = raw),
+			["--write-format"] = new((args, raw) => args.WriteFormat = raw),
+			["--write-wads"] = new((args, raw) => args.WriteWads = raw),
+			["--extract-path"] = new((args, raw) => args.ExtractPath = raw),
+			["--extract"] = new((args, raw) =>
+			{
+				var extractions = raw.Split(',', StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries);
+				foreach(var extraction in extractions)
+				{
+					switch(extraction)
+					{
+						case "audio":args.ExtractAudio = true;break;
+						case "audioUnpacked":args.UnpackAudio = true;break;
+						case "imgs":args.ExtractIMGs = true;break;
+						case "levels":args.ExtractLevels = true;break;
+						case "models":args.ExtractModels = true;break;
+						case "scripts":args.ExtractScripts = true;break;
+						case "textures":args.ExtractTextures = true;break;
+						default:throw new Exception($"Unknown excration type: {extraction}");
+					}
+				}
+			}),
+			["--ignore-warnings"] = new((args) => args.IgnoreWarnings = true),
+			["--help"] = new((args)=>
+			{
+				//TODO: Available options.
+			})
+		};
+
+		public static ProgramArgs? ParseArgs(string[] args)
 		{
 			var parsedArgs = new ProgramArgs();
-			for(int i=0; i<args.Length; i++)
+			for(int i=0; i<args.Length;)
 			{
-				switch(args[i])
+				if(!programOptions.TryGetValue(args[i], out var option))
 				{
-					case "--read-format":parsedArgs.ReadFormat = args[++i];break;
-					case "--read-psx-dirdat":parsedArgs.PsxDirDat = args[++i];break;
-					case "--read-wads":parsedArgs.ReadWads = args[++i];break;
-
-					case "--write-format":parsedArgs.WriteFormat = args[++i];break;
-					case "--write-wads":parsedArgs.WriteWads = args[++i];break;
-
-					case "--extract-path":parsedArgs.ExtractPath = args[++i];break;
-
-					case "--extract":
-					{
-						var extractions = args[++i].Split(',', StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries);
-						foreach(var extraction in extractions)
-						{
-							switch(extraction)
-							{
-								case "audio":parsedArgs.ExtractAudio = true;break;
-								case "audioUnpacked":parsedArgs.UnpackAudio = true;break;
-								case "imgs":parsedArgs.ExtractIMGs = true;break;
-								case "levels":parsedArgs.ExtractLevels = true;break;
-								case "models":parsedArgs.ExtractModels = true;break;
-								case "scripts":parsedArgs.ExtractScripts = true;break;
-								case "textures":parsedArgs.ExtractTextures = true;break;
-								default:throw new Exception($"Unknown excration type: {extraction}");
-							}
-						}
-						break;
-					}
-					case "--ignore-warnings":parsedArgs.IgnoreWarnings = true;break;
-
-					default:throw new Exception($"Unknown argument: {args[i]}");
+					Console.WriteLine($"Unknown argument: {args[i]}");
+					return null;
 				}
+				i += 1;
+
+				var operands = args.AsSpan(i, option.OperandCount);
+				i += option.OperandCount;
+
+				option.Apply(parsedArgs, operands);
 			}
 			if(parsedArgs.ReadFormat == null)
 			{
@@ -94,6 +121,7 @@ namespace ArgonautReverse
 		public static void Run(string[] rawArgs)
 		{
 			var args = ParseArgs(rawArgs);
+			if(args == null){return;}
 
 			var readFormat = Configuration.SUPPORTED_GAMES[args.ReadFormat];
 			var writeFormat = args.WriteFormat!=null ? Configuration.SUPPORTED_GAMES[args.WriteFormat] : null;

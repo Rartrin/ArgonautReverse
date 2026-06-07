@@ -1,4 +1,5 @@
 ﻿using System.Drawing;
+using System.Runtime.InteropServices;
 using ArgonautReverse.IO;
 
 namespace ArgonautReverse.Universal
@@ -51,12 +52,15 @@ namespace ArgonautReverse.Universal
 		}
 	}
 
+	[StructLayout(LayoutKind.Explicit)]
 	public struct ColorBGRA32(byte blue, byte green, byte red, byte alpha):IReadable<ColorBGRA32>, IWritable
 	{
-		public byte B = blue;
-		public byte G = green;
-		public byte R = red;
-		public byte A = alpha;
+		[FieldOffset(0)]public uint Raw;
+
+		[FieldOffset(0)]public byte B = blue;
+		[FieldOffset(1)]public byte G = green;
+		[FieldOffset(2)]public byte R = red;
+		[FieldOffset(3)]public byte A = alpha;
 
 		public static ColorBGRA32 Parse(WadReader reader)
 		{
