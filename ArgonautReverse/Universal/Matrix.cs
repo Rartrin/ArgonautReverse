@@ -68,5 +68,34 @@ namespace ArgonautReverse.Universal
 			y: this[0,1] * v.X + this[1,1] * v.Y + this[2,1] * v.Z + trans.Y,
 			z: this[0,2] * v.X + this[1,2] * v.Y + this[2,2] * v.Z + trans.Z
 		);
+
+		public static void CreatePositionMatrix(in RotPos3F rotPos, out Matrix4x4F ret)
+		{
+			float cosX = MathF.Cos(rotPos.Rotation.X);
+			float sinX = MathF.Sin(rotPos.Rotation.X);
+			float cosY = MathF.Cos(rotPos.Rotation.Y);
+			float sinY = MathF.Sin(rotPos.Rotation.Y);
+			float cosZ = MathF.Cos(rotPos.Rotation.Z);
+			float sinZ = MathF.Sin(rotPos.Rotation.Z);
+
+			ret = default;
+			ret.m[4*0 + 0] = (cosY * cosZ) - (sinX * sinY * sinZ);
+			ret.m[4*0 + 1] = -cosX * sinZ;
+			ret.m[4*0 + 2] = (sinY * cosZ) + (sinX * cosY * sinZ);
+			ret.m[4*0 + 3] = 0f;
+
+			ret.m[4*1 + 0] = (cosY * sinZ) + (sinX * sinY * cosZ);
+			ret.m[4*1 + 1] = cosX * cosZ;
+			ret.m[4*1 + 2] = -(sinX * cosY * cosZ) + (sinY * sinZ);
+			ret.m[4*1 + 3] = 0f;
+
+			ret.m[4*2 + 0] = -(cosX * sinY);
+			ret.m[4*2 + 1] = sinX;
+			ret.m[4*2 + 2] = cosX * cosY;
+			ret.m[4*2 + 3] = 0f;
+
+			ret.trans = rotPos.Position;
+			ret.scale = 1f;
+		}
 	}
 }

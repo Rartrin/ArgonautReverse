@@ -256,7 +256,7 @@ namespace ArgonautReverse.PC
 			for(int cellIndex=0; cellIndex<map.NumPieces; cellIndex++)
 			{
 				var chunkPos = reader.Read<Vector3F>();
-				var rotY = reader.Read<int>();
+				var rawRotY = reader.Read<int>();
 				var n = reader.Read<int>();
 				bool hasOtherPiece = reader.Read<int>() switch
 				{
@@ -265,7 +265,7 @@ namespace ArgonautReverse.PC
 					_ => throw new Exception()
 				};
 				// Conversion from 0.0-1.0 angle in fixed point 24bit to floating point degrees.
-				var worldCellInfo = new MapPiecePC(chunkPos, rawRotY:rotY, rotY:((rotY&0xFF0) * 360f) / 4096f, n:n, cellIndex:cellIndex, hasOtherPiece);
+				var worldCellInfo = new MapPiecePC(chunkPos, rawRotY:rawRotY, rotY:((rawRotY&0xFF0) * 360f) / 4096f, n:n, cellIndex:cellIndex, hasOtherPiece);
 				allMapPieces.Add(worldCellInfo);
 
 				int cellX = (int)(chunkPos.X - 0.5f);

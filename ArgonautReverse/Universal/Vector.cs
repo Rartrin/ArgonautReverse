@@ -13,6 +13,9 @@ namespace ArgonautReverse.Universal
 	#region Vector2
 	public struct Vector2<T>(T x, T y):IReadable<Vector2<T>>, IWritable where T : unmanaged, IBinaryNumber<T>
 	{
+		public static Vector2<T> Zero{get;} = new(T.Zero, T.Zero);
+		public static Vector2<T> One{get;} = new(T.One, T.One);
+
 		public T X = x;
 		public T Y = y;
 
@@ -38,6 +41,9 @@ namespace ArgonautReverse.Universal
 	#region Vector3
 	public struct Vector3<T>(T x, T y, T z):IReadable<Vector3<T>>, IWritable where T : unmanaged, IBinaryNumber<T>
 	{
+		public static Vector3<T> Zero{get;} = new(T.Zero, T.Zero, T.Zero);
+		public static Vector3<T> One{get;} = new(T.One, T.One, T.One);
+
 		public T X = x;
 		public T Y = y;
 		public T Z = z;

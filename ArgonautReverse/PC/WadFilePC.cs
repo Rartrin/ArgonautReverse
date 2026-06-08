@@ -158,6 +158,8 @@ namespace ArgonautReverse.PC
 		private void ExportTRACK(ProgramArgs args, Configuration conf)
 		{
 			ModelExtractor.ExtractAll(args, conf, this, TrackChunk.Models);
+
+			ModelExtractor.DrawWorldGeometry(args, conf, this, MapChunk.Map);
 		}
 
 		private void ExportTEXT(ProgramArgs args, Configuration conf)

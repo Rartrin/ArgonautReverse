@@ -61,7 +61,7 @@ namespace ArgonautReverse.PC
 		}
 	}
 
-	public readonly record struct ModelVertexPC(Vector3F Position, Vector3F Direction):IReadable<ModelVertexPC>,IWritable
+	public record struct ModelVertexPC(Vector3F Position, Vector3F Direction):IReadable<ModelVertexPC>,IWritable
 	{
 		public static ModelVertexPC Parse(WadReader reader)
 		{
@@ -70,7 +70,7 @@ namespace ArgonautReverse.PC
 			return new ModelVertexPC(position, direction);
 		}
 
-		public void Write(WadWriter writer)
+		public readonly void Write(WadWriter writer)
 		{
 			writer.Write<Vector3F>(Position);
 			writer.Write<Vector3F>(Direction);
@@ -112,11 +112,11 @@ namespace ArgonautReverse.PC
 			writer.Write<Vector4F>(pos);
 		}
 
-		public void GetRenderInfo(WadFilePC wad, out TextureStructPC? texture, out BrTexturePalettePC? palette, out bool alphaEnable, out bool spriteFlag20, out ColorBGRA32 color/*, out UnknownRenderStruct4* format0, out UnknownRenderStruct4* format1*/)
+		public void GetRenderInfo(/*WadFilePC wad, out TextureStructPC? texture, out BrTexturePalettePC? palette, out bool alphaEnable,*/ out bool spriteFlag20, out ColorBGRA32 color/*, out UnknownRenderStruct4* format0, out UnknownRenderStruct4* format1*/)
 		{
-			alphaEnable = (this.sprite.flags & SpriteFlagsPC.HasAlpha) != 0;
+			//alphaEnable = (this.sprite.flags & SpriteFlagsPC.HasAlpha) != 0;
 			spriteFlag20 = (this.sprite.flags & SpriteFlagsPC._20) != 0;
-			int v83 = ((int)this.sprite.flags >> 8) & 7;
+			//int v83 = ((int)this.sprite.flags >> 8) & 7;
 			int v84 = ((int)this.sprite.flags >> 12) & 7;
 			if((this.sprite.flags & SpriteFlagsPC.HasColor) != 0)
 			{
@@ -127,8 +127,8 @@ namespace ArgonautReverse.PC
 					red: this.sprite.ColorR,
 					alpha: this.sprite.ColorAlpha
 				);
-				texture = null;
-				palette = null;
+				//texture = null;
+				//palette = null;
 				//format0 = &Graphics.textureFormats0[v84];
 				//format1 = &Graphics.textureFormats2[v84];
 			}
@@ -150,22 +150,22 @@ namespace ArgonautReverse.PC
 						_ => throw new Exception()
 					}
 				);
-				if(this.sprite.sourceTexture == -1)
-				{
-					texture = null;
-				}
-				else
-				{
-					texture = wad.TextChunk.Textures[this.sprite.sourceTexture];
-				}
-				if(this.sprite.paletteIndex == -1)
-				{
-					palette = null;
-				}
-				else
-				{
-					palette = wad.TextChunk.Palettes[this.sprite.paletteIndex];
-				}
+				//if(this.sprite.sourceTexture == -1)
+				//{
+				//	texture = null;
+				//}
+				//else
+				//{
+				//	texture = wad.TextChunk.Textures[this.sprite.sourceTexture];
+				//}
+				//if(this.sprite.paletteIndex == -1)
+				//{
+				//	palette = null;
+				//}
+				//else
+				//{
+				//	palette = wad.TextChunk.Palettes[this.sprite.paletteIndex];
+				//}
 				//format0 = &Graphics.textureFormats1[v83][v84];
 				//format1 = &Graphics.textureFormats3[v83][v84];
 			}
@@ -175,7 +175,7 @@ namespace ArgonautReverse.PC
 	public interface IStratObjectPC
 	{
 		public StratObjectPC Model{get;}
-		public abstract ModelVertexPC[] GetVertexLookup(Matrix4x4F[]? animationBoneTransforms);
+		//public abstract void GetVertexLookup(Matrix4x4F[]? animationBoneTransforms, List<ModelVertexPC> vertices);
 	}
 
 	public sealed class StratObjectPC:IReadableArrayMultipass<StratObjectPC>,IWritableArrayMultipass,IStratObjectPC//ModelStruct
@@ -238,17 +238,23 @@ namespace ArgonautReverse.PC
 			writer.WriteSizedArray<Model_SubStruct1PC>(array2Length, array2);
 		}
 
-		public ModelVertexPC[] GetVertexLookup(Matrix4x4F[]? animationBoneTransforms)
+		public ModelVertexPC[] GetVertexLookup(RotPos3F rotPos)
 		{
-			if(animationBoneTransforms != null){throw new Exception("Animations not supported on track object.");}
-			return vertices;
+			Matrix4x4F.CreatePositionMatrix(rotPos, out var rotPosTransform);
+			var vertexLookup = new ModelVertexPC[vertices.Length];
+			for(int i=0; i<vertices.Length; i++)
+			{
+				var vert = vertices[i];
+				vertexLookup[i] = new(rotPosTransform.TransformPoint(vert.Position), vert.Direction);
+			}
+			return vertexLookup;
 		}
 	}
 
 	public sealed class StratObject2PC:IReadableArrayMultipass<StratObject2PC>,IWritableArrayMultipass,IStratObjectPC//ModelStruct2
 	{
 		public StratObjectPC model;
-		public ushort wField0;
+		public ushort wField0;//Static bones
 		//Number of verts in a bone
 		public ushort[] boneVertCounts;
 
