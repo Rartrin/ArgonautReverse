@@ -19,7 +19,7 @@ namespace ArgonautReverse.WadChunks.PSX
 		public static readonly TPSXChunkInfo Instance = new TPSXChunkInfo();
 
 		public override ChunkType ChunkType => ChunkType.ID_PSX_TEXT;
-		public override WadVersion[] SupportedWadVersions => Configuration.PSX_PARSABLE_WADS;
+		public override WadVersion[] SupportedWadVersions => Configuration.ParsableWadsPSX;
 		public override string ChunkDescription => "textures";
 
 		public override TPSXChunk Parse(WadReader data_in)

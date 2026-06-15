@@ -68,7 +68,7 @@ namespace ArgonautReverse.WadChunks
 
 	public sealed class UnsupportedChunkInfo(BaseWADChunkInfo unsuppportedType):BaseWADChunkInfo
 	{
-		public override WadVersion[] SupportedWadVersions => Configuration.ALL_WADS;
+		public override WadVersion[] SupportedWadVersions => Configuration.AllWads;
 
 		public override string ChunkDescription => "(Unsupported for the game) " + UnsuppportedType.ChunkDescription;
 
@@ -90,7 +90,7 @@ namespace ArgonautReverse.WadChunks
 
 	public sealed class UnknownChunkInfo(ChunkType chunkType):BaseWADChunkInfo
 	{
-		public override WadVersion[] SupportedWadVersions => Configuration.ALL_WADS;
+		public override WadVersion[] SupportedWadVersions => Configuration.AllWads;
 
 		public override string ChunkDescription => $"{ChunkType.GetRawName()} chunk";
 

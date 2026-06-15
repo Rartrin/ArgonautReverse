@@ -8,7 +8,7 @@ namespace ArgonautReverse.WadChunks.PC
 	{
 		public static readonly WFPCChunkInfo Instance = new WFPCChunkInfo();
 
-		public override WadVersion[] SupportedWadVersions => Configuration.PC_PARSABLE_WADS;
+		public override WadVersion[] SupportedWadVersions => Configuration.ParsableWadsPC;
 		public override string ChunkDescription => "WadFlags";
 		public override ChunkType ChunkType => ChunkType.ID_PC_WADFLAGS;
 

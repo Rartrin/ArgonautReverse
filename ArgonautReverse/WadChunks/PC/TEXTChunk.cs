@@ -8,7 +8,7 @@ namespace ArgonautReverse.WadChunks.PC
 	{
 		public static readonly TEXTChunkInfo Instance = new TEXTChunkInfo();
 
-		public override WadVersion[] SupportedWadVersions => Configuration.PC_PARSABLE_WADS;
+		public override WadVersion[] SupportedWadVersions => Configuration.ParsableWadsPC;
 		public override string ChunkDescription => "";
 		public override ChunkType ChunkType => ChunkType.ID_PC_TEXT;
 

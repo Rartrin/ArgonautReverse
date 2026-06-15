@@ -8,7 +8,7 @@ namespace ArgonautReverse.WadChunks.PC
 	{
 		public static readonly TRAKChunkInfo Instance = new TRAKChunkInfo();
 
-		public override WadVersion[] SupportedWadVersions => Configuration.PC_PARSABLE_WADS;
+		public override WadVersion[] SupportedWadVersions => Configuration.ParsableWadsPC;
 		public override string ChunkDescription => "Track data";
 		public override ChunkType ChunkType => ChunkType.ID_PC_TRACK;
 

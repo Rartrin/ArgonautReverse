@@ -10,7 +10,7 @@ namespace ArgonautReverse.WadChunks.PC
 
 		public override ChunkType ChunkType => ChunkType.ID_PC_SPRITE;
 		public override string ChunkDescription => "Sprite data";
-		public override WadVersion[] SupportedWadVersions{get;} = Configuration.PC_PARSABLE_WADS;
+		public override WadVersion[] SupportedWadVersions{get;} = Configuration.ParsableWadsPC;
 
 		public override SPRTChunk Parse(WadReader reader)
 		{

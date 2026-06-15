@@ -10,7 +10,7 @@ namespace ArgonautReverse.WadChunks.PC
 
 		public override ChunkType ChunkType => ChunkType.ID_PC_RIMG;
 		public override string ChunkDescription => "RIMG";
-		public override WadVersion[] SupportedWadVersions{get;} = Configuration.PC_PARSABLE_WADS;
+		public override WadVersion[] SupportedWadVersions{get;} = Configuration.ParsableWadsPC;
 
 		public override RIMGChunk Parse(WadReader reader)
 		{

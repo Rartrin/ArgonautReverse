@@ -10,7 +10,7 @@ namespace ArgonautReverse.WadChunks.PC
 
 		public override ChunkType ChunkType => ChunkType.ID_PC_AMPC;
 		public override string ChunkDescription => "Audio MIDI data";
-		public override WadVersion[] SupportedWadVersions{get;} = Configuration.PC_PARSABLE_WADS;
+		public override WadVersion[] SupportedWadVersions{get;} = Configuration.ParsableWadsPC;
 
 		public override AMPCChunk Parse(WadReader reader)
 		{

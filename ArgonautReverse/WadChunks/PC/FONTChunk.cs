@@ -10,7 +10,7 @@ namespace ArgonautReverse.WadChunks.PC
 	{
 		public static readonly FONTChunkInfo Instance = new FONTChunkInfo();
 
-		public override WadVersion[] SupportedWadVersions => Configuration.PC_PARSABLE_WADS;
+		public override WadVersion[] SupportedWadVersions => Configuration.ParsableWadsPC;
 		public override string ChunkDescription => "Font lookup table";
 		public override ChunkType ChunkType => ChunkType.ID_PC_FONT;
 

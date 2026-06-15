@@ -7,7 +7,7 @@ namespace ArgonautReverse.WadChunks.PC
 	{
 		public static readonly LGPCChunkInfo Instance = new();
 
-		public override WadVersion[] SupportedWadVersions => Configuration.PC_PARSABLE_WADS;
+		public override WadVersion[] SupportedWadVersions => Configuration.ParsableWadsPC;
 		public override string ChunkDescription => "Language data";
 		public override ChunkType ChunkType => ChunkType.ID_PC_LANG;
 

@@ -123,9 +123,9 @@ namespace ArgonautReverse
 			var args = ParseArgs(rawArgs);
 			if(args == null){return;}
 
-			var readFormat = Configuration.SUPPORTED_GAMES[args.ReadFormat];
-			var writeFormat = args.WriteFormat!=null ? Configuration.SUPPORTED_GAMES[args.WriteFormat] : null;
-			if(!Configuration.ALL_PARSABLE_GAMES.Contains(readFormat))
+			var readFormat = Configuration.SliceableGames[args.ReadFormat];
+			var writeFormat = args.WriteFormat!=null ? Configuration.SliceableGames[args.WriteFormat] : null;
+			if(!Configuration.AllParsableGames.Contains(readFormat))
 			{
 				throw new NotImplementedException("Files from this game can be extracted, but not reversed (yet). If you just want to extract them, use the extract_files_from_dat.py script.");
 			}

@@ -10,7 +10,7 @@ namespace ArgonautReverse.WadChunks.PC
 
 		public override ChunkType ChunkType => ChunkType.ID_PC_SAMPLE;
 		public override string ChunkDescription => "Audio Sample data";
-		public override WadVersion[] SupportedWadVersions{get;} = Configuration.PC_PARSABLE_WADS;
+		public override WadVersion[] SupportedWadVersions{get;} = Configuration.ParsableWadsPC;
 
 		public override SMPCChunk Parse(WadReader reader)
 		{

@@ -11,7 +11,7 @@ namespace ArgonautReverse.WadChunks.PSX
 
 		public override ChunkType ChunkType => ChunkType.ID_END;
 		public override string ChunkDescription => "END but sometimes includes sound effects, background music, and dialogues";
-		public override WadVersion[] SupportedWadVersions{get;} = Configuration.PSX_PARSABLE_WADS;//new[]{HARRY_POTTER_1_PS1.Instance, HARRY_POTTER_2_PS1.Instance};
+		public override WadVersion[] SupportedWadVersions{get;} = Configuration.ParsableWadsPSX;//new[]{HARRY_POTTER_1_PS1.Instance, HARRY_POTTER_2_PS1.Instance};
 
 		public override ENDChunkPSX Parse(WadReader data_in)
 		{

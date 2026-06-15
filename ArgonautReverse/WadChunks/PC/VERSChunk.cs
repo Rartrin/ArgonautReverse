@@ -7,7 +7,7 @@ namespace ArgonautReverse.WadChunks.PC
 	{
 		public static readonly VERSChunkInfo Instance = new VERSChunkInfo();
 
-		public override WadVersion[] SupportedWadVersions => Configuration.PC_PARSABLE_WADS;
+		public override WadVersion[] SupportedWadVersions => Configuration.ParsableWadsPC;
 		public override string ChunkDescription => "Debug chunk version (empty)";
 		public override ChunkType ChunkType => ChunkType.ID_PC_VERSION;
 
