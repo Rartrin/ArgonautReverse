@@ -24,14 +24,14 @@ namespace ArgonautReverse.PSX
 	public sealed class ChunkHolderPSX
 	{
 		public readonly IReadOnlyList<SubChunkPSX> Subchunks;
-		public readonly ZonePSX zone_id;
+		public readonly ZonePSX? zone_id;
 		public readonly LightTuplePSX? LightTuples;
 
 		public int Count => Subchunks.Count;
 
-		public ChunkHolderPSX(IReadOnlyList<SubChunkPSX> sub_chunks = null, ZonePSX zone_id = null, LightTuplePSX? lightTuples = null)
+		public ChunkHolderPSX(IReadOnlyList<SubChunkPSX>? sub_chunks = null, ZonePSX? zone_id = null, LightTuplePSX? lightTuples = null)
 		{
-			Subchunks = sub_chunks ?? Array.Empty<SubChunkPSX>();
+			Subchunks = sub_chunks ?? [];
 			this.zone_id = zone_id;
 			LightTuples = lightTuples;
 		}
@@ -65,95 +65,11 @@ namespace ArgonautReverse.PSX
 
 		public int n_filled_chunks => ChunkHolders.Count(chunk => chunk.Subchunks.Count != 0);
 
-		public override string ToString() => chunks_visual_map();
-
-		public string chunks_visual_map()
-		{
-			return string.Join('\n',
-				Enumerable.Range(0, n_rows).Select(x => string.Join(' ',
-					Enumerable.Range(0, n_columns).Select(y =>
-							ChunkHolders[x * n_columns + y] != null ? "█" : "░"
-					)
-				))
-			);
-		}
-
-		public string chunks_visual_ids()
-		{
-			return string.Join('\n',
-				Enumerable.Range(0, n_rows).Select(x => string.Join(' ',
-						Enumerable.Range(0, n_columns).Select(y =>
-							ChunkHolders[x * n_columns + y] != null ? $"{x * n_columns + y,-4}" : "░░░░"
-						)
-					)
-				)
-			);
-		}
-
-		public string subchunks_visual_ids()
-		{
-			int subchunk_id = 0;
-			var res = new StringWriter();
-			for(int x = 0; x < n_rows; x++)
-			{
-				for(int y = 0; y < n_columns; y++)
-				{
-					if(y != 0)
-					{
-						res.Write(' ');
-					}
-					var subchunks = ChunkHolders[x * n_columns + y];
-					if(subchunks != null)
-					{
-						res.Write($"{subchunk_id,-4}");
-						subchunk_id += subchunks.Count;
-					}
-					else
-					{
-						res.Write("░░░░");
-					}
-				}
-				res.WriteLine();
-			}
-			return res.ToString();
-		}
-
-		public string chunks_visual_zone_ids()
-		{
-			if(max_zone_id is null)
-			{
-				return "There are no zone ids in this level.";
-			}
-			var res = new StringWriter();
-			for(int x = 0; x < n_rows; x++)
-			{
-				for(int y = 0; y < n_columns; y++)
-				{
-					if(y != 0)
-					{
-						res.Write(' ');
-					}
-					var zone_id = ChunkHolders[x * n_columns + y].zone_id;
-					if(zone_id is not null && zone_id.Zone != max_zone_id.Zone)
-					{
-						res.Write($"{zone_id.Zone,-3}");
-					}
-					else
-					{
-						res.Write("░░░");
-					}
-				}
-				res.WriteLine();
-			}
-			return res.ToString();
-		}
-		public (int X, int Z) x_z_coords(int chunk_id)
-		{
+		public (int X, int Z) x_z_coords(int chunk_id) =>
+		(
 			// Chunks are 4096-large, so +2048 is needed to point to the chunk's center
-			return (
-				4096 * (chunk_id % n_columns) + 2048,
-				4096 * (chunk_id / n_columns) + 2048//Floor division
-			);
-		}
+			X: 4096 * (chunk_id % n_columns) + 2048,
+			Z: 4096 * (chunk_id / n_columns) + 2048//Floor division
+		);
 	}
 }

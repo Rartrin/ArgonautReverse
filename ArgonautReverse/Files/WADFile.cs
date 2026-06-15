@@ -142,13 +142,22 @@ namespace ArgonautReverse.Files
 				{
 					throw new Exception($"Chunk {chunkLocation.Info.ChunkType} already read");
 				}
-				var chunk = chunkLocation.Info.Parse(chunkReader);
-				this.AddChunk(chunk);
-				if(chunkReader.Remaining != 0)
-				{
-					Console.WriteLine($"WARNING: There were {chunkReader.Remaining} bytes of unparsed data in {chunkLocation.Info.ChunkType}!");
+				try
+				{ 
+					var chunk = chunkLocation.Info.Parse(chunkReader);
+					this.AddChunk(chunk);
+					if(chunkReader.Remaining != 0)
+					{
+						Console.WriteLine($"WARNING: There were {chunkReader.Remaining} bytes of unparsed data in {chunkLocation.Info.ChunkType}!");
+					}
+					chunk.PostParseSetup(this);
 				}
-				chunk.PostParseSetup(this);
+				catch(Exception exception)
+				{
+					Console.WriteLine($"Failed to read {chunkLocation.Info.ChunkType} chunk.");
+					Console.WriteLine(exception.Message);
+					Console.WriteLine("Skipping chunk.");
+				}
 			}
 		}
 

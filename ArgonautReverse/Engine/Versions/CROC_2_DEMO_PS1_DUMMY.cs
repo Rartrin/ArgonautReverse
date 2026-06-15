@@ -227,14 +227,22 @@ namespace ArgonautReverse.Engine.Versions
 
 			public override TriggerType MapTriggerType(int value) => MapperCroc2.TriggerTypeMapper(value);
 
-			public static readonly WadVersion Instance_Early = new CROC_2_DEMO_PS1_DUMMY_Wad(100,
-				"00BD7800",//Dino Fight
-				"01864000",//Early snow hub
-				"01BEF000",//Early Sledding/Snowman roll
-				"01CBF000"//Widgies
-			);
+			public static readonly WadVersion Instance_Early;
 			//Version used by most
-			public static readonly WadVersion Instance_Latest = new CROC_2_DEMO_PS1_DUMMY_Wad(999, "__Latest__");
+			public static readonly WadVersion Instance_Latest;
+
+			static CROC_2_DEMO_PS1_DUMMY_Wad()
+			{
+				Instance_Early = new CROC_2_DEMO_PS1_DUMMY_Wad
+				(
+					100,
+					"00BD7800",//Dino Fight
+					"01864000",//Early snow hub
+					"01BEF000",//Early Sledding/Snowman roll
+					"01CBF000"//Widgies
+				);
+				Instance_Latest = new CROC_2_DEMO_PS1_DUMMY_Wad(999, "__Latest__");
+			}
 		}
 	}
 }

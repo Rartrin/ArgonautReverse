@@ -83,10 +83,11 @@ namespace ArgonautReverse.PSX
 		}
 
 		/// <summary>Exports the material (MTL) and texture (PNG) files that are needed by the OBJ Wavefront file.</summary>
-		public void _prepare_obj_export(string folder_path, string wad_filename)
+		private void _prepare_obj_export(string folder_path, string wad_filename)
 		{
 			var mtl_file = new StringWriter();
-			mtl_file.WriteLine($"newmtl mtl1\nmap_Kd {wad_filename}.png");
+			mtl_file.WriteLine("newmtl mtl1");
+			mtl_file.WriteLine($"map_Kd {wad_filename}.png");
 			File.WriteAllText(Path.Join(folder_path, wad_filename+".mtl"), mtl_file.ToString());
 			this.TPSX.TextureFile.to_colorized_texture().Save(Path.Join(folder_path, wad_filename + ".png"), System.Drawing.Imaging.ImageFormat.Png);
 		}
@@ -94,7 +95,7 @@ namespace ArgonautReverse.PSX
 		/// Tries to find one compatible animation for each model in the WAD, animates it to make it clean
 		/// (see doc about 3D models) and exports them into Wavefront OBJ files at the given location.
 		/// </summary>
-		public void export_experimental_models(string folder_path, string wad_filename)
+		public void ExportModels(string folder_path, string wad_filename)
 		{
 			var n_models = DPSX.Models3D.Count;
 			var n_animations = DPSX.Animations.Count;
@@ -142,13 +143,13 @@ namespace ArgonautReverse.PSX
 				var obj_filename = $"{wad_filename}_{i}";
 				var obj_file = new StringWriter();
 				var textures = TPSX.TextureFile.Textures;
-				if(model_3d.Data.n_vertices_groups == 1)
+				if(model_3d.Data.VerticesGroups == 1)
 				{
 					model_3d.Data.ToSingleObj(obj_file, obj_filename, textures, wad_filename);
 				}
 				else
 				{
-					var animation_id = guess_compatible_animation(i, DPSX.Models3D[i].Data.n_vertices_groups);
+					var animation_id = guess_compatible_animation(i, DPSX.Models3D[i].Data.VerticesGroups);
 					if(animation_id == null)
 					{
 						model_3d.Data.ToSingleObj(obj_file, obj_filename, textures, wad_filename);
@@ -160,18 +161,6 @@ namespace ArgonautReverse.PSX
 				}
 				File.WriteAllText(Path.Join(folder_path, obj_filename + ".obj"), obj_file.ToString());
 			}
-		}
-		/// <summary>
-		/// Exports a 3D model into a Wavefront OBJ file along with a MTL file and a texture file.
-		/// Avoid calling this function on a lot of 3D models at once, WAD batch export functions are made for that.
-		/// If you do it anyway, the export will take a long time as a new texture file will be generated for each model.
-		/// </summary>
-		public void export_model_3d(int model_id, string folder_path, string filename)
-		{
-			this._prepare_obj_export(folder_path, filename);
-			var obj = new StringWriter();
-			DPSX.Models3D[model_id].Data.ToSingleObj(obj, filename, TPSX.TextureFile.Textures, filename);
-			File.WriteAllText(Path.Join(folder_path, filename + ".obj"), obj.ToString(), Encoding.ASCII);
 		}
 
 		private enum AudioFormat
@@ -253,11 +242,10 @@ namespace ArgonautReverse.PSX
 			}
 		}
 
-		public void export_audio_to_wav(string folder_path, string wad_filename) => this.ExportAudio(folder_path, wad_filename, AudioFormat.WAV);
+		public void ExportAudioWAV(string folder_path, string wad_filename) => this.ExportAudio(folder_path, wad_filename, AudioFormat.WAV);
+		public void ExportAudioVAG(string  folder_path, string wad_filename) => this.ExportAudio(folder_path, wad_filename, AudioFormat.VAG);
 
-		public void export_audio_to_vag(string  folder_path, string wad_filename) => this.ExportAudio(folder_path, wad_filename, AudioFormat.VAG);
-
-		public void export_level(string folder_path, string wad_filename)
+		public void ExportTrack(string folder_path, string wad_filename)
 		{
 			if(!Directory.Exists(folder_path))
 			{
@@ -270,7 +258,7 @@ namespace ArgonautReverse.PSX
 
 			this._prepare_obj_export(folder_path, wad_filename);
 			var obj = new StringWriter();
-			obj.WriteLine(string.Format(Model3DDataPSX.mtl_header, wad_filename));
+			obj.WriteLine(string.Format(TrackModelDataPSX.mtl_header, wad_filename));
 			int vio = 0;
 			int sub_chunk_id = 0;
 			foreach(var texture in TPSX.TextureFile.Textures)
@@ -289,15 +277,7 @@ namespace ArgonautReverse.PSX
 					foreach(var chunk in chunk_holder.Subchunks)
 					{
 						var cm = chunk.model_3d_data.Data;
-						cm.ToBatchObj(
-							obj,
-							$"{wad_filename}_{sub_chunk_id}",
-							x,
-							chunk.height,
-							z,
-							chunk.rotation,
-							vio
-						);
+						cm.ToBatchObj(obj, $"{wad_filename}_{sub_chunk_id}", x, chunk.height, z, chunk.rotation, vio);
 						vio += cm.n_vertices;
 						sub_chunk_id += 1;
 					}
@@ -322,13 +302,13 @@ namespace ArgonautReverse.PSX
 			ExportActors(args, conf);
 			if(args.ExtractModels)
 			{
-				var wad_models_3d_folder_path = args.GetExtractDirectory(Stem, "Models");
-				export_experimental_models(wad_models_3d_folder_path, Stem);
+				var modelDirectory = args.GetExtractDirectory(Stem, "Models");
+				ExportModels(modelDirectory, Stem);
 			}
 			if(args.ExtractLevels)
 			{
-				var wad_level_folder_path = args.GetExtractDirectory(Stem, "Levels");
-				export_level(wad_level_folder_path, Stem);
+				var trackDirectory = args.GetExtractDirectory(Stem, "Track");
+				ExportTrack(trackDirectory, Stem);
 			}
 		}
 
@@ -338,13 +318,13 @@ namespace ArgonautReverse.PSX
 
 			if(args.ExtractAudio)
 			{
-				var wad_audio_export_folder_path = args.GetExtractDirectory(Stem, "Audio");
-				export_audio_to_wav(wad_audio_export_folder_path, Stem);
+				var audioDirectory = args.GetExtractDirectory(Stem, "Audio");
+				ExportAudioWAV(audioDirectory, Stem);
 			}
 			if(args.UnpackAudio)
 			{
-				var wad_audio_unpack_folder_path = args.GetExtractDirectory(Stem, "UnpackedAudio");
-				export_audio_to_vag(wad_audio_unpack_folder_path, Stem);
+				var unpackedAudioDirectory = args.GetExtractDirectory(Stem, "UnpackedAudio");
+				ExportAudioVAG(unpackedAudioDirectory, Stem);
 			}
 		}
 
@@ -372,6 +352,9 @@ namespace ArgonautReverse.PSX
 			return (script, (InstructionAddress)(dataOffset - script.DataChunkAddress));
 		}
 
-		public override void ProcessScripts(){}
+		public override void ProcessScripts()
+		{
+			DPSX.ProcessScipts(this);
+		}
 	}
 }

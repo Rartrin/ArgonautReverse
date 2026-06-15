@@ -15,7 +15,7 @@ namespace ArgonautReverse
 		public override string ToString() => Message;
 	}
 
-	public sealed class NegativeIndexError(int absolute_file_offset, string cause, int value, object entire):ReverseError($"A negative {cause} index has been found: {value}. Whole {cause}: {entire}", absolute_file_offset)
+	public sealed class NegativeIndexError(int absolute_file_offset, string cause, int value, object? entire):ReverseError($"A negative {cause} index has been found: {value}. Whole {cause}: {entire}", absolute_file_offset)
 	{
 		public const string CAUSE_VERTEX = "vertex";
 		public const string CAUSE_VERTEX_NORMAL = "vertex normal";

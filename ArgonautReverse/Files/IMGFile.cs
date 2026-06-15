@@ -102,7 +102,7 @@ namespace ArgonautReverse.Files
 	{
 		public override string Suffix => "IMG";
 
-		public IReadOnlyList<Bitmap> Images{get;private set;}
+		public IReadOnlyList<Bitmap> Images{get;private set;} = [];
 
 		public override void PrintInfo(TextWriter output)
 		{

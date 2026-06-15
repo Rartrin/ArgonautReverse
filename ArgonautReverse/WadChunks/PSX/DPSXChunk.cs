@@ -16,7 +16,7 @@ namespace ArgonautReverse.WadChunks.PSX
 			CROC_2_DEMO_PS1_DUMMY.DatVersion,
 			HARRY_POTTER_1_PS1.DatVersion,
 			HARRY_POTTER_2_PS1.DatVersion
-		}.SelectMany(datVersion => datVersion.WadVersions).ToArray();
+		}.SelectMany(datVersion => datVersion.WadVersions).Distinct().ToArray();
 
 		public override string ChunkDescription => "3D models, animations & level geometry";
 
@@ -88,8 +88,33 @@ namespace ArgonautReverse.WadChunks.PSX
 			if(LevelFile.map==null)
 			{
 				Utils.Assert(Actors.Count == 0);
-				return;
 			}
+		}
+
+		public ActorDataPSX GetScript(int rawEntryPoint)
+		{
+			foreach(var curScript in Actors)
+			{
+				if(curScript.DataChunkAddress<=rawEntryPoint && rawEntryPoint<curScript.DataChunkAddress+curScript.DataChunkLength)
+				{
+					var entryPoint = rawEntryPoint-curScript.DataChunkAddress;
+					if(!curScript.EntryPointAddrs.Contains(entryPoint))
+					{
+						curScript.EntryPointAddrs.Add(entryPoint);
+					}
+					return curScript;
+				}
+			}
+			throw new Exception("Entry point outside of known scripts");
+		}
+
+		protected override void WriteData(ChunkWriter writer)
+		{
+			throw new NotImplementedException();
+		}
+
+		public void ProcessScipts(WADFile wadFile)
+		{
 			foreach(var strat in LevelFile.map.Strats)
 			{
 				strat.Script = GetScript(strat.AddrOffset);
@@ -117,28 +142,6 @@ namespace ArgonautReverse.WadChunks.PSX
 					Console.WriteLine($"WARNING: Script {wadFile.Name}_{i} missing entrypoint");
 				}
 			}
-		}
-
-		public ActorDataPSX GetScript(int rawEntryPoint)
-		{
-			foreach(var curScript in Actors)
-			{
-				if(curScript.DataChunkAddress<=rawEntryPoint && rawEntryPoint<curScript.DataChunkAddress+curScript.DataChunkLength)
-				{
-					var entryPoint = rawEntryPoint-curScript.DataChunkAddress;
-					if(!curScript.EntryPointAddrs.Contains(entryPoint))
-					{
-						curScript.EntryPointAddrs.Add(entryPoint);
-					}
-					return curScript;
-				}
-			}
-			throw new Exception("Entry point outside of known scripts");
-		}
-
-		protected override void WriteData(ChunkWriter writer)
-		{
-			throw new NotImplementedException();
 		}
 	}
 }

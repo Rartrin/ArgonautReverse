@@ -4,7 +4,7 @@ namespace ArgonautReverse.PC.Extractors
 {
 	public static class ModelExtractor
 	{
-		public static void ExtractAll(ProgramArgs args, Configuration conf, WadFilePC wad, IReadOnlyList<StratObject2PC> models)
+		public static void ExtractObjects(ProgramArgs args, Configuration conf, WadFilePC wad, IReadOnlyList<StratObject2PC> models)
 		{
 			if(!args.ExtractModels){return;}
 
@@ -17,7 +17,7 @@ namespace ArgonautReverse.PC.Extractors
 			}
 		}
 
-		public static void ExtractAll(ProgramArgs args, Configuration conf, WadFilePC wad, IReadOnlyList<StratObjectPC> pieces)
+		public static void ExtractTrackPieces(ProgramArgs args, Configuration conf, WadFilePC wad, IReadOnlyList<StratObjectPC> pieces)
 		{
 			if(!args.ExtractLevels){return;}
 
@@ -175,30 +175,30 @@ namespace ArgonautReverse.PC.Extractors
 							{
 								if((vert.flags & 0x20) != 0)
 								{
-									face.textCoordIndex[0] = textureCoords.Count - 3;
-									face.textCoordIndex[1] = textureCoords.Count - 4;
-									face.textCoordIndex[2] = textureCoords.Count - 2;
+									face.textCoordIndex[0] = textureCoords.Count - 3;//1
+									face.textCoordIndex[1] = textureCoords.Count - 4;//0
+									face.textCoordIndex[2] = textureCoords.Count - 2;//2
 								}
 								else
 								{
-									face.textCoordIndex[0] = textureCoords.Count - 4;
-									face.textCoordIndex[1] = textureCoords.Count - 3;
-									face.textCoordIndex[2] = textureCoords.Count - 1;
+									face.textCoordIndex[0] = textureCoords.Count - 4;//0
+									face.textCoordIndex[1] = textureCoords.Count - 3;//1
+									face.textCoordIndex[2] = textureCoords.Count - 1;//3
 								}
 							}
 							else
 							{
 								if((vert.flags & 0x20) != 0)
 								{
-									face.textCoordIndex[0] = textureCoords.Count - 2;
-									face.textCoordIndex[1] = textureCoords.Count - 1;
-									face.textCoordIndex[2] = textureCoords.Count - 3;
+									face.textCoordIndex[0] = textureCoords.Count - 2;//2
+									face.textCoordIndex[1] = textureCoords.Count - 1;//3
+									face.textCoordIndex[2] = textureCoords.Count - 3;//1
 								}
 								else
 								{
-									face.textCoordIndex[0] = textureCoords.Count - 1;
-									face.textCoordIndex[1] = textureCoords.Count - 2;
-									face.textCoordIndex[2] = textureCoords.Count - 4;
+									face.textCoordIndex[0] = textureCoords.Count - 1;//3
+									face.textCoordIndex[1] = textureCoords.Count - 2;//2
+									face.textCoordIndex[2] = textureCoords.Count - 4;//0
 								}
 							}
 						}
@@ -206,15 +206,15 @@ namespace ArgonautReverse.PC.Extractors
 						{
 							if((vert.flags & 0x20) != 0)
 							{
-								face.textCoordIndex[0] = textureCoords.Count - 2;
-								face.textCoordIndex[1] = textureCoords.Count - 1;
-								face.textCoordIndex[2] = textureCoords.Count - 4;
+								face.textCoordIndex[0] = textureCoords.Count - 2;//2
+								face.textCoordIndex[1] = textureCoords.Count - 1;//3
+								face.textCoordIndex[2] = textureCoords.Count - 4;//0
 							}
 							else
 							{
-								face.textCoordIndex[0] = textureCoords.Count - 1;
-								face.textCoordIndex[1] = textureCoords.Count - 2;
-								face.textCoordIndex[2] = textureCoords.Count - 3;
+								face.textCoordIndex[0] = textureCoords.Count - 1;//3
+								face.textCoordIndex[1] = textureCoords.Count - 2;//2
+								face.textCoordIndex[2] = textureCoords.Count - 3;//1
 							}
 						}
 						

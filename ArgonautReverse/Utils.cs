@@ -45,7 +45,6 @@ namespace ArgonautReverse
 			return res;
 		}
 
-
 		public static byte[] parse_4bits_paletted(Span<byte> data)
 		{
 			var res = new byte[data.Length];

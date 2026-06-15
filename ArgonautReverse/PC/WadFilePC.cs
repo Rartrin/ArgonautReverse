@@ -157,7 +157,7 @@ namespace ArgonautReverse.PC
 
 		private void ExportTRACK(ProgramArgs args, Configuration conf)
 		{
-			ModelExtractor.ExtractAll(args, conf, this, TrackChunk.Models);
+			ModelExtractor.ExtractTrackPieces(args, conf, this, TrackChunk.Models);
 
 			ModelExtractor.DrawWorldGeometry(args, conf, this, MapChunk.Map);
 		}
@@ -202,7 +202,7 @@ namespace ArgonautReverse.PC
 		private void ExportSTRAT(ProgramArgs args, Configuration conf)
 		{
 			ExportScripts(args, conf);
-			ModelExtractor.ExtractAll(args, conf, this, StratChunk.Models);
+			ModelExtractor.ExtractObjects(args, conf, this, StratChunk.Models);
 		}
 
 		public void ExportScripts(ProgramArgs args, Configuration conf)
