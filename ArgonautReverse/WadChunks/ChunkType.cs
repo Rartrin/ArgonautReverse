@@ -23,16 +23,19 @@ namespace ArgonautReverse.WadChunks
 		ID_PC_SPRITE	= (('S' << 24) + ('P' << 16) + ('R' << 8) + 'T'),
 		ID_PC_RIMG		= (('R' << 24) + ('I' << 16) + ('M' << 8) + 'G'),
 
-		#region TENG PC
+		#region Earliest found: TENG
 		ID_PC_NAME		= (('N' << 24) + ('A' << 16) + ('M' << 8) + 'E'),
 		ID_PC_SRPC		= (('S' << 24) + ('R' << 16) + ('P' << 8) + 'C'),
 		ID_PC_LNFO		= (('L' << 24) + ('N' << 16) + ('F' << 8) + 'O'),
+		#endregion
+		#region Earliest found: Aladdin
+		ID_PC_PRLT		= (('P' << 24) + ('R' << 16) + ('L' << 8) + 'T'),
 		#endregion
 		#endregion
 
 		#region PSX Chunks
 		//CWAD indicated the wad is compressed
-		ID_PSX_CWAD     =(('C' << 24) + ('W' << 16) + ('A' << 8) + 'D'),
+		ID_PSX_CWAD = (('C' << 24) + ('W' << 16) + ('A' << 8) + 'D'),
 		
 		ID_PSX_TEXT		=(('T' << 24) + ('P' << 16) + ('S' << 8) + 'X'),
 		ID_PSX_SAMPLE	=(('S' << 24) + ('P' << 16) + ('S' << 8) + 'X'),

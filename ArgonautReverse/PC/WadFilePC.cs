@@ -140,9 +140,9 @@ namespace ArgonautReverse.PC
 		{
 			//Skip INFO
 			//Skip VERSION
+			ExportTEXT(args, conf);
 			//ExportMAP(args, conf);
 			ExportTRACK(args, conf);
-			ExportTEXT(args, conf);
 			//ExportLIGHT(args, conf);
 			ExportSTRAT(args, conf);
 			//Skip WADFLAGS
@@ -184,14 +184,18 @@ namespace ArgonautReverse.PC
 		public unsafe void ExtractTexture(TextureStructPC texture, string path)
 		{
 			var abgrPixels = texture.pixels;
-			var argbPixels = stackalloc ColorARGB555[abgrPixels.Length];
+			var argbPixels = new ColorARGB555[abgrPixels.Length];
 			for(int i=0; i<abgrPixels.Length; i++)
 			{
 				argbPixels[i] = new ColorABGR555(abgrPixels[i]).ToRGB555();
 			}
 			//Save before leaving. Bitmap seem to load lazily meaning there could be pointer degradation regardless of stackalloc or fixed.
-			var ret = new Bitmap(texture.Width, texture.Height, texture.Width * sizeof(ColorARGB555), PixelFormat.Format16bppArgb1555, (nint)argbPixels);
-			ret.Save(path, ImageFormat.Png);
+			fixed(ColorARGB555* argbPixels0 = argbPixels)
+			{
+				var ret = new Bitmap(texture.Width, texture.Height, texture.Width * sizeof(ColorARGB555), PixelFormat.Format16bppArgb1555, (nint)argbPixels0);
+				ret.Save(path, ImageFormat.Png);
+				ret.Dispose();
+			}
 		}
 
 		public void ExportSPRITE(SpriteStructPC sprite, string path)

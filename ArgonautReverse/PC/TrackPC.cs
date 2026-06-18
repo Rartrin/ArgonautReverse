@@ -4,63 +4,6 @@ using ArgonautReverse.WadChunks.PC;
 
 namespace ArgonautReverse.PC
 {
-	public readonly struct ModelCollisionStruct0PC(short wField0, short wField1, int field2):IReadable<ModelCollisionStruct0PC>,IWritable
-	{
-		public readonly short wField0 = wField0;
-		public readonly short wField1 = wField1;
-		public readonly int field2 = field2;
-
-		public static ModelCollisionStruct0PC Parse(WadReader reader)
-		{
-			var wField0 = reader.Read<short>();
-			var wField1 = reader.Read<short>();
-			var field2 = reader.Read<int>();
-			return new ModelCollisionStruct0PC(wField0, wField1, field2);
-		}
-
-		public void Write(WadWriter writer)
-		{
-			writer.Write<short>(wField0);
-			writer.Write<short>(wField1);
-			writer.Write<int>(field2);
-		}
-	}
-
-	public sealed class Model_SubStruct1PC:IReadable<Model_SubStruct1PC>,IWritable
-	{
-		public byte bField0;
-		public byte bField1;
-		public short wGapField0;
-		public ModelCollisionStruct0PC[] collisionArray;//[4]
-		public short Y;
-		public short X;
-		public int field4;
-
-		public static Model_SubStruct1PC Parse(WadReader reader)
-		{
-			var ret = new Model_SubStruct1PC();
-			ret.bField0 = reader.Read<byte>();
-			ret.bField1 = reader.Read<byte>();
-			ret.wGapField0 = reader.Read<short>();
-			ret.collisionArray = reader.ReadArray<ModelCollisionStruct0PC>(4);
-			ret.Y = reader.Read<short>();
-			ret.X = reader.Read<short>();
-			ret.field4 = reader.Read<int>();
-			return ret;
-		}
-
-		public void Write(WadWriter writer)
-		{
-			writer.Write<byte>(bField0);
-			writer.Write<byte>(bField1);
-			writer.Write<short>(wGapField0);
-			writer.WriteSizedArray<ModelCollisionStruct0PC>(4, collisionArray);
-			writer.Write<short>(Y);
-			writer.Write<short>(X);
-			writer.Write<int>(field4);
-		}
-	}
-
 	public record struct ModelVertexPC(Vector3F Position, Vector3F Direction):IReadable<ModelVertexPC>,IWritable
 	{
 		public static ModelVertexPC Parse(WadReader reader)
@@ -186,9 +129,10 @@ namespace ArgonautReverse.PC
 		public Vector3F[] vec;//[9]
 		public ModelVertexPC[] vertices;
 		public ModelTrianglePC[] triangles;
-		public ushort wField1;
-		public ushort wField2;
-		public Model_SubStruct1PC[] array2;
+		public ushort FloorCount;
+		public ushort CeilingCount;
+		public ushort? WallCount;
+		public FaceCollision[] array2;
 
 		StratObjectPC IStratObjectPC.Model => this;
 
@@ -202,8 +146,13 @@ namespace ArgonautReverse.PC
 			model.triangles = new ModelTrianglePC[reader.Read<ushort>()];
 			reader.AssertRead<uint>(0);//vertices placeholder
 			reader.AssertRead<uint>(0);//triangles placeholder
-			model.wField1 = reader.Read<ushort>();
-			model.wField2 = reader.Read<ushort>();
+			model.FloorCount = reader.Read<ushort>();
+			model.CeilingCount = reader.Read<ushort>();
+			if(reader.ReadVersion.NEW_COLLISION)
+			{
+				model.WallCount = reader.Read<ushort>();
+				reader.AssertRead<ushort>(0);//Padding
+			}
 			reader.AssertRead<uint>(0);//array2 placeholder
 			return model;
 		}
@@ -213,8 +162,8 @@ namespace ArgonautReverse.PC
 			reader.ReadArray<ModelVertexPC>(stratObject.vertices);
 			reader.ReadArray<ModelTrianglePC>(stratObject.triangles);
 
-			int array2Length = stratObject.wField1 + stratObject.wField2;
-			stratObject.array2 = reader.ReadArray<Model_SubStruct1PC>(array2Length);
+			int array2Length = stratObject.FloorCount + stratObject.CeilingCount;
+			stratObject.array2 = reader.ReadArray<FaceCollision>(array2Length);
 		}
 
 		public void WriteStruct(WadWriter writer)
@@ -224,8 +173,13 @@ namespace ArgonautReverse.PC
 			writer.Write((ushort)triangles.Length);
 			writer.Write<uint>(0);//vertices placeholder
 			writer.Write<uint>(0);//triangles placeholder
-			writer.Write<ushort>(wField1);
-			writer.Write<ushort>(wField2);
+			writer.Write<ushort>(FloorCount);
+			writer.Write<ushort>(CeilingCount);
+			if(writer.WriteVersion.NEW_COLLISION)
+			{
+				writer.Write<ushort>(WallCount!.Value);
+				writer.Write<ushort>(0);//Padding
+			}
 			writer.Write<uint>(0);//array2 placeholder
 		}
 
@@ -234,8 +188,8 @@ namespace ArgonautReverse.PC
 			writer.WriteArray<ModelVertexPC>(vertices);
 			writer.WriteArray<ModelTrianglePC>(triangles);
 
-			int array2Length = wField1 + wField2;
-			writer.WriteSizedArray<Model_SubStruct1PC>(array2Length, array2);
+			int array2Length = FloorCount + CeilingCount;
+			writer.WriteSizedArray<FaceCollision>(array2Length, array2);
 		}
 
 		public ModelVertexPC[] GetVertexLookup(RotPos3F rotPos)

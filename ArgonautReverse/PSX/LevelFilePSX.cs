@@ -63,9 +63,9 @@ namespace ArgonautReverse.PSX
 
 			if(map != null)
 			{
-				IReadOnlyList<int> parse_chunks_info(MapIndexPSX mapIndex)
+				static IReadOnlyList<int> parse_chunks_info(MapIndexPSX mapIndex)
 				{
-					if(mapIndex == null) { return Array.Empty<int>(); }
+					if(mapIndex == null){return [];}
 
 					var chunks_ids_list = new List<int>();
 					var linked_chunk_offset = mapIndex;
@@ -179,7 +179,7 @@ namespace ArgonautReverse.PSX
 				(
 					new ChunksMatrixPSX
 					(
-						Array.Empty<ChunkHolderPSX>(),
+						[],
 						chunk_models,
 						0,
 						0,

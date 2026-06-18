@@ -50,6 +50,10 @@
     "Export JP DUMMY": {
       "commandName": "Project",
       "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-psx-dirdat \"GameFiles/JPDEMO_DUMMY/Raw/JPDEMO_DUMMY.DAT\" --extract-path \"Extracted/JPDEMO_DUMMY\"  --extract levels,scripts,textures,models"
-    }
+    },
+		"Export Aladdin PC": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Aladdin PC\" --read-wads \"GameFiles/AladdinPC\" --extract-path \"Extracted/AladdinPC\" --extract levels"
+    },
   }
 }

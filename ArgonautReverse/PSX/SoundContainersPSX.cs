@@ -60,7 +60,7 @@ namespace ArgonautReverse.PSX
 			data_in.SkipBytes(4);//Group header offset
 			int n_sound_effects = data_in.Read<int>();
 			data_in.SkipBytes(8);// End offset (4 bytes) | Sum of group VAGs' sizes (4 bytes)
-			return new LevelSFXGroupContainerPSX(Array.Empty<SoundPSX>(), n_sound_effects);
+			return new LevelSFXGroupContainerPSX([], n_sound_effects);
 		}
 
 		public override void serialize(WadWriter data_out) => throw new Exception();

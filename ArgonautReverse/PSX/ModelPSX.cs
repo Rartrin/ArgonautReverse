@@ -3,6 +3,7 @@ using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
 using ArgonautReverse.PSX.LibGPU;
 using ArgonautReverse.PSX.LibGTE;
+using ArgonautReverse.Universal;
 
 namespace ArgonautReverse.PSX
 {
@@ -40,128 +41,6 @@ namespace ArgonautReverse.PSX
 				level = reader.Read<uint>();
 			}
 			return new OmniLightPSX(trn, col, fade_from, fade_to, level);
-		}
-	}
-
-	public abstract class BoundPSX:IReadable<BoundPSX>
-	{
-		public static BoundPSX Parse(WadReader reader)
-		{
-			if(reader.ReadVersion.NEW_COLLISION)
-			{
-				return BoundPSX_NEW_COLLISION.Parse(reader);
-			}
-			else
-			{
-				return BoundPSX_OLD_COLLISION.Parse(reader);
-			}
-		}
-	}
-
-	public sealed class BoundPSX_NEW_COLLISION:BoundPSX
-	{
-		public const int ByteSize = 6;
-
-		public sbyte nx;    // Normal X - (Signed FixedPoint 1.0.7)
-		public sbyte ny;    // Normal Y - (Signed FixedPoint 1.0.7)
-		public sbyte nz;    // Normal Z - (Signed FixedPoint 1.0.7)
-		public byte flags;  // Flags
-		public short d;     // Dist from object origin - Signed FixedPoint16 (1.3.12)
-
-		private BoundPSX_NEW_COLLISION(sbyte nx, sbyte ny, sbyte nz, byte flags, short d)
-		{
-			this.nx = nx;
-			this.ny = ny;
-			this.nz = nz;
-			this.flags = flags;
-			this.d = d;
-		}
-
-		new public static BoundPSX_NEW_COLLISION Parse(WadReader reader)
-		{
-			var nx = reader.Read<sbyte>();
-			var ny = reader.Read<sbyte>();
-			var nz = reader.Read<sbyte>();
-			var flags = reader.Read<byte>();
-			var d = reader.Read<short>();
-			return new BoundPSX_NEW_COLLISION(nx, ny, nz, flags, d);
-		}
-	}
-	public sealed class BoundPSX_OLD_COLLISION:BoundPSX
-	{
-		public const int ByteSize = 8;
-
-		public short xm;    // X Multiplier - Unsigned-FixedPoint16 (4.12)
-		public short zm;    // Y Multiplier - Unsigned-FixedPoint16 (4.12)
-		public int c;       // Constant - Unsigned-FixedPoint32 (20.12)
-
-		private BoundPSX_OLD_COLLISION(short xm, short zm, int c)
-		{
-			this.xm = xm;
-			this.zm = zm;
-			this.c = c;
-		}
-
-		new public static BoundPSX_OLD_COLLISION Parse(WadReader reader)
-		{
-			var xm = reader.Read<short>();
-			var zm = reader.Read<short>();
-			var c = reader.Read<int>();
-			return new BoundPSX_OLD_COLLISION(xm, zm, c);
-		}
-	}
-
-	public sealed class FaceCollPSX:IReadable<FaceCollPSX>//FACE_COLL
-	{
-		public const byte COLL_QUAD = 1 << 0;
-		public const byte COLL_EQN = 1 << 1;
-		public const byte COLL_CEIL = 1 << 2;
-		public const byte COLL_XXXX = 1 << 3;//not used (was _WALL)
-		public const byte COLL_STICK2FLOOR = 1 << 4;
-		public const byte COLL_SLIDE = 1 << 5;
-		public const byte COLL_NOHANG = 1 << 6;
-
-		public byte flags;/* COLL_FLAT, COLL_EQN, COLL_QUAD etc. */
-		public byte surface;
-
-
-		#region OLD_COLLISION
-		public ushort? eflags;/* edge flags for vertical surfaces */
-		#endregion
-
-		//These field were in opposite order on OLD_COLLISION
-		public BoundPSX plane;/* plane equation */
-		public IReadOnlyList<BoundPSX> boundary;//[4];/* for face boundary check */
-
-		private FaceCollPSX(byte flags, byte surface, ushort? eflags, BoundPSX plane, IReadOnlyList<BoundPSX> boundary)
-		{
-			this.flags = flags;
-			this.surface = surface;
-			this.eflags = eflags;
-			this.plane = plane;
-			this.boundary = boundary;
-		}
-
-		public static FaceCollPSX Parse(WadReader reader)
-		{
-			var flags = reader.Read<byte>();
-			var surface = reader.Read<byte>();
-			ushort? eflags;
-			BoundPSX plane;
-			IReadOnlyList<BoundPSX> boundary;
-			if(reader.ReadVersion.NEW_COLLISION)
-			{
-				eflags = null;
-				plane = reader.Read<BoundPSX>();
-				boundary = reader.ReadArray<BoundPSX>(4);
-			}
-			else
-			{
-				eflags = reader.Read<ushort>();
-				boundary = reader.ReadArray<BoundPSX>(4);
-				plane = reader.Read<BoundPSX>();
-			}
-			return new FaceCollPSX(flags, surface, eflags, plane, boundary);
 		}
 	}
 
@@ -244,7 +123,7 @@ namespace ArgonautReverse.PSX
 		public ushort? nwall;						/* number of wall collision faces */
 		public ushort? pad;
 		#endregion
-		public IReadOnlyList<FaceCollPSX> lcoll;	/* list of collision faces */
+		public IReadOnlyList<FaceCollision> lcoll;	/* list of collision faces */
 
 		protected void BaseParse(WadReader reader)
 		{
@@ -304,7 +183,7 @@ namespace ArgonautReverse.PSX
 			{
 				ncoll += nwall.Value;
 			}
-			lcoll = reader.ReadArray<FaceCollPSX>(ncoll);
+			lcoll = reader.ReadArray<FaceCollision>(ncoll);
 		}
 	}
 
@@ -337,7 +216,7 @@ namespace ArgonautReverse.PSX
 			{
 				ncoll += nwall.Value;
 			}
-			lcoll = reader.ReadArray<FaceCollPSX>(ncoll);
+			lcoll = reader.ReadArray<FaceCollision>(ncoll);
 		}
 	}
 

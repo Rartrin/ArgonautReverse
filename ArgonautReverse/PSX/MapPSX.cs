@@ -14,17 +14,17 @@ namespace ArgonautReverse.PSX
 
 		private MapIndexPSX() { }
 
-		public static IReadOnlyList<MapIndexPSX> ParseIndexGrid(MapPSX map, WadReader reader)
+		public static IReadOnlyList<MapIndexPSX> ParseIndexGrid(int pieceCount, WadReader reader)
 		{
-			var mapIndexGrid = new MapIndexPSX[map.NumberOfPieces];
+			var mapIndexGrid = new MapIndexPSX[pieceCount];
 			//Create References
-			for(int i=0; i<map.NumberOfPieces; i++)
+			for(int i=0; i<pieceCount; i++)
 			{
 				mapIndexGrid[i] = new MapIndexPSX();
 			}
 
 			//Parse data
-			for(int i=0; i<map.NumberOfPieces; i++)
+			for(int i=0; i<pieceCount; i++)
 			{
 				mapIndexGrid[i].Index = reader.Read<uint>();
 				var nextByteOffset = reader.Read<int>();
@@ -231,7 +231,7 @@ namespace ArgonautReverse.PSX
 		public IReadOnlyList<POS> Positions;
 		public IReadOnlyList<IReadOnlyList<MapIndexPSX>> Grid;//Refs to values in IndexGrid
 		public IReadOnlyList<MapIndexPSX> IndexGrid;
-		public IReadOnlyList<ZonePSX> ZoneData;
+		public IReadOnlyList<ZonePSX>? ZoneData;
 		public IReadOnlyList<uint> Pieces;
 		public IReadOnlyList<TrackChangePSX> TrackChangeData;
 		public IReadOnlyList<CVECTOR[]> LightTables;
@@ -394,7 +394,7 @@ namespace ArgonautReverse.PSX
 				mapGridOffsets[z] = data_in.ReadArray<int>(map.MapX);
 			}
 
-			map.IndexGrid = MapIndexPSX.ParseIndexGrid(map, data_in);
+			map.IndexGrid = MapIndexPSX.ParseIndexGrid(map.NumberOfPieces, data_in);
 
 			var mapGrid = new MapIndexPSX[map.MapXY][];
 			for(int z = 0; z < map.MapZ; z++)
