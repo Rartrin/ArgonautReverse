@@ -30,6 +30,8 @@ namespace ArgonautReverse.Engine.Versions
 			
 			public override bool NEW_COLLISION => true;
 			public override bool KEYFRAME_STUFF => true;
+            public override bool HAS_SPLINE_POINTS => throw new NotImplementedException();
+            public override bool HAS_STRAT_ARRAY_POOL => throw new NotImplementedException();
 
 			public override InstructionOpcode MapOpcode(int value) => throw new NotImplementedException();
 			public override TriggerType MapTriggerType(int value) => throw new NotImplementedException();

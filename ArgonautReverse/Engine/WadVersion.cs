@@ -11,6 +11,8 @@ namespace ArgonautReverse.Engine
 		//TODO: Find way to determine these programmatically?
 		public abstract bool NEW_COLLISION{get;}
 		public abstract bool KEYFRAME_STUFF{get;}
+		public abstract bool HAS_SPLINE_POINTS{get;}
+		public abstract bool HAS_STRAT_ARRAY_POOL{get;}
 		#endregion
 
 		#region Comparison

@@ -17,7 +17,7 @@ namespace ArgonautReverse.WadChunks.PC
 		public override MAPChunk Parse(WadReader reader)
 		{
 			var map = reader.Read<MapPC>();
-			reader.AssertEndOfChunk(ChunkType);
+			reader.AssertEndOfChunk(ChunkType, true);
 			return new MAPChunk(this, map, reader.GetAllWadData());
 		}
 

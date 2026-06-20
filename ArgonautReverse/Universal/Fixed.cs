@@ -4,6 +4,8 @@ namespace ArgonautReverse.Universal
 {
 	public readonly struct Fixed32:IReadable<Fixed32>,IWritable//Signed 1.19.12
 	{
+		public static Fixed32 Zero => new(0);
+		public static Fixed32 One => new(4096);
 		private readonly int raw;
 
 		private Fixed32(int raw)
@@ -19,8 +21,8 @@ namespace ArgonautReverse.Universal
 		//This is NOT the same as getting the raw bits.
 		public int Int => raw/4096;
 
-		//public static Fixed32 operator +(Fixed32 a, Fixed32 b) => new Fixed32(a.raw + b.raw);
-		//public static Fixed32 operator -(Fixed32 a, Fixed32 b) => new Fixed32(a.raw - b.raw);
+		public static Fixed32 operator +(Fixed32 a, Fixed32 b) => new Fixed32(a.raw + b.raw);
+		public static Fixed32 operator -(Fixed32 a, Fixed32 b) => new Fixed32(a.raw - b.raw);
 
 		//Cast to Int64 is necessary
 		//Integer division by 4096 is the same as arithmetic right shift by 12

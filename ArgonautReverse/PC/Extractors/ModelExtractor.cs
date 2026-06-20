@@ -51,7 +51,7 @@ namespace ArgonautReverse.PC.Extractors
 							rotation: new(0f, cellInfo.RotY, 0f),
 							position: cellInfo.Pos
 						);
-						renderData.RenderModel0(wad.TrackChunk.Models[map.ModelIndices[cellInfo.CellIndex]], rotPos);
+						renderData.RenderModel0(wad.TrackChunk.Models[map.PieceIndices[cellInfo.CellIndex]], rotPos);
 					}
 				}
 			}
@@ -169,6 +169,7 @@ namespace ArgonautReverse.PC.Extractors
 						textureCoords.Add(new(vert.sprite.sourceMinX.U8/width, 1 - vert.sprite.sourceMaxY.U8/height));
 						textureCoords.Add(new(vert.sprite.sourceMaxX.U8/width, 1 - vert.sprite.sourceMaxY.U8/height));
 
+						//TODO: These flags have definitely changed in Aladdin.
 						if((vert.flags & 0x800) != 0)
 						{
 							if((vert.flags & 0x10) != 0)
@@ -217,7 +218,7 @@ namespace ArgonautReverse.PC.Extractors
 								face.textCoordIndex[2] = textureCoords.Count - 3;//1
 							}
 						}
-						
+						//TODO: Other flags.
 					}
 
 					//TODO: [Extractor] Alpha support

@@ -1,4 +1,5 @@
-﻿using ArgonautReverse.IO;
+﻿using ArgonautReverse.Engine.Versions;
+using ArgonautReverse.IO;
 using ArgonautReverse.Universal;
 using ArgonautReverse.WadChunks.PC;
 
@@ -22,6 +23,7 @@ namespace ArgonautReverse.PC
 
 	public sealed class ModelTrianglePC:IReadable<ModelTrianglePC>,IWritable
 	{
+		//These flags likely have changed in Aladdin.
 		public ushort flags;
 		public ushort[] vertexIndices;//[3];
 
@@ -37,7 +39,7 @@ namespace ArgonautReverse.PC
 			triangle.vertexIndices = reader.ReadArray<ushort>(3);
 
 			triangle.SpriteIndex = reader.Read<ushort>();
-			reader.AssertRead<ushort>(0);//Padding
+			reader.AssertRead<ushort>(0, warn:reader.ReadVersion == Aladdin_PC.WadVersion);//Padding
 			var textChunk = reader.WadFile.GetChunk(TEXTChunkInfo.Instance);
 			triangle.sprite = textChunk.Sprites[triangle.SpriteIndex];
 
@@ -132,7 +134,7 @@ namespace ArgonautReverse.PC
 		public ushort FloorCount;
 		public ushort CeilingCount;
 		public ushort? WallCount;
-		public FaceCollision[] array2;
+		public FaceCollision[] collisionFaces;
 
 		StratObjectPC IStratObjectPC.Model => this;
 
@@ -144,16 +146,16 @@ namespace ArgonautReverse.PC
 			model.vec = reader.ReadArray<Vector3F>(9);
 			model.vertices = new ModelVertexPC[reader.Read<ushort>()];
 			model.triangles = new ModelTrianglePC[reader.Read<ushort>()];
-			reader.AssertRead<uint>(0);//vertices placeholder
-			reader.AssertRead<uint>(0);//triangles placeholder
+			reader.AssertRead<uint>(0, warn:reader.ReadVersion == Aladdin_PC.WadVersion);//vertices placeholder
+			reader.AssertRead<uint>(0, warn:reader.ReadVersion == Aladdin_PC.WadVersion);//triangles placeholder
 			model.FloorCount = reader.Read<ushort>();
 			model.CeilingCount = reader.Read<ushort>();
 			if(reader.ReadVersion.NEW_COLLISION)
 			{
 				model.WallCount = reader.Read<ushort>();
-				reader.AssertRead<ushort>(0);//Padding
+				reader.AssertRead<ushort>(0, warn:reader.ReadVersion == Aladdin_PC.WadVersion);//Padding
 			}
-			reader.AssertRead<uint>(0);//array2 placeholder
+			reader.AssertRead<uint>(0, warn:reader.ReadVersion == Aladdin_PC.WadVersion);//collisionFaces placeholder
 			return model;
 		}
 
@@ -162,8 +164,12 @@ namespace ArgonautReverse.PC
 			reader.ReadArray<ModelVertexPC>(stratObject.vertices);
 			reader.ReadArray<ModelTrianglePC>(stratObject.triangles);
 
-			int array2Length = stratObject.FloorCount + stratObject.CeilingCount;
-			stratObject.array2 = reader.ReadArray<FaceCollision>(array2Length);
+			int collisionFaceCount = stratObject.FloorCount + stratObject.CeilingCount;
+			if(reader.ReadVersion.NEW_COLLISION)
+			{
+				collisionFaceCount += stratObject.WallCount!.Value;
+			}
+			stratObject.collisionFaces = reader.ReadArray<FaceCollision>(collisionFaceCount);
 		}
 
 		public void WriteStruct(WadWriter writer)
@@ -180,7 +186,7 @@ namespace ArgonautReverse.PC
 				writer.Write<ushort>(WallCount!.Value);
 				writer.Write<ushort>(0);//Padding
 			}
-			writer.Write<uint>(0);//array2 placeholder
+			writer.Write<uint>(0);//collisionFaces placeholder
 		}
 
 		public void WriteData(WadWriter writer)
@@ -188,8 +194,12 @@ namespace ArgonautReverse.PC
 			writer.WriteArray<ModelVertexPC>(vertices);
 			writer.WriteArray<ModelTrianglePC>(triangles);
 
-			int array2Length = FloorCount + CeilingCount;
-			writer.WriteSizedArray<FaceCollision>(array2Length, array2);
+			int collisionFaceCount = FloorCount + CeilingCount;
+			if(writer.WriteVersion.NEW_COLLISION)
+			{
+				collisionFaceCount += WallCount!.Value;
+			}
+			writer.WriteSizedArray<FaceCollision>(collisionFaceCount, collisionFaces);
 		}
 
 		public ModelVertexPC[] GetVertexLookup(RotPos3F rotPos)

@@ -1,4 +1,5 @@
-﻿using ArgonautReverse.IO;
+﻿using ArgonautReverse.Engine.Versions;
+using ArgonautReverse.IO;
 using ArgonautReverse.Universal;
 using ArgonautReverse.WadChunks.PC;
 
@@ -9,7 +10,7 @@ namespace ArgonautReverse.PC
 		public Vector3F Pos = pos;
 		public int RawRotY = rawRotY;//Value is 0-1 in 24bit (0 to 0xFF0). Also, the lowest nibble is ignored.
 		public float RotY = Utils.Deg2Rad(rotY);
-		public int N = n, CellIndex = cellIndex;//Same field. Aladdin uses n, everything else uses CellIndex. The values are not the same either.
+		public int N = n, CellIndex = cellIndex;//Same field. The values are not the same.
 		public bool bVisible = false;
 		public int gapField6;
 		public int field7 = 0;
@@ -33,7 +34,7 @@ namespace ArgonautReverse.PC
 
 	public sealed class MapStratPC:IReadable<MapStratPC,MapPC>,IWritable
 	{
-		public RotPos3I RotPos;
+		public RotPos3Fx RotPos;
 
 		public ScriptPC Instructions;
 		public int instructionStreamOffset;
@@ -42,45 +43,61 @@ namespace ArgonautReverse.PC
 		public ArraySegment<int>? ParamBlock;
 		public int LocalCount;
 		public int TriggerCount;
+		public int ArrayPoolCount;
 		public CollisionTypePC Collision;
 		public int CollisionBoneCount;
 		public WaypointPC FirstWP;
 		public int FirstWPIndex;
 		public WaypointPC LastWP;
+		public Spline? Spline;
 		public MapFlagsPC flags;
+		public ushort Wait;
 
 		public static MapStratPC Parse(WadReader reader, MapPC map)
 		{
 			var mapStrat = new MapStratPC();
 
 			var mapStratRotation = reader.Read<Vector3<ushort>>();
-			mapStrat.RotPos.Rotation.X = mapStratRotation.X;
-			mapStrat.RotPos.Rotation.Y = mapStratRotation.Y;
-			mapStrat.RotPos.Rotation.Z = mapStratRotation.Z;
+			mapStrat.RotPos.Rotation.X = Fixed32.FromRaw(mapStratRotation.X);
+			mapStrat.RotPos.Rotation.Y = Fixed32.FromRaw(mapStratRotation.Y);
+			mapStrat.RotPos.Rotation.Z = Fixed32.FromRaw(mapStratRotation.Z);
 
-			mapStrat.RotPos.Position = reader.Read<Vector3I>();
+			mapStrat.RotPos.Position = reader.Read<Vector3Fx>();
 			mapStrat.instructionStreamOffset = reader.Read<int>();//Add to data.fileData (STPC chunk) to get the address of the instructionStream;
 
 			int numberParameters = reader.Read<int>();
 			int ptrOffset = reader.Read<int>();
-			if(ptrOffset == -1)
+			if(ptrOffset == -1 || (mapStrat.FirstWPIndex == 0xFFFF && reader.ReadVersion == Aladdin_PC.WadVersion))//TODO: Aladdin has some improper -1s.
 			{
 				mapStrat.ParamBlock = null;
 			}
 			else
 			{
-				mapStrat.ParamBlock = new ArraySegment<int>((int[])map.Params, ptrOffset, numberParameters);
+				if(numberParameters+ptrOffset >= map.Params.Count || numberParameters<=0 || ptrOffset<0 || numberParameters>=map.Params.Count || ptrOffset>=map.Params.Count)//TODO: Aladdin check
+				{
+					//TODO: Aladdin has some weird cases where it can be outside of the params array.
+					Console.WriteLine("Invalid MapStrat Params.");
+					mapStrat.ParamBlock = null;
+				}
+				else
+				{
+					mapStrat.ParamBlock = new ArraySegment<int>((int[])map.Params, ptrOffset, numberParameters);
+				}
 			}
 			mapStrat.LocalCount = reader.Read<int>();
 			mapStrat.TriggerCount = reader.Read<int>();
+			if(reader.ReadVersion.HAS_STRAT_ARRAY_POOL)
+			{
+				mapStrat.ArrayPoolCount = reader.Read<int>();
+			}
 			mapStrat.Collision = (CollisionTypePC)reader.Read<uint>();
 			mapStrat.CollisionBoneCount = reader.Read<int>();
 			mapStrat.FirstWPIndex = reader.Read<int>();
-			if(mapStrat.FirstWPIndex == -1)
+			if(mapStrat.FirstWPIndex == -1 || (mapStrat.FirstWPIndex == 0xFFFF && reader.ReadVersion == Aladdin_PC.WadVersion))//TODO: Aladdin has some improper -1s.
 			{
 				mapStrat.FirstWP = null;
 			}
-			else
+			else if(0 <= mapStrat.FirstWPIndex && mapStrat.FirstWPIndex < map.WaypointList.Count)//TODO: Aladdin check
 			{
 				mapStrat.FirstWP = map.WaypointList[mapStrat.FirstWPIndex];
 			}
@@ -88,17 +105,44 @@ namespace ArgonautReverse.PC
 			{
 				Console.WriteLine("Erruuughh...");
 			}
-			reader.AssertRead<uint>(0);//was a LastWP placeholder originally I think
+			reader.AssertRead<uint>(0, warn:true);//was a LastWP placeholder originally I think.//TODO: Seems to have a value in Aladdin. Is this correct?
+			if(reader.ReadVersion.HAS_SPLINE_POINTS)
+			{
+				var splineOffset = reader.Read<int>();
+				if(map.Splines!.Count == 0)
+				{
+					//TODO: I guess if the spline are empty, the offset can be whatever it wants. They never checked it anywhere though.
+				}
+				else if(splineOffset != -1 && (splineOffset != 0xFFFF || reader.ReadVersion != Aladdin_PC.WadVersion))//TODO: Aladdin has some improper -1s.
+				{
+					foreach(var spline in map.Splines!)
+					{
+						if(spline.Offset == splineOffset)
+						{
+							mapStrat.Spline = spline;
+							break;
+						}
+					}
+					if(mapStrat.Spline == null)
+					{
+						throw new Exception($"Spline not found at offset {splineOffset}");
+					}
+				}
+			}
 			mapStrat.flags = (MapFlagsPC)reader.Read<uint>();
+			if(reader.ReadVersion == Aladdin_PC.WadVersion)//Only Aladdin?
+			{
+				mapStrat.Wait = reader.Read<ushort>();
+			}
 
-			mapStrat.Instructions = reader.WadFile.GetChunk(STPCChunkInfo.Instance).GetScript(mapStrat.instructionStreamOffset);
+			mapStrat.Instructions = reader.WadFile.GetChunk(STPCChunkInfo.Instance)?.GetScript(mapStrat.instructionStreamOffset);
 
 			return mapStrat;
 		}
 
 		public void Write(WadWriter writer)
 		{
-			writer.Write<Vector3<ushort>>(new((ushort)RotPos.Rotation.X, (ushort)RotPos.Rotation.Y, (ushort)RotPos.Rotation.Z));
+			writer.Write<Vector3<ushort>>(new((ushort)RotPos.Rotation.X.Raw, (ushort)RotPos.Rotation.Y.Raw, (ushort)RotPos.Rotation.Z.Raw));
 
 			writer.Write(RotPos.Position);
 			writer.Write<int>(instructionStreamOffset);
@@ -117,11 +161,30 @@ namespace ArgonautReverse.PC
 			}
 			writer.Write<int>(LocalCount);
 			writer.Write<int>(TriggerCount);
+			if(writer.WriteVersion.HAS_STRAT_ARRAY_POOL)
+			{
+				writer.Write<int>(ArrayPoolCount);
+			}
 			writer.Write((uint)Collision);
 			writer.Write<int>(CollisionBoneCount);
 			writer.Write<int>(FirstWPIndex);
 			writer.Write<uint>(0);//was a LastWP placeholder originally I think
+			if(writer.WriteVersion.HAS_SPLINE_POINTS)
+			{
+				if(Spline != null)
+				{
+					writer.Write<int>(Spline.Offset);
+				}
+				else
+				{
+					writer.Write<int>(-1);
+				}
+			}
 			writer.Write((uint)flags);
+			if(writer.WriteVersion == Aladdin_PC.WadVersion)//Only Aladdin?
+			{
+				writer.Write<ushort>(Wait);
+			}
 		}
 	}
 
@@ -140,23 +203,6 @@ namespace ArgonautReverse.PC
 		public StratEntityPC Dialog;
 		public PCCameraStackEntry[] cameraStack;//[8];
 		public int cameraStackCount;
-	}
-
-	public readonly struct ZonePC(uint zone):IReadable<ZonePC>,IWritable
-	{
-		public readonly uint Zone = zone;
-		//public uint ViewZone;
-
-		public static ZonePC Parse(WadReader reader)
-		{
-			var zone = reader.Read<uint>();
-			return new ZonePC(zone);
-		}
-
-		public void Write(WadWriter writer)
-		{
-			writer.Write<uint>(Zone); 
-		}
 	}
 
 	public sealed class TrackChangePC(Vector3I pos, int normalPiece, int otherPiece, MapPiecePC pieceMem):IReadable<TrackChangePC,MapPiecePC>,IWritable//PieceStruct
@@ -194,9 +240,9 @@ namespace ArgonautReverse.PC
 
 		//public StrategyList strategy_list;
 
-		public IReadOnlyList<ZonePC> ZoneData;
+		public IReadOnlyList<Zone> ZoneData;
 		public IReadOnlyList<RotPos3Fx> Positions;
-		public IReadOnlyList<int> ModelIndices;
+		public IReadOnlyList<int> PieceIndices;
 
 		//public uint NumberOfDoors;
 		public IReadOnlyList<DoorPC> DoorList;
@@ -214,22 +260,28 @@ namespace ArgonautReverse.PC
 		public IReadOnlyList<TrackChangePC> TrackChangeData;
 		//public int NumberOfOtherPieces;
 
-		public short wField2;
+		public short LevelFlag;
 		public short wField3;
 		//public int array3Count;
 		public IReadOnlyList<string> strArray;//Array of char[0x30]
 
+		//public int SplinePointCount;
+		//public int SplineListCount;
+		public IReadOnlyList<Spline>? Splines;
 
 		//Non-Map fields
-		public IReadOnlyList<WaterLevelStructPC> WaterLevelArray;
-		public int WaterLevel;
+		public IReadOnlyList<ZoneInfo> ZoneTable;
+		public Fixed32 WaterLevel;
 
 		public ColorBGRA32[][] ColorArray;
 
-		public int PolygonArraysCount;
-		public IReadOnlyList<PolygonArrayPC> PolygonArrays;
+		public int MaxCameraHeight;
+		public IReadOnlyList<CameraEntryPC>? CameraPointTable;
 
 		public int MaxParticles;
+		public int MaxWeather;
+
+		public int ArrayPoolSize;
 
 		public static MapPC Parse(WadReader reader)
 		{
@@ -305,20 +357,38 @@ namespace ArgonautReverse.PC
 
 			map.WaypointList = WaypointPC.ParseWaypoints(reader);
 
-			map.WaterLevelArray = reader.ReadArray<WaterLevelStructPC>(32);
-			map.WaterLevel = -65536;
-
-			var zoneData = new ZonePC[map.MapWidth * map.MapHeight];
-			for(int m = 0; m < map.MapHeight; ++m)
+			if(reader.ReadVersion.HAS_SPLINE_POINTS)
 			{
-				for(int n = 0; n < map.MapWidth; ++n)
+				var splinePointCount = reader.Read<int>();//Total number of controls points. This is so it can allocate all of the memory for the poitns at once.
+				var splineListCount = reader.Read<int>();//Number of splines.
+				map.Splines = reader.ReadArray<Spline, int>(arg:reader.Offset, length:splineListCount);
+				int actualCount = 0;
+				foreach(var spline in map.Splines)
 				{
-					zoneData[n + m * map.MapWidth] = reader.Read<ZonePC>();
+					actualCount += spline.ControlPoints.Length;
+				}
+				if(actualCount != splinePointCount)
+				{
+					throw new Exception("Spline count mismatch.");
+				}
+			}
+
+			//PC always uses NEWZONES format. The actual wadflag does not exist on PC though, only PSX.
+			map.ZoneTable = reader.ReadArray<ZoneInfo>(32);
+			map.WaterLevel = Fixed32.FromInt32(-16);//Is this part of NewZones?
+
+			var zoneData = new Zone[map.MapWidth * map.MapHeight];
+			for(int m = 0; m < map.MapHeight; m++)
+			{
+				for(int n = 0; n < map.MapWidth; n++)
+				{
+					zoneData[n + m * map.MapWidth] = reader.Read<Zone>();
 				}
 			}
 			map.ZoneData = zoneData;
+
 			map.Positions = reader.ReadArray<RotPos3Fx>(map.NumPieces);
-			map.ModelIndices = reader.ReadArray<int>(map.NumPieces);
+			map.PieceIndices = reader.ReadArray<int>(map.NumPieces);
 			if((wadFlags & WadFlagPC.HasOtherPieces) != 0)
 			{
 				var numberOfOtherPieces = reader.Read<int>();
@@ -328,75 +398,85 @@ namespace ArgonautReverse.PC
 			{
 				map.TrackChangeData = [];
 			}
-			var colorArray = new ColorBGRA32[map.NumPieces][];
-			var trackModels = reader.WadFile.GetChunk(TRAKChunkInfo.Instance).Models;
-			for(int cellIndex=0; cellIndex<map.NumPieces; cellIndex++)
+			if(reader.ReadVersion != Aladdin_PC.WadVersion)//This is in Croc 2.
 			{
-				var cellModel = trackModels[map.ModelIndices[cellIndex]];
-				byte maxAlpha = 1;
-				colorArray[cellIndex] = reader.ReadArray<ColorBGRA32>(cellModel.vertices.Length);
-				for(int vertIndex=0; vertIndex<cellModel.vertices.Length; vertIndex++)
+				var colorArray = new ColorBGRA32[map.NumPieces][];
+				var trackModels = reader.WadFile.GetChunk(TRAKChunkInfo.Instance).Models;
+				for(int cellIndex=0; cellIndex<map.NumPieces; cellIndex++)
 				{
-					var curAlpha = colorArray[cellIndex][vertIndex].A;
-					if(curAlpha > maxAlpha)
+					var cellModel = trackModels[map.PieceIndices[cellIndex]];
+					byte maxAlpha = 1;
+					colorArray[cellIndex] = reader.ReadArray<ColorBGRA32>(cellModel.vertices.Length);
+					for(int vertIndex=0; vertIndex<cellModel.vertices.Length; vertIndex++)
 					{
-						maxAlpha = curAlpha;
-					}
-				}
-				if(maxAlpha > 1)
-				{
-					Array.Resize(ref colorArray[cellIndex], cellModel.vertices.Length * maxAlpha);
-
-					colorArray[cellIndex][0].A = maxAlpha;
-					for(int alpha=1; alpha<maxAlpha; alpha++)
-					{
-						reader.ReadArray(colorArray[cellIndex].AsSpan(alpha * cellModel.vertices.Length, cellModel.vertices.Length));
-					}
-				}
-				int buffer = cellModel.vertices.Length*maxAlpha;
-				foreach(var trackChange in map.TrackChangeData)
-				{
-					if(trackChange.PieceMem.CellIndex != cellIndex){continue;}
-
-					var pieceModel = trackModels[trackChange.OtherPiece];
-
-					Array.Resize(ref colorArray[cellIndex], colorArray[cellIndex].Length + pieceModel.vertices.Length*maxAlpha);
-
-					for(int vertIndex=0; vertIndex<pieceModel.vertices.Length; vertIndex++)
-					{
-						ref var curColor = ref colorArray[cellIndex][buffer + vertIndex];
-						curColor = reader.Read<ColorBGRA32>();
-						if(curColor.A > maxAlpha)
+						var curAlpha = colorArray[cellIndex][vertIndex].A;
+						if(curAlpha > maxAlpha)
 						{
-							maxAlpha = curColor.A;
+							maxAlpha = curAlpha;
 						}
 					}
 					if(maxAlpha > 1)
 					{
-						colorArray[cellIndex][buffer].A = maxAlpha;
-					}
-					for(int alpha = 1; alpha<maxAlpha; alpha++)
-					{
-						for(int vertIndex=0; vertIndex<pieceModel.vertices.Length; vertIndex++)
+						Array.Resize(ref colorArray[cellIndex], cellModel.vertices.Length * maxAlpha);
+
+						colorArray[cellIndex][0].A = maxAlpha;
+						for(int alpha=1; alpha<maxAlpha; alpha++)
 						{
-							ref var curColor = ref colorArray[cellIndex][vertIndex + buffer + alpha * pieceModel.vertices.Length];
-							curColor = reader.Read<ColorBGRA32>();
+							reader.ReadArray(colorArray[cellIndex].AsSpan(alpha * cellModel.vertices.Length, cellModel.vertices.Length));
 						}
 					}
-					break;
+					int buffer = cellModel.vertices.Length*maxAlpha;
+					foreach(var trackChange in map.TrackChangeData)
+					{
+						if(trackChange.PieceMem.CellIndex != cellIndex){continue;}
+
+						var pieceModel = trackModels[trackChange.OtherPiece];
+
+						Array.Resize(ref colorArray[cellIndex], colorArray[cellIndex].Length + pieceModel.vertices.Length*maxAlpha);
+
+						for(int vertIndex=0; vertIndex<pieceModel.vertices.Length; vertIndex++)
+						{
+							ref var curColor = ref colorArray[cellIndex][buffer + vertIndex];
+							curColor = reader.Read<ColorBGRA32>();
+							if(curColor.A > maxAlpha)
+							{
+								maxAlpha = curColor.A;
+							}
+						}
+						if(maxAlpha > 1)
+						{
+							colorArray[cellIndex][buffer].A = maxAlpha;
+						}
+						for(int alpha = 1; alpha<maxAlpha; alpha++)
+						{
+							for(int vertIndex=0; vertIndex<pieceModel.vertices.Length; vertIndex++)
+							{
+								ref var curColor = ref colorArray[cellIndex][vertIndex + buffer + alpha * pieceModel.vertices.Length];
+								curColor = reader.Read<ColorBGRA32>();
+							}
+						}
+						break;
+					}
 				}
+				map.ColorArray = colorArray;
 			}
-			map.ColorArray = colorArray;
-			var strArrayCount = reader.Read<int>();
-			var strArray = new string[strArrayCount];
-			for(int i=0; i < strArrayCount; i++)
+			if(reader.ReadVersion != Aladdin_PC.WadVersion)//This is in Croc 2.
 			{
-				strArray[i] = reader.ReadString(0x30);
+				var strArrayCount = reader.Read<int>();
+				var strArray = new string[strArrayCount];
+				for(int i=0; i < strArrayCount; i++)
+				{
+					strArray[i] = reader.ReadString(0x30);
+				}
+				map.strArray = strArray;
 			}
-			map.strArray = strArray;
 
 			var mapStratCount = reader.Read<int>();
 			map.MaxStrats = reader.Read<int>();
+			if(reader.ReadVersion.HAS_STRAT_ARRAY_POOL)
+			{
+				map.ArrayPoolSize = reader.Read<int>();
+			}
 			var mapStrats = reader.ReadArray<MapStratPC,MapPC>(map, mapStratCount);
 			for(int mapIndex=0; mapIndex<mapStratCount; mapIndex++)
 			{
@@ -413,11 +493,16 @@ namespace ArgonautReverse.PC
 			}
 			map.MapStrats = mapStrats;
 
-			if((wadFlags & WadFlagPC.WAD_FLAG_200000) != 0)
+			if((wadFlags & WadFlagPC.CameraPoints) != 0)
 			{
-				map.PolygonArraysCount = reader.Read<int>();
-				map.PolygonArrays = reader.ReadArray<PolygonArrayPC,WadFlagPC>(wadFlags, map.PolygonArraysCount);
-				//map.PolygonArraysCount--;
+				map.MaxCameraHeight = reader.Read<int>();
+				map.CameraPointTable = reader.ReadArray<CameraEntryPC,WadFlagPC>(wadFlags, map.MaxCameraHeight);
+				//map.MaxCameraHeight--;
+			}
+			else
+			{
+				map.MaxCameraHeight = 0;
+				map.CameraPointTable = null;
 			}
 			if((wadFlags & WadFlagPC.ParticleSize) != 0)
 			{
@@ -427,7 +512,11 @@ namespace ArgonautReverse.PC
 			{
 				map.MaxParticles = 200;
 			}
-			map.wField2 = reader.Read<short>();
+			if(reader.ReadVersion == Aladdin_PC.WadVersion)
+			{
+				map.MaxWeather = reader.Read<int>();
+			}
+			map.LevelFlag = reader.Read<short>();
 
 			return map;
 		}
@@ -456,7 +545,19 @@ namespace ArgonautReverse.PC
 
 			WaypointPC.WriteWaypoints(writer, WaypointList);
 
-			writer.WriteSizedArray(32, WaterLevelArray);
+			if(writer.WriteVersion.HAS_SPLINE_POINTS)
+			{
+				int splinePointCount = 0;
+				foreach(var spline in Splines!)
+				{
+					splinePointCount += spline.ControlPoints.Length;
+				}
+				writer.Write<int>(splinePointCount);
+				writer.Write<int>(Splines.Count);
+				writer.WriteArray<Spline>(Splines);
+			}
+
+			writer.WriteSizedArray(32, ZoneTable);
 
 			for(int m = 0; m < MapHeight; ++m)
 			{
@@ -466,70 +567,80 @@ namespace ArgonautReverse.PC
 				}
 			}
 			writer.WriteSizedArray(NumPieces, Positions);
-			writer.WriteSizedArray<int>(NumPieces, ModelIndices);
+			writer.WriteSizedArray<int>(NumPieces, PieceIndices);
 			if((wadFlags & WadFlagPC.HasOtherPieces) != 0)
 			{
 				writer.Write<int>(TrackChangeData.Count);
 				writer.WriteArray(TrackChangeData);
 			}
-			var trackModels = writer.WadFile.GetChunk(TRAKChunkInfo.Instance).Models;
-			for(int cellIndex=0; cellIndex<NumPieces; cellIndex++)
+			if(writer.WriteVersion != Aladdin_PC.WadVersion)//This is in Croc 2.
 			{
-				var cellModel = trackModels[ModelIndices[cellIndex]];
-				byte maxAlpha = 1;
-				for(int vertIndex=0; vertIndex<cellModel.vertices.Length; vertIndex++)
+				var trackModels = writer.WadFile.GetChunk(TRAKChunkInfo.Instance).Models;
+				for(int cellIndex=0; cellIndex<NumPieces; cellIndex++)
 				{
-					var curAlpha = ColorArray[cellIndex][vertIndex].A;
-					if(curAlpha > maxAlpha)
+					var cellModel = trackModels[PieceIndices[cellIndex]];
+					byte maxAlpha = 1;
+					for(int vertIndex=0; vertIndex<cellModel.vertices.Length; vertIndex++)
 					{
-						maxAlpha = curAlpha;
-					}
-				}
-				//This array can be larger than vertices.Length.
-				writer.WriteArray(ColorArray[cellIndex].AsSpan(0, maxAlpha * cellModel.vertices.Length));
-
-				int buffer = cellModel.vertices.Length*maxAlpha;
-				foreach(var trackChange in TrackChangeData)
-				{
-					if(trackChange.PieceMem.CellIndex != cellIndex){continue;}
-
-					var pieceModel = trackModels[trackChange.OtherPiece];
-
-					Array.Resize(ref ColorArray[cellIndex], ColorArray[cellIndex].Length + pieceModel.vertices.Length*maxAlpha);
-
-					for(int vertIndex=0; vertIndex<pieceModel.vertices.Length; vertIndex++)
-					{
-						var curAlpha = ColorArray[cellIndex][buffer + vertIndex].A;
+						var curAlpha = ColorArray[cellIndex][vertIndex].A;
 						if(curAlpha > maxAlpha)
 						{
 							maxAlpha = curAlpha;
 						}
 					}
-					writer.WriteArray(ColorArray[cellIndex].AsSpan(buffer, maxAlpha * pieceModel.vertices.Length));
-					break;
+					//This array can be larger than vertices.Length.
+					writer.WriteArray(ColorArray[cellIndex].AsSpan(0, maxAlpha * cellModel.vertices.Length));
+
+					int buffer = cellModel.vertices.Length*maxAlpha;
+					foreach(var trackChange in TrackChangeData)
+					{
+						if(trackChange.PieceMem.CellIndex != cellIndex){continue;}
+
+						var pieceModel = trackModels[trackChange.OtherPiece];
+
+						Array.Resize(ref ColorArray[cellIndex], ColorArray[cellIndex].Length + pieceModel.vertices.Length*maxAlpha);
+
+						for(int vertIndex=0; vertIndex<pieceModel.vertices.Length; vertIndex++)
+						{
+							var curAlpha = ColorArray[cellIndex][buffer + vertIndex].A;
+							if(curAlpha > maxAlpha)
+							{
+								maxAlpha = curAlpha;
+							}
+						}
+						writer.WriteArray(ColorArray[cellIndex].AsSpan(buffer, maxAlpha * pieceModel.vertices.Length));
+						break;
+					}
 				}
 			}
-			writer.Write<int>(strArray.Count);
-			for(int i=0; i < strArray.Count; i++)
+			if(writer.WriteVersion != Aladdin_PC.WadVersion)//This is in Croc 2.
 			{
-				writer.WriteString(0x30, strArray[i]);
+				writer.Write<int>(strArray.Count);
+				for(int i=0; i < strArray.Count; i++)
+				{
+					writer.WriteString(0x30, strArray[i]);
+				}
 			}
 
 			writer.Write<int>(MapStrats.Count);
 			writer.Write<int>(MaxStrats);
+			if(writer.WriteVersion.HAS_STRAT_ARRAY_POOL)
+			{
+				writer.Write<int>(ArrayPoolSize);
+			}
 			writer.WriteArray(MapStrats);
 
-			if((wadFlags & WadFlagPC.WAD_FLAG_200000) != 0)
+			if((wadFlags & WadFlagPC.CameraPoints) != 0)
 			{
-				writer.Write<int>(PolygonArraysCount);
-				if(PolygonArrays.Count != PolygonArraysCount){throw new Exception();}
-				writer.WriteArray(wadFlags, PolygonArrays);
+				writer.Write<int>(MaxCameraHeight);
+				if(CameraPointTable.Count != MaxCameraHeight){throw new Exception();}
+				writer.WriteArray(wadFlags, CameraPointTable);
 			}
 			if((wadFlags & WadFlagPC.ParticleSize) != 0)
 			{
 				writer.Write<int>(MaxParticles);
 			}
-			writer.Write<short>(wField2);
+			writer.Write<short>(LevelFlag);
 		}
 
 		public static void ReadWadChunkMAP_InitCells(MapPieceListPC cell, MapPiecePC info)

@@ -1,6 +1,7 @@
 ﻿using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
 using ArgonautReverse.PSX.LibGTE;
+using ArgonautReverse.Universal;
 using ArgonautReverse.WadChunks.PSX;
 
 namespace ArgonautReverse.PSX
@@ -40,41 +41,6 @@ namespace ArgonautReverse.PSX
 			}
 
 			return mapIndexGrid;
-		}
-	}
-	public sealed class ZonePSX:IReadable<ZonePSX>
-	{
-		public readonly uint Zone;
-		//public uint ViewZone;
-
-		private ZonePSX(uint zone)
-		{
-			Zone = zone;
-		}
-
-		public static ZonePSX Parse(WadReader reader)
-		{
-			var zone = reader.Read<uint>();
-			return new ZonePSX(zone);
-		}
-	}
-
-	public sealed class ZoneInfoPSX:IReadable<ZoneInfoPSX>
-	{
-		public readonly uint ViewZone;
-		public readonly int	WaterLevel;
-
-		private ZoneInfoPSX(uint viewZone, int waterLevel)
-		{
-			ViewZone = viewZone;
-			WaterLevel = waterLevel;
-		}
-
-		public static ZoneInfoPSX Parse(WadReader reader)
-		{
-			var viewZone = reader.Read<uint>();
-			var waterLevel = reader.Read<int>();
-			return new ZoneInfoPSX(viewZone, waterLevel);
 		}
 	}
 
@@ -231,7 +197,7 @@ namespace ArgonautReverse.PSX
 		public IReadOnlyList<POS> Positions;
 		public IReadOnlyList<IReadOnlyList<MapIndexPSX>> Grid;//Refs to values in IndexGrid
 		public IReadOnlyList<MapIndexPSX> IndexGrid;
-		public IReadOnlyList<ZonePSX>? ZoneData;
+		public IReadOnlyList<Zone>? ZoneData;
 		public IReadOnlyList<uint> Pieces;
 		public IReadOnlyList<TrackChangePSX> TrackChangeData;
 		public IReadOnlyList<CVECTOR[]> LightTables;
@@ -249,7 +215,7 @@ namespace ArgonautReverse.PSX
 
 		#region Non-map fields
 		//Values not part of the map struct
-		public IReadOnlyList<ZoneInfoPSX> ZoneTable;
+		public IReadOnlyList<ZoneInfo> ZoneTable;
 
 		public LightTuplePSX[] LightTuples;
 		public IReadOnlyList<OmniLightPSX> omniLights;
@@ -422,11 +388,11 @@ namespace ArgonautReverse.PSX
 			}
 			if((wadFlag & WadFlagPSX.WF_NEWZONES) != 0)
 			{
-				map.ZoneTable = data_in.ReadArray<ZoneInfoPSX>(32);
+				map.ZoneTable = data_in.ReadArray<ZoneInfo>(32);
 
-				var n_zone_ids = data_in.Read<int>();
-				map.ZoneData = data_in.ReadArray<ZonePSX>(n_zone_ids);
-				Utils.Assert(n_zone_ids == map.MapXY);
+				var zoneCount = data_in.Read<int>();
+				map.ZoneData = data_in.ReadArray<Zone>(zoneCount);
+				Utils.Assert(zoneCount == map.MapXY);
 			}
 			else if((wadFlag & WadFlagPSX.WF_USESZONES) != 0)
 			{

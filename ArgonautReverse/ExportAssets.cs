@@ -159,12 +159,15 @@ namespace ArgonautReverse
 				parsedSuccessfully.Add(datFile);
 			});
 
-			Console.WriteLine("--Processing Strats--");
-			RunOnFiles(parsedSuccessfully, datFile =>
+			if(args.ExtractScripts)
 			{
-				if(datFile is not WADFile wadFile){return;}
-				wadFile.ProcessScripts();
-			});
+				Console.WriteLine("--Processing Strats--");
+				RunOnFiles(parsedSuccessfully, datFile =>
+				{
+					if(datFile is not WADFile wadFile){return;}
+					wadFile.ProcessScripts();
+				});
+			}
 
 			if(args.ExtractPath != null)
 			{

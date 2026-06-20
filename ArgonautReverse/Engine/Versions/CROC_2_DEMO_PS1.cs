@@ -32,6 +32,8 @@ namespace ArgonautReverse.Engine.Versions
 			
 			public override bool NEW_COLLISION => false;
 			public override bool KEYFRAME_STUFF => false;
+            public override bool HAS_SPLINE_POINTS => false;
+            public override bool HAS_STRAT_ARRAY_POOL => false;
 
 			public override InstructionOpcode MapOpcode(int value) => MapperCroc2.OpcodeMapper(value);
 			public override TriggerType MapTriggerType(int value) => MapperCroc2.TriggerTypeMapper(value);

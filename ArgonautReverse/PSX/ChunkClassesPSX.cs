@@ -1,3 +1,5 @@
+using ArgonautReverse.Universal;
+
 namespace ArgonautReverse.PSX
 {
 	public enum ChunkRotationPSX
@@ -24,12 +26,12 @@ namespace ArgonautReverse.PSX
 	public sealed class ChunkHolderPSX
 	{
 		public readonly IReadOnlyList<SubChunkPSX> Subchunks;
-		public readonly ZonePSX? zone_id;
+		public readonly Zone? zone_id;
 		public readonly LightTuplePSX? LightTuples;
 
 		public int Count => Subchunks.Count;
 
-		public ChunkHolderPSX(IReadOnlyList<SubChunkPSX>? sub_chunks = null, ZonePSX? zone_id = null, LightTuplePSX? lightTuples = null)
+		public ChunkHolderPSX(IReadOnlyList<SubChunkPSX>? sub_chunks = null, Zone? zone_id = null, LightTuplePSX? lightTuples = null)
 		{
 			Subchunks = sub_chunks ?? [];
 			this.zone_id = zone_id;
@@ -44,7 +46,7 @@ namespace ArgonautReverse.PSX
 		public readonly int n_rows;
 		public readonly int n_columns;
 		public readonly bool has_zone_ids;
-		public readonly ZonePSX max_zone_id;
+		public readonly Zone max_zone_id;
 
 		public ChunksMatrixPSX(IReadOnlyList<ChunkHolderPSX> chunks_holders, IReadOnlyList<TObjectDataPSX> chunks_models, int n_rows, int n_columns, bool has_zone_ids)
 		{
@@ -55,7 +57,7 @@ namespace ArgonautReverse.PSX
 			this.chunks_models = chunks_models;
 			if(has_zone_ids)
 			{
-				max_zone_id = chunks_holders.Select(chunk_holder => chunk_holder.zone_id).MaxBy(zone => zone.Zone);
+				max_zone_id = chunks_holders.Select(chunk_holder => chunk_holder.zone_id).MaxBy(zone => zone.InfoIndex);
 			}
 			else
 			{

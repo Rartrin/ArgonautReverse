@@ -19,7 +19,7 @@ namespace ArgonautReverse.PC
 		/// <summary>
 		/// When ThisRotY has DOOR_LEVEL set, the X,Y,Z instead correspond to Tribe, Level, Map.
 		/// </summary>
-		public Vector3I Goto;
+		public Vector3Fx Goto;
 		public WadFileType LevelType;
 
 		public DoorRotYPC GotoRotY;
@@ -53,7 +53,7 @@ namespace ArgonautReverse.PC
 			var door = new DoorPC();
 
 			door.Position = reader.Read<Vector3I>();
-			door.Goto = reader.Read<Vector3I>();
+			door.Goto = reader.Read<Vector3Fx>();
 			door.LevelType = (WadFileType)reader.Read<int>();
 			door.GotoRotY = (DoorRotYPC)reader.Read<uint>();
 			door.ThisRotY = (DoorRotYPC)reader.Read<uint>();
@@ -62,7 +62,7 @@ namespace ArgonautReverse.PC
 			if(door.BackgroundOffset != 0)
 			{
 				var stpcChunk = reader.WadFile.GetChunk(STPCChunkInfo.Instance);
-				door.Background = stpcChunk.GetStratObject(door.BackgroundOffset).model;
+				door.Background = stpcChunk?.GetStratObject(door.BackgroundOffset).model;
 			}
 			else
 			{
@@ -88,7 +88,7 @@ namespace ArgonautReverse.PC
 		public void Write(WadWriter writer)
 		{
 			writer.Write<Vector3I>(Position);
-			writer.Write<Vector3I>(Goto);
+			writer.Write<Vector3Fx>(Goto);
 			writer.Write((int)LevelType);
 			writer.Write((int)GotoRotY);
 			writer.Write((int)ThisRotY);

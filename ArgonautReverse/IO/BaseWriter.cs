@@ -34,12 +34,12 @@ namespace ArgonautReverse.IO
 
 		public void WriteBytes(byte[] bytes) => WriteArray(bytes);
 
-		public unsafe void Write<T>(in T value) where T : unmanaged, IBinaryNumber<T>
+		public unsafe void Write<T>(in T value) where T : unmanaged, INumber<T>
 		{
 			WriteData(value);
 		}
 
-		public unsafe void WriteArray<T>(IReadOnlyList<T> array) where T : unmanaged, IBinaryNumber<T>
+		public unsafe void WriteArray<T>(IReadOnlyList<T> array) where T : unmanaged, INumber<T>
 		{
 			for(int i=0; i<array.Count; i++)
 			{
@@ -47,7 +47,7 @@ namespace ArgonautReverse.IO
 			}
 		}
 
-		public unsafe void WriteSizedArray<T>(int size, IReadOnlyList<T> array) where T : unmanaged, IBinaryNumber<T>
+		public unsafe void WriteSizedArray<T>(int size, IReadOnlyList<T> array) where T : unmanaged, INumber<T>
 		{
 			if(size != array.Count){throw new Exception();}
 
@@ -82,7 +82,7 @@ namespace ArgonautReverse.IO
 			WriteRawData(new ReadOnlySpan<byte>((byte*)array, sizeof(T) * count));
 		}
 
-		public unsafe void WriteEmptyArray<T>(int count) where T : unmanaged, IBinaryNumber<T>
+		public unsafe void WriteEmptyArray<T>(int count) where T : unmanaged, INumber<T>
 		{
 			var empty = T.Zero;
 			for(int i=0; i<count; i++)

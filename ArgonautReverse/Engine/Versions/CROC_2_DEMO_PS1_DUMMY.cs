@@ -42,6 +42,8 @@ namespace ArgonautReverse.Engine.Versions
 			
 			public override bool NEW_COLLISION => false;
 			public override bool KEYFRAME_STUFF => false;
+            public override bool HAS_SPLINE_POINTS => false;
+            public override bool HAS_STRAT_ARRAY_POOL => false;
 
 			private CROC_2_DEMO_PS1_DUMMY_Wad(int buildVersionOrder, params string[] wadNames)
 			{

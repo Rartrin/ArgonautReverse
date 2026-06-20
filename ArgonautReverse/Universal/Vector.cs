@@ -11,7 +11,7 @@ using ArgonautReverse.IO;
 namespace ArgonautReverse.Universal
 {
 	#region Vector2
-	public struct Vector2<T>(T x, T y):IReadable<Vector2<T>>, IWritable where T : unmanaged, IBinaryNumber<T>
+	public struct Vector2<T>(T x, T y):IReadable<Vector2<T>>, IWritable where T : unmanaged, INumber<T>
 	{
 		public static Vector2<T> Zero{get;} = new(T.Zero, T.Zero);
 		public static Vector2<T> One{get;} = new(T.One, T.One);
@@ -39,7 +39,7 @@ namespace ArgonautReverse.Universal
 	}
 	#endregion
 	#region Vector3
-	public struct Vector3<T>(T x, T y, T z):IReadable<Vector3<T>>, IWritable where T : unmanaged, IBinaryNumber<T>
+	public struct Vector3<T>(T x, T y, T z):IReadable<Vector3<T>>, IWritable where T : unmanaged, INumber<T>
 	{
 		public static Vector3<T> Zero{get;} = new(T.Zero, T.Zero, T.Zero);
 		public static Vector3<T> One{get;} = new(T.One, T.One, T.One);
@@ -92,7 +92,7 @@ namespace ArgonautReverse.Universal
 	}
 	#endregion
 	#region Vector4
-	public struct Vector4<T>(T x, T y, T z, T w):IReadable<Vector4<T>>, IWritable where T : unmanaged, IBinaryNumber<T>
+	public struct Vector4<T>(T x, T y, T z, T w):IReadable<Vector4<T>>, IWritable where T : unmanaged, INumber<T>
 	{
 		public T X = x;
 		public T Y = y;

@@ -15,23 +15,23 @@ namespace ArgonautReverse.IO
 			Position += count;
 		}
 
-		public unsafe void Read<T>(out T value) where T : unmanaged, IBinaryNumber<T>
+		public unsafe void Read<T>(out T value) where T : unmanaged, INumber<T>
 		{
 			ReadData(out value);
 		}
 
-		public unsafe T Read<T>() where T : unmanaged, IBinaryNumber<T>
+		public unsafe T Read<T>() where T : unmanaged, INumber<T>
 		{
 			ReadData(out T ret);
 			return ret;
 		}
 
-		public unsafe void ReadArray<T>(Span<T> array) where T : unmanaged, IBinaryNumber<T>
+		public unsafe void ReadArray<T>(Span<T> array) where T : unmanaged, INumber<T>
 		{
 			ReadData(array);
 		}
 
-		public unsafe T[] ReadArray<T>(int length) where T : unmanaged, IBinaryNumber<T>
+		public unsafe T[] ReadArray<T>(int length) where T : unmanaged, INumber<T>
 		{
 			if(length == 0){return [];}
 
@@ -84,16 +84,24 @@ namespace ArgonautReverse.IO
 		//	return null;
 		//}
 
-		public void AssertRead<T>(T expected) where T : unmanaged, IBinaryNumber<T>
+		public void AssertRead<T>(T expected, bool warn = false) where T : unmanaged, INumber<T>
 		{
 			var value = Read<T>();
 			if(value != expected)
 			{
-				throw new Exception($"Expected {expected} but read {value}");
+				string message = $"Assertion failed. Expected {expected} but read {value}.";
+				if(warn)
+				{
+					Console.WriteLine($"WARNING: {message}");
+				}
+				else
+				{
+					throw new Exception(message);
+				}
 			}
 		}
 
-		public unsafe void AssertEmptyReadData<T>(int elementCount) where T : unmanaged,IEquatable<T>
+		public unsafe void AssertEmptyReadData<T>(int elementCount) where T : unmanaged,INumber<T>
 		{
 			if(elementCount == 0){return;}
 

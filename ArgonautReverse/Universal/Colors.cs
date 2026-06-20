@@ -71,6 +71,8 @@ namespace ArgonautReverse.Universal
 		{
 			writer.WriteData(this);
 		}
+
+		public readonly override string ToString() => $"BGRA: {Raw:X8}";
 	}
 
 	public struct ColorABGR555(ushort data):IReadable<ColorABGR555>,IWritable
@@ -166,6 +168,8 @@ namespace ArgonautReverse.Universal
 			green:Green8,
 			blue:Blue8
 		);
+
+		public readonly override string ToString() => $"ABGR: {Data:X4}";
 	}
 
 	public struct ColorARGB555(ushort data)
@@ -244,5 +248,7 @@ namespace ArgonautReverse.Universal
 			green:Green8,
 			blue:Blue8
 		);
+
+		public readonly override string ToString() => $"ARGB: {Data:X4}";
 	}
 }

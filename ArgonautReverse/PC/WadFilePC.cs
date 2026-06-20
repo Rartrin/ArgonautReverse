@@ -101,17 +101,17 @@ namespace ArgonautReverse.PC
 				case ChunkType.ID_PC_MAP:EnsureEmpty(MapChunk);MapChunk = (MAPChunk)chunk;break;
 				case ChunkType.ID_PC_TRACK:EnsureEmpty(TrackChunk);TrackChunk = (TRAKChunk)chunk;break;
 				case ChunkType.ID_PC_TEXT:EnsureEmpty(TextChunk);TextChunk = (TEXTChunk)chunk;break;
-				case ChunkType.ID_PC_LIGHT:EnsureEmpty(LightChunk);LightChunk = (LGHTChunk)chunk;break;
-				case ChunkType.ID_PC_STRAT:EnsureEmpty(StratChunk);StratChunk = (STPCChunk)chunk;break;
-				case ChunkType.ID_PC_WADFLAGS:EnsureEmpty(WadflagsChunk);WadflagsChunk = (WFPCChunk)chunk;break;
+				case ChunkType.ID_PC_LIGHT: EnsureEmpty(LightChunk); LightChunk = (LGHTChunk)chunk; break;
+				case ChunkType.ID_PC_STRAT: EnsureEmpty(StratChunk); StratChunk = (STPCChunk)chunk; break;
+				case ChunkType.ID_PC_WADFLAGS: EnsureEmpty(WadflagsChunk); WadflagsChunk = (WFPCChunk)chunk; break;
 
-				case ChunkType.ID_PC_SAMPLE:EnsureEmpty(SampleChunk);SampleChunk = (SMPCChunk)chunk;break;
-				case ChunkType.ID_PC_LANG:EnsureEmpty(LanguageChunk);LanguageChunk = (LGPCChunk)chunk;break;
+				case ChunkType.ID_PC_SAMPLE: EnsureEmpty(SampleChunk); SampleChunk = (SMPCChunk)chunk; break;
+				case ChunkType.ID_PC_LANG: EnsureEmpty(LanguageChunk); LanguageChunk = (LGPCChunk)chunk; break;
 
-				case ChunkType.ID_PC_AMPC:EnsureEmpty(AMPCChunk);AMPCChunk = (AMPCChunk)chunk;break;
-				case ChunkType.ID_PC_FONT:EnsureEmpty(FontChunk);FontChunk = (FONTChunk)chunk;break;
-				case ChunkType.ID_PC_SPRITE:EnsureEmpty(SpriteChunk);SpriteChunk = (SPRTChunk)chunk;break;
-				case ChunkType.ID_PC_RIMG:EnsureEmpty(RIMGChunk);RIMGChunk = (RIMGChunk)chunk;break;
+				case ChunkType.ID_PC_AMPC: EnsureEmpty(AMPCChunk); AMPCChunk = (AMPCChunk)chunk; break;
+				case ChunkType.ID_PC_FONT: EnsureEmpty(FontChunk); FontChunk = (FONTChunk)chunk; break;
+				case ChunkType.ID_PC_SPRITE: EnsureEmpty(SpriteChunk); SpriteChunk = (SPRTChunk)chunk; break;
+				case ChunkType.ID_PC_RIMG: EnsureEmpty(RIMGChunk); RIMGChunk = (RIMGChunk)chunk; break;
 
 				case ChunkType.ID_END:EnsureEmpty(EndChunk);EndChunk = (ENDChunkPC)chunk;break;
 				default:
@@ -206,7 +206,10 @@ namespace ArgonautReverse.PC
 		private void ExportSTRAT(ProgramArgs args, Configuration conf)
 		{
 			ExportScripts(args, conf);
-			ModelExtractor.ExtractObjects(args, conf, this, StratChunk.Models);
+			if(args.ExtractModels)
+			{
+				ModelExtractor.ExtractObjects(args, conf, this, StratChunk.Models);
+			}
 		}
 
 		public void ExportScripts(ProgramArgs args, Configuration conf)

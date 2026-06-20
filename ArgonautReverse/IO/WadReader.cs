@@ -19,11 +19,19 @@ namespace ArgonautReverse.IO
 
 		public byte[] GetAllWadData() => Data.AsSpan(Offset, Length).ToArray();
 
-		public void AssertEndOfChunk(ChunkType chunkType)
+		public void AssertEndOfChunk(ChunkType chunkType, bool warn = false)
 		{
 			if(Remaining != 0)
 			{
-				throw new Exception($"Chunk {chunkType} is longer than expected. Total unread bytes: {Remaining}");
+				string message = $"Chunk {chunkType} is longer than expected. Total unread bytes: {Remaining}";
+				if(!warn)
+				{
+					throw new Exception(message);
+				}
+				else
+				{
+					Console.WriteLine($"WARNING: {message}");
+				}
 			}
 		}
 	}
