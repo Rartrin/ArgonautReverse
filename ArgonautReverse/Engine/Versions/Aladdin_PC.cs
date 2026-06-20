@@ -27,6 +27,7 @@ namespace ArgonautReverse.Engine.Versions
 			public override bool KEYFRAME_STUFF => false;//TODO: This?
             public override bool HAS_SPLINE_POINTS => true;
             public override bool HAS_STRAT_ARRAY_POOL => true;
+            public override bool AssertReadWarns => true;
 
 			public override InstructionOpcode MapOpcode(int value) => MapperCroc2.OpcodeMapper(value);
 			public override TriggerType MapTriggerType(int value) => MapperCroc2.TriggerTypeMapper(value);

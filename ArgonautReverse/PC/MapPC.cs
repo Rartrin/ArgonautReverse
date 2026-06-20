@@ -73,15 +73,22 @@ namespace ArgonautReverse.PC
 			}
 			else
 			{
-				if(numberParameters+ptrOffset >= map.Params.Count || numberParameters<=0 || ptrOffset<0 || numberParameters>=map.Params.Count || ptrOffset>=map.Params.Count)//TODO: Aladdin check
+				if(numberParameters+ptrOffset >= map.Params.Length || numberParameters<=0 || ptrOffset<0 || numberParameters>=map.Params.Length || ptrOffset>=map.Params.Length)//TODO: Aladdin check
 				{
-					//TODO: Aladdin has some weird cases where it can be outside of the params array.
-					Console.WriteLine("Invalid MapStrat Params.");
-					mapStrat.ParamBlock = null;
+					if(reader.ReadVersion == Aladdin_PC.WadVersion)
+					{
+						//TODO: Aladdin has some weird cases where it can be outside of the params array.
+						Console.WriteLine("WARNING: Invalid MapStrat Params.");
+						mapStrat.ParamBlock = null;
+					}
+					else
+					{
+						throw new Exception("Invalid MapStrat Params.");
+					}
 				}
 				else
 				{
-					mapStrat.ParamBlock = new ArraySegment<int>((int[])map.Params, ptrOffset, numberParameters);
+					mapStrat.ParamBlock = new ArraySegment<int>(map.Params, ptrOffset, numberParameters);
 				}
 			}
 			mapStrat.LocalCount = reader.Read<int>();
@@ -97,21 +104,28 @@ namespace ArgonautReverse.PC
 			{
 				mapStrat.FirstWP = null;
 			}
-			else if(0 <= mapStrat.FirstWPIndex && mapStrat.FirstWPIndex < map.WaypointList.Count)//TODO: Aladdin check
+			else if(0 <= mapStrat.FirstWPIndex && mapStrat.FirstWPIndex < map.WaypointList.Count)
 			{
 				mapStrat.FirstWP = map.WaypointList[mapStrat.FirstWPIndex];
 			}
-			if(mapStrat.FirstWPIndex >= map.WaypointList.Count)
+			else
 			{
-				Console.WriteLine("Erruuughh...");
+				if(reader.ReadVersion == Aladdin_PC.WadVersion)
+				{
+					Console.WriteLine("WARNING: Invalid waypoint index");
+				}
+				else
+				{
+					throw new Exception("Invalid waypoint index");
+				}
 			}
-			reader.AssertRead<uint>(0, warn:true);//was a LastWP placeholder originally I think.//TODO: Seems to have a value in Aladdin. Is this correct?
+			reader.AssertRead<uint>(0, warn:reader.ReadVersion.AssertReadWarns);//was a LastWP placeholder originally I think.
 			if(reader.ReadVersion.HAS_SPLINE_POINTS)
 			{
 				var splineOffset = reader.Read<int>();
-				if(map.Splines!.Count == 0)
+				if(map.Splines!.Count == 0 && reader.ReadVersion == Aladdin_PC.WadVersion)
 				{
-					//TODO: I guess if the spline are empty, the offset can be whatever it wants. They never checked it anywhere though.
+					//TODO: In Aladdin, I guess if the spline are empty, the offset can be whatever it wants. They never checked it anywhere though.
 				}
 				else if(splineOffset != -1 && (splineOffset != 0xFFFF || reader.ReadVersion != Aladdin_PC.WadVersion))//TODO: Aladdin has some improper -1s.
 				{
@@ -255,7 +269,7 @@ namespace ArgonautReverse.PC
 		public IReadOnlyList<MapStratPC> MapStrats;
 
 		//public int NumParams;
-		public IReadOnlyList<int> Params;
+		public int[] Params;
 
 		public IReadOnlyList<TrackChangePC> TrackChangeData;
 		//public int NumberOfOtherPieces;
@@ -537,7 +551,7 @@ namespace ArgonautReverse.PC
 				writer.Write<int>(worldCellInfo.HasOtherPiece ? 1 : 0);
 			}
 
-			writer.Write<int>(Params.Count);
+			writer.Write<int>(Params.Length);
 			writer.WriteArray<int>(Params);
 
 			writer.Write<int>(DoorList.Count);

@@ -13,6 +13,7 @@ namespace ArgonautReverse.Engine
 		public abstract bool KEYFRAME_STUFF{get;}
 		public abstract bool HAS_SPLINE_POINTS{get;}
 		public abstract bool HAS_STRAT_ARRAY_POOL{get;}
+		public virtual bool AssertReadWarns => false;
 		#endregion
 
 		#region Comparison

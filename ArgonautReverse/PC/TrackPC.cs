@@ -39,7 +39,7 @@ namespace ArgonautReverse.PC
 			triangle.vertexIndices = reader.ReadArray<ushort>(3);
 
 			triangle.SpriteIndex = reader.Read<ushort>();
-			reader.AssertRead<ushort>(0, warn:reader.ReadVersion == Aladdin_PC.WadVersion);//Padding
+			reader.AssertRead<ushort>(0, warn:reader.ReadVersion.AssertReadWarns);//Padding
 			var textChunk = reader.WadFile.GetChunk(TEXTChunkInfo.Instance);
 			triangle.sprite = textChunk.Sprites[triangle.SpriteIndex];
 
@@ -146,16 +146,16 @@ namespace ArgonautReverse.PC
 			model.vec = reader.ReadArray<Vector3F>(9);
 			model.vertices = new ModelVertexPC[reader.Read<ushort>()];
 			model.triangles = new ModelTrianglePC[reader.Read<ushort>()];
-			reader.AssertRead<uint>(0, warn:reader.ReadVersion == Aladdin_PC.WadVersion);//vertices placeholder
-			reader.AssertRead<uint>(0, warn:reader.ReadVersion == Aladdin_PC.WadVersion);//triangles placeholder
+			reader.AssertRead<uint>(0, warn:reader.ReadVersion.AssertReadWarns);//vertices placeholder
+			reader.AssertRead<uint>(0, warn:reader.ReadVersion.AssertReadWarns);//triangles placeholder
 			model.FloorCount = reader.Read<ushort>();
 			model.CeilingCount = reader.Read<ushort>();
 			if(reader.ReadVersion.NEW_COLLISION)
 			{
 				model.WallCount = reader.Read<ushort>();
-				reader.AssertRead<ushort>(0, warn:reader.ReadVersion == Aladdin_PC.WadVersion);//Padding
+				reader.AssertRead<ushort>(0, warn:reader.ReadVersion.AssertReadWarns);//Padding
 			}
-			reader.AssertRead<uint>(0, warn:reader.ReadVersion == Aladdin_PC.WadVersion);//collisionFaces placeholder
+			reader.AssertRead<uint>(0, warn:reader.ReadVersion.AssertReadWarns);//collisionFaces placeholder
 			return model;
 		}
 

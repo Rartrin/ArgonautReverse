@@ -4,10 +4,8 @@ using ArgonautReverse.WadChunks;
 
 namespace ArgonautReverse.Files
 {
-	public sealed class DIR_DAT(IReadOnlyList<DATFile> files)
+	public static class DIR_DAT
 	{
-		public readonly IReadOnlyList<DATFile> Files = files;
-
 		public static DATFile ParseDatFile(Configuration conf, string name, byte[] data)
 		{
 			var suffix = Path.GetExtension(name)[1..];
@@ -16,20 +14,16 @@ namespace ArgonautReverse.Files
 			return DATFileType.ParseDatFile(conf, stem, suffix, data);
 		}
 
-		private static void FindDirDatFiles(string inputPath, Configuration conf, out string? dirPath, out string datPath)
+		private static void FindDirDatFiles(string inputPath, Configuration conf, out string dirPath, out string datPath)
 		{
 			if(Directory.Exists(inputPath))
 			{
-				// CROC 2 DEMO DUMMY file has no .DIR file
-				if(conf.ReadVersion.FilenameDIR != null)
+				if(conf.ReadVersion.FilenameDIR == null)
 				{
-					dirPath = Path.Combine(inputPath, conf.ReadVersion.FilenameDIR);
+					throw new Exception("ReadVersion doesn't have known DIR file.");
 				}
-				else
-				{
-					dirPath = null;
-				}
-				datPath = Path.Combine(inputPath, conf.ReadVersion.FilenameDAT!);
+				dirPath = Path.Combine(inputPath, conf.ReadVersion.FilenameDIR);
+				datPath = Path.Combine(inputPath, conf.ReadVersion.FilenameDAT);
 			}
 			else if(File.Exists(inputPath))
 			{
@@ -40,14 +34,7 @@ namespace ArgonautReverse.Files
 				}
 				else
 				{
-					if(conf.ReadVersion.DirFormat != null)
-					{
-						dirPath = Path.ChangeExtension(inputPath, ".DIR");
-					}
-					else
-					{
-						dirPath = null;
-					}
+					dirPath = Path.ChangeExtension(inputPath, ".DIR");
 					datPath = inputPath;
 				}
 			}
@@ -57,7 +44,7 @@ namespace ArgonautReverse.Files
 			}
 		}
 
-		public static DIR_DAT FromDirDat(Configuration conf, string inputPath)
+		public static IReadOnlyList<DATFile> FromDirDat(Configuration conf, string inputPath)
 		{
 			FindDirDatFiles(inputPath, conf, out var dirPath, out var datPath);
 			var files = new List<DATFile>();
@@ -75,48 +62,64 @@ namespace ArgonautReverse.Files
 						files.Add(ParseDatFile(conf, name.Trim('\0'), datData.ReadArray<byte>(size)));
 					}
 				}
-				else// Croc 2 Demo DUMMY
-				{
-					while(datData.Position < datData.Length)
-					{
-						var name = datData.Position.ToString("X8");
-						var startingPos = datData.Position;
-						var size = datData.Read<int>();//Size of data, not including this field
-						if(size == 0)
-						{
-							Console.WriteLine("Empty file found in DAT");
-							break;
-						}
-
-						// WADs generally start with TPS but can start with CWAD for compression
-						var chunkType = (ChunkType)datData.Read<uint>();
-						string suffix;
-						if(chunkType == ChunkType.ID_PSX_CWAD || chunkType == ChunkType.ID_PSX_TEXT)
-						{
-							suffix = ".WAD";
-						}
-						//Demos seem to start with 0
-						else if(chunkType == 0)
-						{
-							suffix = ".DEM";
-						}
-						else
-						{
-							throw new Exception();
-						}
-
-						datData.Position = startingPos;
-						var data = datData.ReadArray<byte>(size + sizeof(int));//Add in an int32 for the size field
-
-						Utils.PadIn2048Bytes(datData);
-						files.Add(ParseDatFile(conf, name + suffix, data));
-					}
-				}
 			}
-			return new DIR_DAT(files);
+			return files;
 		}
 
-		public static DIR_DAT FromFiles(Configuration conf, string[] paths)
+		public static IReadOnlyList<DATFile> SearchDat(Configuration conf, string datPath)
+		{
+			if(!File.Exists(datPath))
+			{
+				throw new FileNotFoundException(datPath);
+			}
+			var files = new List<DATFile>();
+
+			using(var datData = new FileReader(File.OpenRead(datPath)))
+			{
+				while(datData.Position < datData.Length)
+				{
+					var name = datData.Position.ToString("X8");
+					var startingPos = datData.Position;
+					var size = datData.Read<int>();//Size of data, not including this field
+					if(size == 0)
+					{
+						Console.WriteLine("Empty file found in DAT");
+						break;
+					}
+
+					// PSX WADs generally start with TPSX but can start with CWAD for compression
+					var chunkType = (ChunkType)datData.Read<uint>();
+					string suffix;
+					if(chunkType == ChunkType.ID_PSX_CWAD || chunkType == ChunkType.ID_PSX_TEXT)
+					{
+						suffix = "WAD";
+					}
+					//Demos seem to start with 0
+					else if(chunkType == 0)
+					{
+						suffix = "DEM";
+					}
+					else
+					{
+						throw new Exception();
+					}
+						
+					datData.Position = startingPos;
+					var data = datData.ReadArray<byte>(size + sizeof(int));//Add in an int32 for the size field
+
+					var padding = Utils.PadIn2048Bytes(datData);
+					if(Enumerable.Any(padding, b => b!=0))
+					{
+						throw new Exception("Not empty padding");
+					}
+
+					files.Add(ParseDatFile(conf, $"{startingPos:X8}.{suffix}", data));
+				}
+			}
+			return files;
+		}
+
+		public static IReadOnlyList<DATFile> FromFiles(Configuration conf, string[] paths)
 		{
 			var filePaths = new List<string>();
 			foreach(var path in paths)
@@ -140,9 +143,9 @@ namespace ArgonautReverse.Files
 				var filePath = filePaths[i];
 				files[i] = ParseDatFile(conf, Path.GetFileName(filePath), File.ReadAllBytes(filePath));
 			}
-			return new DIR_DAT(files);
+			return files;
 		}
-		public void Serialize(Configuration conf, string outputFolder)
+		public static void Serialize(IReadOnlyList<DATFile> files, Configuration conf, string outputFolder)
 		{
 			if(File.Exists(outputFolder))
 			{
@@ -160,10 +163,10 @@ namespace ArgonautReverse.Files
 			{
 				var dirOutput = new IO.StreamWriter(dirStream, (int)dirStream.Position);
 				//TODO: Make this part of DirFormat
-				dirOutput.WriteInt32(Files.Count);
+				dirOutput.WriteInt32(files.Count);
 
 			}
-			foreach(var file in Files)
+			foreach(var file in files)
 			{
 				var writeVersion = conf.WriteVersion!.GetWadVersion(file.Stem);
 

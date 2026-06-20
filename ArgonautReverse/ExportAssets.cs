@@ -4,8 +4,9 @@ namespace ArgonautReverse
 {
 	public sealed class ProgramArgs
 	{
-		public string ReadFormat;
+		public string? ReadFormat;
 		public string? PsxDirDat;//Path to PSX DIR/DAT files
+		public string? PsxDatSearch;//Path to PSX DAT file without a DIR
 		public string? ReadWads;//Path to WAD files or directories containing WADs
 
 		public string? WriteFormat;
@@ -19,6 +20,7 @@ namespace ArgonautReverse
 		public bool ExtractLevels = false;
 		public bool ExtractIMGs = false;
 		public bool ExtractScripts = false;
+		public bool HelpMenu = false;
 					
 		public bool IgnoreWarnings;
 
@@ -31,17 +33,20 @@ namespace ArgonautReverse
 	}
 	public sealed class Option
 	{
+		public readonly string Description;
 		public readonly int OperandCount;
 		public readonly Action<ProgramArgs,ReadOnlySpan<string>> Apply;
 
-		public Option(Action<ProgramArgs> apply)
+		public Option(string description, Action<ProgramArgs> apply)
 		{
+			Description = description;
 			OperandCount = 0;
 			Apply = (args, rawArgs) => apply(args);
 		}
 
-		public Option(Action<ProgramArgs,string> apply)
+		public Option(string description, Action<ProgramArgs,string> apply)
 		{
+			Description = description;
 			OperandCount = 1;
 			Apply = (args, rawArgs) => apply(args, rawArgs[0]);
 		}
@@ -50,35 +55,73 @@ namespace ArgonautReverse
 	{
 		private static readonly Dictionary<string,Option> programOptions = new()
 		{
-			["--read-format"] = new((args, raw) => args.ReadFormat = raw),
-			["--read-psx-dirdat"] = new((args, raw) => args.PsxDirDat = raw),
-			["--read-wads"] = new((args, raw) => args.ReadWads = raw),
-			["--write-format"] = new((args, raw) => args.WriteFormat = raw),
-			["--write-wads"] = new((args, raw) => args.WriteWads = raw),
-			["--extract-path"] = new((args, raw) => args.ExtractPath = raw),
-			["--extract"] = new((args, raw) =>
-			{
-				var extractions = raw.Split(',', StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries);
-				foreach(var extraction in extractions)
+			["--read-format"] = new
+			(
+				"The game format to use when reading files.",
+				(args, raw) => args.ReadFormat = raw
+			),
+			["--read-psx-dirdat"] = new
+			(
+				"PSX DIR/DAT files to read. Just speicify one file, the other file with be inferred from the provided path.",
+				(args, raw) => args.PsxDirDat = raw
+			),
+			["--search-psx-dat"] = new
+			(
+				"PSX DAT file to read when the DIR is missing. Will search through to locate WADs.",
+				(args, raw) => args.PsxDatSearch = raw
+			),
+			["--read-wads"] = new
+			(
+				"Comma separated list of files or directories containing WADs to be read.",
+				(args, raw) => args.ReadWads = raw
+			),
+			["--write-format"] = new
+			(
+				"Game format to use when writing files. (WIP)",
+				(args, raw) => args.WriteFormat = raw
+			),
+			["--write-wads"] = new
+			(
+				"Directory for wads to be written to.",
+				(args, raw) => args.WriteWads = raw
+			),
+			["--extract-path"] = new
+			(
+				"Directory for assets for be extracted to.",
+				(args, raw) => args.ExtractPath = raw
+			),
+			["--extract"] = new
+			(
+				"Comma separated list of assets that can be extracted. [audio,audioUnpacked,imgs,levels,models,scripts,textures]",
+				(args, raw) =>
 				{
-					switch(extraction)
+					var extractions = raw.Split(',', StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries);
+					foreach(var extraction in extractions)
 					{
-						case "audio":args.ExtractAudio = true;break;
-						case "audioUnpacked":args.UnpackAudio = true;break;
-						case "imgs":args.ExtractIMGs = true;break;
-						case "levels":args.ExtractLevels = true;break;
-						case "models":args.ExtractModels = true;break;
-						case "scripts":args.ExtractScripts = true;break;
-						case "textures":args.ExtractTextures = true;break;
-						default:throw new Exception($"Unknown excration type: {extraction}");
+						switch(extraction)
+						{
+							case "audio":args.ExtractAudio = true;break;
+							case "audioUnpacked":args.UnpackAudio = true;break;
+							case "imgs":args.ExtractIMGs = true;break;
+							case "levels":args.ExtractLevels = true;break;
+							case "models":args.ExtractModels = true;break;
+							case "scripts":args.ExtractScripts = true;break;
+							case "textures":args.ExtractTextures = true;break;
+							default:throw new Exception($"Unknown excration type: {extraction}");
+						}
 					}
 				}
-			}),
-			["--ignore-warnings"] = new((args) => args.IgnoreWarnings = true),
-			["--help"] = new((args)=>
-			{
-				//TODO: Available options.
-			})
+			),
+			["--ignore-warnings"] = new
+			(
+				"Treats some errors as warnings.",
+				(args) => args.IgnoreWarnings = true
+			),
+			["--help"] = new
+			(
+				"Displays this help menu.",
+				(args)=> args.HelpMenu = true
+			),
 		};
 
 		public static ProgramArgs? ParseArgs(string[] args)
@@ -97,10 +140,6 @@ namespace ArgonautReverse
 				i += option.OperandCount;
 
 				option.Apply(parsedArgs, operands);
-			}
-			if(parsedArgs.ReadFormat == null)
-			{
-				throw new Exception("Missing read-format argument.");
 			}
 
 			return parsedArgs;
@@ -123,6 +162,21 @@ namespace ArgonautReverse
 			var args = ParseArgs(rawArgs);
 			if(args == null){return;}
 
+			if(args.HelpMenu)
+			{
+				int maxCommandLength = programOptions!.Keys.Max(k => k.Length);
+				foreach(var option in programOptions)
+				{
+					Console.WriteLine($"{option.Key.PadRight(maxCommandLength)} - {option.Value.Description}");
+				}
+				return;
+			}
+
+			if(args.ReadFormat == null)
+			{
+				throw new Exception("Missing read-format argument.");
+			}
+
 			var readFormat = Configuration.SliceableGames[args.ReadFormat];
 			var writeFormat = args.WriteFormat!=null ? Configuration.SliceableGames[args.WriteFormat] : null;
 			if(!Configuration.AllParsableGames.Contains(readFormat))
@@ -132,18 +186,22 @@ namespace ArgonautReverse
 
 			var conf = new Configuration(readFormat, writeFormat, args.IgnoreWarnings);
 
-			DIR_DAT dir_dat;
+			IReadOnlyList<DATFile> files;
 			if(args.PsxDirDat is string psxDirDat)
 			{
-				dir_dat = DIR_DAT.FromDirDat(conf, psxDirDat);
+				files = DIR_DAT.FromDirDat(conf, psxDirDat);
+			}
+			else if(args.PsxDatSearch is string psxDat)
+			{
+				files = DIR_DAT.SearchDat(conf, psxDat);
 			}
 			else if(args.ReadWads is string readWads)
 			{
-				dir_dat = DIR_DAT.FromFiles(conf, readWads.Split(','));
+				files = DIR_DAT.FromFiles(conf, readWads.Split(','));
 			}
 			else
 			{
-				Console.WriteLine("Missing either --read-wads or --read-psx-dirdat");
+				Console.WriteLine("Missing either --read-wads, --read-psx-dirdat, or --search-psx-dat");
 				return;
 			}
 			if(args.ExtractPath != null)
@@ -152,7 +210,7 @@ namespace ArgonautReverse
 			}
 			Console.WriteLine("--Parsing--");
 			var parsedSuccessfully = new List<DATFile>();
-			RunOnFiles(dir_dat.Files, datFile =>
+			RunOnFiles(files, datFile =>
 			{
 				datFile.Parse(args, conf);
 				datFile.PrintInfo(Console.Out);

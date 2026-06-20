@@ -1,59 +1,63 @@
 {
-  "profiles": {
-    "ArgonautReverse": {
-      "commandName": "Project"
-    },
-    "Extract DUMMY": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-psx-dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --write-wads \"Extracted/DUMMY\""
-    },
-    "Extract Croc 2 PSX": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 Demo PS1\" --read-psx-dirdat \"GameFiles/CROCII/Raw/CROCII.DIR\" --write-wads \"Extracted/CROCII\""
-    },
-    "Export Jungle Level 1": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-wads \"GameFiles/DUMMY/Wads/00FFF800.WAD\" --extract-path \"Extracted/DUMMY/00FFF800\" --extract-levels"
-    },
-    "Export DUMMY": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-psx-dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --extract-path \"Extracted/DUMMY\" --extract levels,scripts,textures,models"
-    },
-    "Export DUMMY - Scripts": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-psx-dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --extract-path \"Extracted/DUMMY\" --extract scripts"
-    },
-    "Export DUMMY - Levels+Models+Textures": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-psx-dirdat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --extract-path \"Extracted/DUMMY\" --extract levels,textures,models"
-    },
-    "Export Croc 2 PC": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC\" --extract-path \"Extracted/Croc2PC\" --extract scripts,levels,textures,models"
-    },
-    "Export C2PC T1L1M001": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/T1L1M001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract levels,textures,models,scripts"
-    },
+	"profiles": {
+		"ArgonautReverse": {
+			"commandName": "Project"
+		},
+		"Help": {
+			"commandName": "Project",
+			"commandLineArgs": "--help"
+		},
+		"Extract DUMMY": {
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --search-psx-dat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --write-wads \"Extracted/DUMMY\""
+		},
+		"Extract Croc 2 PSX": {
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 Demo PS1\" --read-psx-dirdat \"GameFiles/CROCII/Raw/CROCII.DIR\" --write-wads \"Extracted/CROCII\""
+		},
+		"Export Jungle Level 1": {
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-wads \"GameFiles/DUMMY/Wads/00FFF800.WAD\" --extract-path \"Extracted/DUMMY/00FFF800\" --extract-levels"
+		},
+		"Export DUMMY": {
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --search-psx-dat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --extract-path \"Extracted/DUMMY\" --extract levels,scripts,textures,models"
+		},
+		"Export DUMMY - Scripts": {
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --search-psx-dat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --extract-path \"Extracted/DUMMY\" --extract scripts"
+		},
+		"Export DUMMY - Levels+Models+Textures": {
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --search-psx-dat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --extract-path \"Extracted/DUMMY\" --extract levels,textures,models"
+		},
+		"Export Croc 2 PC": {
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC\" --extract-path \"Extracted/Croc2PC\" --extract scripts,levels,textures,models"
+		},
+		"Export C2PC T1L1M001": {
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/T1L1M001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract levels,textures,models,scripts"
+		},
 		"Export C2PC T1L1M001 Models": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/T1L1M001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract levels,models"
-    },
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/T1L1M001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract levels,models"
+		},
 		"Export C2PC Dante's Peak": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/t4b1m001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract levels,textures,models,scripts"
-    },
-    "Export TENG - T1L7M003": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/TengPC/t1l7m003.wad\""
-    },
-    "Export JP DUMMY": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-psx-dirdat \"GameFiles/JPDEMO_DUMMY/Raw/JPDEMO_DUMMY.DAT\" --extract-path \"Extracted/JPDEMO_DUMMY\"  --extract levels,scripts,textures,models"
-    },
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/t4b1m001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract levels,textures,models,scripts"
+		},
+		"Export TENG - T1L7M003": {
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/TengPC/t1l7m003.wad\""
+		},
+		"Export JP DUMMY": {
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --search-psx-dat \"GameFiles/JPDEMO_DUMMY/Raw/JPDEMO_DUMMY.DAT\" --extract-path \"Extracted/JPDEMO_DUMMY\"  --extract levels,scripts,textures,models"
+		},
 		"Export Aladdin PC": {
-      "commandName": "Project",
-      "commandLineArgs": "--read-format \"Aladdin PC\" --read-wads \"GameFiles/AladdinPC\" --extract-path \"Extracted/AladdinPC\" --extract levels"
-    },
-  }
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Aladdin PC\" --read-wads \"GameFiles/AladdinPC\" --extract-path \"Extracted/AladdinPC\" --extract levels"
+		}
+	}
 }

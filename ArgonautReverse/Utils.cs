@@ -20,14 +20,14 @@ namespace ArgonautReverse
 		}
 
 
-		public static void PadIn2048Bytes(FileReader bio)
+		public static byte[] PadIn2048Bytes(FileReader bio)
 		{
-			bio.Position = RoundUpPadding(bio.Position);
+			var padding = RoundUpPadding(bio.Position) - bio.Position;
+			return bio.ReadArray<byte>(padding);
+			//bio.Position = RoundUpPadding(bio.Position);
 		}
 
-
 		// Images
-
 
 		/// <summary>Converts 15-bit high color raw bytes (see doc @Textures.md#15-bit-high-color) into a flattened list of RGB colors.</summary>
 		public static ColorARGB555[] parse_high_color(Span<byte> data_in, bool has_alpha, bool legacy_alpha=false)// TODO Legacy alpha (Croc 2)
@@ -69,7 +69,6 @@ namespace ArgonautReverse
 				throw new Exception("Assertion failed");
 			}
 		}
-
 
 		public static float Deg2Rad(float degrees) => degrees * MathF.PI / 180f;
 		public static float Rad2Deg(float radians) => radians * 180f / MathF.PI;
