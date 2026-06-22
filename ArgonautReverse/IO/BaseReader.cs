@@ -74,6 +74,13 @@ namespace ArgonautReverse.IO
 			return Encoding.ASCII.GetString(str);
 		}
 
+		public string ReadStringUTF16(int length)
+		{
+			Span<byte> str = stackalloc byte[length];
+			ReadData(str);
+			return Encoding.Unicode.GetString(str);
+		}
+
 		//public T ReadEmptyReference<T>() where T:class
 		//{
 		//	int value = Read<int>();

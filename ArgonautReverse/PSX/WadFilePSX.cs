@@ -14,7 +14,11 @@ namespace ArgonautReverse.PSX
 		public TPSXChunk TPSX{get;private set;}
 		public SPSXChunk SPSX{get;private set;}
 		public DPSXChunk DPSX{get;private set;}
+
+		public LPSXChunk LPSX{get;private set;}
 		public PORTChunk PORT{get;private set;}
+		public UNIFChunk UNIF{get;private set;}
+
 		public ENDChunkPSX END{get;private set;}
 
 		public override bool TryGetChunkInfo(ChunkType chunkType, [MaybeNullWhen(false)]out BaseWADChunkInfo info)
@@ -24,7 +28,10 @@ namespace ArgonautReverse.PSX
 				ChunkType.ID_PSX_TEXT => TPSXChunkInfo.Instance,
 				ChunkType.ID_PSX_SAMPLE => SPSXChunkInfo.Instance,
 				ChunkType.ID_PSX_DATA => DPSXChunkInfo.Instance,
+
+				ChunkType.ID_PSX_LANG => LPSXChunkInfo.Instance,
 				ChunkType.ID_PSX_PORT => PORTChunkInfo.Instance,
+				ChunkType.ID_PSX_UNIF => UNIFChunkInfo.Instance,
 
 				ChunkType.ID_END => ENDChunkInfoPSX.Instance,
 				_ => null
@@ -38,7 +45,10 @@ namespace ArgonautReverse.PSX
 				ChunkType.ID_PSX_TEXT => TPSX,
 				ChunkType.ID_PSX_SAMPLE => SPSX,
 				ChunkType.ID_PSX_DATA => DPSX,
+
+				ChunkType.ID_PSX_LANG => LPSX,
 				ChunkType.ID_PSX_PORT => PORT,
+				ChunkType.ID_PSX_UNIF => UNIF,
 
 				ChunkType.ID_END => END,
 				_ => throw new Exception($"Unknown type: {info.ChunkType}")
@@ -52,6 +62,11 @@ namespace ArgonautReverse.PSX
 				case ChunkType.ID_PSX_DATA:DPSX = (DPSXChunk)chunk;break;
 				case ChunkType.ID_PSX_SAMPLE:SPSX = (SPSXChunk)chunk;break;
 				case ChunkType.ID_PSX_TEXT:TPSX = (TPSXChunk)chunk;break;
+
+				case ChunkType.ID_PSX_LANG:LPSX = (LPSXChunk)chunk;break;
+				case ChunkType.ID_PSX_PORT:PORT = (PORTChunk)chunk;break;
+				case ChunkType.ID_PSX_UNIF:UNIF = (UNIFChunk)chunk;break;
+
 				case ChunkType.ID_END:END = (ENDChunkPSX)chunk;break;
 				default:throw new Exception("Unsupported chunk for platform");
 			}
@@ -340,6 +355,8 @@ namespace ArgonautReverse.PSX
 
 		public override void ExtractAssets(ProgramArgs args, Configuration conf)
 		{
+			ExportAssets.CreateExportDirectory(Path.Join(args.ExtractPath, Stem));
+
 			ExportTPSX(args, conf);
 			ExportSPSX(args, conf);
 			ExportDPSX(args, conf);

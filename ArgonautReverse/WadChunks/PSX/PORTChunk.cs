@@ -9,7 +9,7 @@ namespace ArgonautReverse.WadChunks.PSX
 		public static readonly PORTChunkInfo Instance = new PORTChunkInfo();
 
 		public override ChunkType ChunkType => ChunkType.ID_PSX_PORT;
-		public override WadVersion[] SupportedWadVersions { get; } = new WadVersion[] { HARRY_POTTER_1_PS1.WadVersion, HARRY_POTTER_2_PS1.WadVersion };
+		public override WadVersion[] SupportedWadVersions{get;} = [HARRY_POTTER_1_PS1.WadVersion, HARRY_POTTER_2_PS1.WadVersion];
 		public override string ChunkDescription => "chunk zone ids";
 
 		public override PORTChunk Parse(WadReader data_in)

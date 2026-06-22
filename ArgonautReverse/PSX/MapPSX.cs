@@ -64,7 +64,7 @@ namespace ArgonautReverse.PSX
 			var waypoint = new WaypointPSX();
 			waypoint.NextRawValue = reader.Read<int>();
 			reader.AssertRead<uint>(0);//waypoint.PrevRawValue
-			waypoint.Position = reader.Read<POS>();
+			waypoint.Position = POS.ParseWithImportantPadding(reader);//TODO: Seems to have values in HP1.
 			waypoint.Value = reader.Read<int>();
 			return waypoint;
 		}
@@ -158,9 +158,19 @@ namespace ArgonautReverse.PSX
 
 		public static LightTuplePSX Parse(WadReader reader)
 		{
-			var lightA = reader.Read<short>();
-			var lightB = reader.Read<short>();
-			return new LightTuplePSX(lightA, lightB);
+			if(reader.ReadVersion == HARRY_POTTER_1_PS1.WadVersion || reader.ReadVersion == HARRY_POTTER_2_PS1.WadVersion)
+			{
+				//TODO: LightTuple. Taking a guess on this. The full size is 16 bit in HP.
+				var lightA = reader.Read<byte>();
+				var lightB = reader.Read<byte>();
+				return new LightTuplePSX(lightA, lightB);
+			}
+			else
+			{
+				var lightA = reader.Read<short>();
+				var lightB = reader.Read<short>();
+				return new LightTuplePSX(lightA, lightB);
+			}
 		}
 	}
 
@@ -217,7 +227,7 @@ namespace ArgonautReverse.PSX
 		//Values not part of the map struct
 		public IReadOnlyList<ZoneInfo> ZoneTable;
 
-		public LightTuplePSX[] LightTuples;
+		public LightTuplePSX[]? LightTuples;
 		public IReadOnlyList<OmniLightPSX> omniLights;
 		public IReadOnlyList<IReadOnlyList<PreLitPSX>> pre_map;
 
@@ -295,7 +305,7 @@ namespace ArgonautReverse.PSX
 
 				reader.AssertRead<uint>(0);//Strats placeholder
 
-				reader.AssertRead<uint>(0);//not_used1 placeholder
+				reader.AssertRead<uint>(0, warn:true/*HP1*/);//not_used1 placeholder
 				reader.AssertRead<uint>(0);//not_used2 placeholder
 
 				reader.AssertRead<uint>(0);//Positions placeholder
@@ -380,12 +390,13 @@ namespace ArgonautReverse.PSX
 
 			//Taking a guess on this one
 			//Not certain if WF_USESZONES can still be relied on
-			bool newZones = (wadFlag & WadFlagPSX.WF_NEWZONES) != 0;
-			bool useZones = (wadFlag & WadFlagPSX.WF_USESZONES) != 0;
-			if(newZones != useZones || newZones == (data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion))
-			{
-				throw new Exception("Not certain if WF_USESZONES can still be relied on");
-			}
+			//bool newZones = (wadFlag & WadFlagPSX.WF_NEWZONES) != 0;
+			//bool useZones = (wadFlag & WadFlagPSX.WF_USESZONES) != 0;
+			//if(newZones != useZones || newZones == (data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion))
+			//{
+			//	//HP1 has NEWZONES with out USESZONES
+			//	throw new Exception("Not certain if WF_USESZONES can still be relied on");
+			//}
 			if((wadFlag & WadFlagPSX.WF_NEWZONES) != 0)
 			{
 				map.ZoneTable = data_in.ReadArray<ZoneInfo>(32);
@@ -403,20 +414,12 @@ namespace ArgonautReverse.PSX
 				map.ZoneData = null;
 			}
 
-			if(data_in.ReadString(4) == "fvw\x00")
+			if(data_in.Read<uint>() == 0x00777666)
 			{
-				//Original exporter has LightTuple as 16 bits.
-				//Aladdin has it as 32 bits.
 				//Croc 2 PSX release doesn't have code for this.
 				//TODO: Check other games. Ideally find out how to determine programmatically.
 
-				map.LightTuples = new LightTuplePSX[map.MapXY];
-				for(int i = 0; i < map.MapXY; i++)
-				{
-					map.LightTuples[i] = data_in.Read<LightTuplePSX>();
-				}
-
-				throw new Exception("Uncertain LightTuple size");
+				map.LightTuples = data_in.ReadArray<LightTuplePSX>(map.MapXY);
 			}
 			else
 			{
@@ -433,7 +436,10 @@ namespace ArgonautReverse.PSX
 				map.DoorList = data_in.ReadArray<DoorPSX>(map.NumberOfDoors);
 
 				//TODO: Assign Background for each door
-				throw new NotImplementedException();
+				//foreach(var door in map.DoorList)
+				//{
+				//	door.Background = ;
+				//}
 			}
 
 			map.WPList = WaypointPSX.ParseWaypointList(data_in, (int)map.NumberOfWP);
@@ -607,7 +613,12 @@ namespace ArgonautReverse.PSX
 			var soundDataFlags = data_in.WadFile.GetChunk(SPSXChunkInfo.Instance)?.spsx_flags ?? 0;
 			if((soundDataFlags&SPSXFlagsPSX.HasAmbient)!=0)
 			{
-				if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
+				if(data_in.Remaining == 0)
+				{
+					//TODO: Found in Harry Potter 1.
+					Console.WriteLine("WARNING: Attemping to read ambient data past the end of the DPSX chunk.");
+				}
+				else if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 				{
 					//TODO: No data remaining
 				}
@@ -642,9 +653,6 @@ namespace ArgonautReverse.PSX
 					map.Ambiences = ambience;
 				}
 			}
-			else
-			{
-			}
 
 			if((wadFlag & WadFlagPSX.WF_HASINVENTORY) != 0)
 			{
@@ -653,7 +661,10 @@ namespace ArgonautReverse.PSX
 
 			if((wadFlag & WadFlagPSX.WF_HASLANGUAGES) != 0)
 			{
-				throw new NotImplementedException();
+				if(data_in.ReadVersion != HARRY_POTTER_1_PS1.WadVersion)//Languages stored in LPSX chunk.
+				{
+					throw new NotImplementedException();
+				}
 			}
 
 			return map;

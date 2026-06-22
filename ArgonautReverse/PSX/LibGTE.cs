@@ -66,6 +66,17 @@ namespace ArgonautReverse.PSX.LibGTE
 
 			return new VECTOR(vx, vy, vz, pad);
 		}
+
+		/// <summary>Parse the data but allow the padding to have non-zero values</summary>
+		public static VECTOR ParseWithImportantPadding(WadReader parser)
+		{
+			var vx = parser.Read<int>();
+			var vy = parser.Read<int>();
+			var vz = parser.Read<int>();
+			var pad = parser.Read<int>();
+			
+			return new VECTOR(vx, vy, vz, pad);
+		}
 	}
 	
 	/// <summary>Short word type 3D vector</summary>

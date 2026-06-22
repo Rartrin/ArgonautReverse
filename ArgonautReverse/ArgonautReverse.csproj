@@ -21,6 +21,8 @@
 
   <ItemGroup>
 	<Folder Include="ExternalFormat\" />
+	<Folder Include="GameFiles\HarryPotter1PSX\" />
+	<Folder Include="GameFiles\HarryPotter2PSX\" />
   </ItemGroup>
 
   <ItemGroup>

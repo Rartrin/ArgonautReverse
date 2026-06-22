@@ -23,12 +23,13 @@ namespace ArgonautReverse.WadChunks
 		ID_PC_SPRITE	= (('S' << 24) + ('P' << 16) + ('R' << 8) + 'T'),
 		ID_PC_RIMG		= (('R' << 24) + ('I' << 16) + ('M' << 8) + 'G'),
 
-		#region Earliest found: TENG
+		//TENG = The Emperor's New Groove
+		#region Found in: TENG, Aladdin
 		ID_PC_NAME		= (('N' << 24) + ('A' << 16) + ('M' << 8) + 'E'),
 		ID_PC_SRPC		= (('S' << 24) + ('R' << 16) + ('P' << 8) + 'C'),
 		ID_PC_LNFO		= (('L' << 24) + ('N' << 16) + ('F' << 8) + 'O'),
 		#endregion
-		#region Earliest found: Aladdin
+		#region Found in: Aladdin
 		ID_PC_PRLT		= (('P' << 24) + ('R' << 16) + ('L' << 8) + 'T'),
 		#endregion
 		#endregion
@@ -37,16 +38,20 @@ namespace ArgonautReverse.WadChunks
 		//CWAD indicated the wad is compressed
 		ID_PSX_CWAD = (('C' << 24) + ('W' << 16) + ('A' << 8) + 'D'),
 		
-		ID_PSX_TEXT		=(('T' << 24) + ('P' << 16) + ('S' << 8) + 'X'),
-		ID_PSX_SAMPLE	=(('S' << 24) + ('P' << 16) + ('S' << 8) + 'X'),
-		ID_PSX_DATA		=(('D' << 24) + ('P' << 16) + ('S' << 8) + 'X'),
+		ID_PSX_TEXT		= (('T' << 24) + ('P' << 16) + ('S' << 8) + 'X'),
+		ID_PSX_SAMPLE	= (('S' << 24) + ('P' << 16) + ('S' << 8) + 'X'),
+		ID_PSX_DATA		= (('D' << 24) + ('P' << 16) + ('S' << 8) + 'X'),
+
+		#region Found in: Harry Potter 1 PSX
+		ID_PSX_LANG		= (('L' << 24) + ('P' << 16) + ('S' << 8) + 'X'),
+		ID_PSX_PORT		= (('P' << 24) + ('O' << 16) + ('R' << 8) + 'T'),
+		ID_PSX_UNIF		= (('U' << 24) + ('N' << 16) + ('I' << 8) + 'F'),
+		#endregion
 		
-		//Unknown Chunk
-		ID_PSX_PORT		=(('P' << 24) + ('O' << 16) + ('R' << 8) + 'T'),
 		#endregion
 
 		#region Universal Chunks
-		ID_END			=(('E' << 24) + ('N' << 16) + ('D' << 8) + ' '),
+		ID_END			= (('E' << 24) + ('N' << 16) + ('D' << 8) + ' '),
 		#endregion
 	}
 

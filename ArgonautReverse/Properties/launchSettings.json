@@ -58,6 +58,14 @@
 		"Export Aladdin PC": {
 			"commandName": "Project",
 			"commandLineArgs": "--read-format \"Aladdin PC\" --read-wads \"GameFiles/AladdinPC\" --extract-path \"Extracted/AladdinPC\" --extract levels"
+		},
+		"Export Harry Potter 1 PSX": {
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Harry Potter 1 PS1\" --read-psx-dirdat \"GameFiles/HarryPotter1PSX\" --extract-path \"Extracted/HarryPotter1PSX\" --extract textures,levels"
+		},
+		"Export Harry Potter 2 PSX": {
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Harry Potter 2 PS1\" --read-psx-dirdat \"GameFiles/HarryPotter2PSX\" --extract-path \"Extracted/HarryPotter2PSX\" --extract textures,levels"
 		}
 	}
 }

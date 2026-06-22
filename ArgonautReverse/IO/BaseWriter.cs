@@ -108,5 +108,14 @@ namespace ArgonautReverse.IO
 			Encoding.ASCII.GetBytes(str, bytes);
 			WriteData(bytes);
 		}
+
+		public void WriteStringUTF16(int length, string str)
+		{
+			if(length != str.Length){throw new Exception();}
+
+			Span<byte> bytes = stackalloc byte[2 * length];
+			Encoding.Unicode.GetBytes(str, bytes);
+			WriteData(bytes);
+		}
 	}
 }

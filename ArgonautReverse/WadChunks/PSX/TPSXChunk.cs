@@ -43,7 +43,7 @@ namespace ArgonautReverse.WadChunks.PSX
 				var hasLevelName = (chunkFlags & TextureFlag.HasLevelName) != 0;
 				compressed16bit = (chunkFlags & TextureFlag.Compressed16Bit) != 0;
 
-				if(hasLevelName)
+				if(hasLevelName || hasLongLevelName)
 				{
 					if(hasLongLevelName)
 					{
@@ -72,7 +72,7 @@ namespace ArgonautReverse.WadChunks.PSX
 			}
 			var texture_file = TextureFilePSX.parse(data_in, compressed16bit, hasMemoryCardIcons);
 
-			data_in.AssertEndOfChunk(ChunkType);
+			data_in.AssertEndOfChunk(ChunkType, warn:true);//TODO: Incorrect data size on HP games?
 			return new TPSXChunk(texture_file, titles, fontLookup, data_in.GetAllWadData());
 		}
 	}

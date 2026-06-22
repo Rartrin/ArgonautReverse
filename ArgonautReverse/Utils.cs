@@ -30,7 +30,7 @@ namespace ArgonautReverse
 		// Images
 
 		/// <summary>Converts 15-bit high color raw bytes (see doc @Textures.md#15-bit-high-color) into a flattened list of RGB colors.</summary>
-		public static ColorARGB555[] parse_high_color(Span<byte> data_in, bool has_alpha, bool legacy_alpha=false)// TODO Legacy alpha (Croc 2)
+		public static ColorARGB555[] ParseHighColor(Span<byte> data_in, bool has_alpha, bool legacy_alpha=false)// TODO Legacy alpha (Croc 2)
 		{
 			//ABGR1555
 			
@@ -40,7 +40,7 @@ namespace ArgonautReverse
 			for(int i=0; i<res.Length; i++)
 			{
 				var color_bytes = BitConverter.ToUInt16(data_in.Slice(i*2, 2));
-				res[i] = new(color_bytes);
+				res[i] = new ColorABGR555(color_bytes).ToRGB555();
 			}
 			return res;
 		}
@@ -57,9 +57,9 @@ namespace ArgonautReverse
 			return res;
 		}
 
-		public static ColorARGB555[] parse_palette(Span<byte> data, int n_palette_colors, bool has_alpha, bool legacy_alpha=false, int start=0)
+		public static ColorARGB555[] ParsePalette(Span<byte> data, int n_palette_colors, bool has_alpha, bool legacy_alpha=false, int start=0)
 		{
-			return parse_high_color(data.Slice(start, 2*n_palette_colors), has_alpha, legacy_alpha);
+			return ParseHighColor(data.Slice(start, 2*n_palette_colors), has_alpha, legacy_alpha);
 		}
 
 		public static void Assert(bool condition)

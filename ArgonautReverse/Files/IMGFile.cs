@@ -155,7 +155,7 @@ namespace ArgonautReverse.Files
 					ColorARGB555[] palette;
 					if(image_type.n_palette_colors != 0)
 					{
-						palette = Utils.parse_palette(image_data, image_type.n_palette_colors, image_type.has_alpha);
+						palette = Utils.ParsePalette(image_data, image_type.n_palette_colors, image_type.has_alpha);
 					}
 					else
 					{
@@ -228,7 +228,7 @@ namespace ArgonautReverse.Files
 			}
 			else
 			{
-				var highColor = Utils.parse_high_color(pixels_data, has_alpha);
+				var highColor = Utils.ParseHighColor(pixels_data, has_alpha);
 				fixed(ColorARGB555* highColor0 = highColor)
 				{
 					return new Bitmap(dimensions.Y, dimensions.X, dimensions.Y*sizeof(ColorARGB555), PixelFormat.Format16bppArgb1555, (IntPtr)highColor0);

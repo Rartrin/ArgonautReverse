@@ -24,6 +24,14 @@ namespace ArgonautReverse.PSX
 
 			return new POS(rot, trn);
 		}
+
+		public static POS ParseWithImportantPadding(WadReader parser)
+		{
+			var rot = SVECTOR.ParseWithImportantPadding(parser);
+			var trn = VECTOR.ParseWithImportantPadding(parser);
+
+			return new POS(rot, trn);
+		}
 	}
 
 	///<summary>Larger version of a POS with 32 bit rotation (4.20 << 16)</summary>

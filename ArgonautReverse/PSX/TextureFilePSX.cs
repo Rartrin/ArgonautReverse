@@ -61,15 +61,17 @@ namespace ArgonautReverse.PSX
 			{
 				data_in.SkipBytes(192); // 16 textures x 12 bytes
 			}
-			var n_idk_yet_1 = data_in.Read<int>();
+
+			var n_idk_yet_1 = data_in.Read<int>();//Not sure what this is but it is the number of effects below.
 			var number_effects = data_in.Read<int>(); // Name found in the debug symbols
-			data_in.SkipBytes(n_idk_yet_1 * image_header_size);//image_header_size is just sizeof(int)
+
+			/*TODO: Effects*/data_in.SkipBytes(n_idk_yet_1 * image_header_size);//image_header_size is just sizeof(int)
 
 			//TODO: Memory Card Icons
 			if(hasMemoryCardIcons)
 			{
-				data_in.SkipBytes(15360);
-				for(int i = 0; i < 5; i++)
+				//data_in.SkipBytes(5*(768*sizeof(int)));
+				for(int i = 0; i < 5; i++)//5 slots
 				{
 					var mcPalette = data_in.ReadArray<uint>(128);
 					var mcBitmapData = data_in.ReadArray<uint>(16 * 40);
@@ -80,13 +82,13 @@ namespace ArgonautReverse.PSX
 			{
 				var raw_textures = new byte[image_bytes_size];
 				var raw_texturesStream = new MemoryStream(raw_textures);
-				while(data_in.Remaining > 0)
+				while(data_in.Remaining > 0)//TODO: Figure out actual programatic check.
 				{
-					var run = data_in.Read<int>();
+					short run = data_in.Read<short>();
 					if(run < 0)
 					{
-						var element = data_in.Read<ushort>();//rle_size
-						for(int count = Math.Abs(run); count > 0; count--)
+						var element = data_in.Read<ushort>();
+						for(int count = -run; count > 0; count--)
 						{
 							raw_texturesStream.WriteByte((byte)element);
 							raw_texturesStream.WriteByte((byte)(element >> 8));
@@ -167,7 +169,7 @@ namespace ArgonautReverse.PSX
 						}
 						var palette = texture_image.Palette;
 
-						var paletteColors = Utils.parse_palette
+						var paletteColors = Utils.ParsePalette
 						(
 							textures_data,
 							paletteSize,
