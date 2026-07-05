@@ -21,12 +21,14 @@ namespace ArgonautReverse
 		public bool ExtractIMGs = false;
 		public bool ExtractScripts = false;
 		public bool HelpMenu = false;
+
+		public string? DumpDatPath;
 					
 		public bool IgnoreWarnings;
 
 		public string GetExtractDirectory(string stem, string subdirectory)
 		{
-			var path = Path.Join(ExtractPath, stem, subdirectory);
+			var path = Path.Combine(ExtractPath!, stem, subdirectory);
 			ExportAssets.CreateExportDirectory(path);
 			return path;
 		}
@@ -111,6 +113,11 @@ namespace ArgonautReverse
 						}
 					}
 				}
+			),
+			["--dump-dat"] = new
+			(
+				"Dumps the files in the dat to the specified directory.",
+				(args, raw) => args.DumpDatPath = raw
 			),
 			["--ignore-warnings"] = new
 			(
@@ -204,6 +211,18 @@ namespace ArgonautReverse
 				Console.WriteLine("Missing either --read-wads, --read-psx-dirdat, or --search-psx-dat");
 				return;
 			}
+			if(args.DumpDatPath != null)
+			{
+				Console.WriteLine("--Dumping DIR/DAT Files--");
+				CreateExportDirectory(args.DumpDatPath);
+				RunOnFiles(files, datFile =>
+				{
+					Console.WriteLine($"Dumping {datFile.Name}");
+					File.WriteAllBytes(Path.Combine(args.DumpDatPath, datFile.Name), datFile._data);
+				});
+				return;
+			}
+
 			if(args.ExtractPath != null)
 			{
 				CreateExportDirectory(args.ExtractPath);

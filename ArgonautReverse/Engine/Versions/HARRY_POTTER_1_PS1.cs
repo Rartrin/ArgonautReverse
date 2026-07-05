@@ -26,12 +26,12 @@ namespace ArgonautReverse.Engine.Versions
 		{
 			public static readonly WadVersion Instance = new HARRY_POTTER_1_PS1_Wad();
 
-			public override DateTime BuildDate => new DateTime(2001, 12, 1);
+			public override DateTime BuildDate => new DateTime(2001, 10, 2);
 			
 			public override bool NEW_COLLISION => true;
 			public override bool KEYFRAME_STUFF => true;
-            public override bool HAS_SPLINE_POINTS => throw new NotImplementedException();
-            public override bool HAS_STRAT_ARRAY_POOL => throw new NotImplementedException();
+			public override bool HAS_SPLINE_POINTS => throw new NotImplementedException();
+			public override bool HAS_STRAT_ARRAY_POOL => throw new NotImplementedException();
 
 			public override InstructionOpcode MapOpcode(int value) => throw new NotImplementedException();
 			public override TriggerType MapTriggerType(int value) => throw new NotImplementedException();

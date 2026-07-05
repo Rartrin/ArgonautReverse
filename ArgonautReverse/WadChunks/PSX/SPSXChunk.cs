@@ -13,6 +13,7 @@ namespace ArgonautReverse.WadChunks.PSX
 		public override string ChunkDescription => "sound effects, background music & dialogues";
 		public override WadVersion[] SupportedWadVersions{get;} = new[]
 		{
+			CROC_2_PS1.DatVersion,
 			CROC_2_DEMO_PS1_DUMMY.DatVersion,
 			HARRY_POTTER_1_PS1.DatVersion,
 			HARRY_POTTER_2_PS1.DatVersion

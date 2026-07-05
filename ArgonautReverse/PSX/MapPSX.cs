@@ -1,19 +1,76 @@
 ﻿using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
+using ArgonautReverse.PC;
 using ArgonautReverse.PSX.LibGTE;
 using ArgonautReverse.Universal;
 using ArgonautReverse.WadChunks.PSX;
 
 namespace ArgonautReverse.PSX
 {
+	public sealed class CameraPointPSX//:IReadable<CameraPointPSX>,IWritable
+	{
+		//public CameraPointPSX? Prev;
+		//public CameraPointPSX? Next;public bool HasNext;
+		public Fixed32 X;
+		public Fixed32 Z;
+		public ushort Type;
+		public ushort Angle;
+		public Fixed32 Y;
+		//public int __padding;
+
+		//public static CameraPointPSX Parse(WadReader reader)
+		//{
+		//	var cameraPoint = new CameraPointPSX();
+		//	reader.AssertRead<uint>(0);//Prev placeholder
+		//	cameraPoint.HasNext = reader.Read<uint>() switch
+		//	{
+		//		0 => false,
+		//		1 => true,
+		//		_ => throw new Exception("Invalid value"),
+		//	};
+		//	cameraPoint.X = reader.Read<Fixed32>();
+		//	cameraPoint.Z = reader.Read<Fixed32>();
+		//	cameraPoint.Y = reader.Read<Fixed32>();
+		//	cameraPoint.Type = reader.Read<ushort>();
+		//	cameraPoint.Angle = reader.Read<ushort>();
+		//	reader.AssertRead<uint>(0);//Padding
+		//	return cameraPoint;
+		//}
+
+		//public void Write(WadWriter writer)
+		//{
+		//	writer.Write<uint>(0);//Prev placeholder
+		//	writer.Write<uint>((Next != null) ? 1u : 0u);//Next placeholder
+		//	writer.Write<Fixed32>(X);
+		//	writer.Write<Fixed32>(Z);
+		//	writer.Write<Fixed32>(Y);
+		//	writer.Write<ushort>(Type);
+		//	writer.Write<ushort>(Angle);
+		//	writer.Write<uint>(0);//Padding
+		//}
+	}
+
+	public sealed class CameraLoopPSX(CameraPointPSX[] points)
+	{
+		//public ushort PointCount;
+		//public readonly CameraPointFlags Flags = flags;
+		public CameraPointPSX[] Points = points;
+	}
+
+	public sealed class CameraEntryPSX(CameraLoopPSX[] loops)
+	{
+		//public uint LoopCount;
+		public readonly CameraLoopPSX[] Loops = loops;
+	}
+
 	public sealed class MapIndexPSX
 	{
 		public const int ByteSize = 8;
 
 		public uint Index{get;private set;}
-		public MapIndexPSX Next{get;private set;}
+		public MapIndexPSX? Next{get;private set;}
 
-		private MapIndexPSX() { }
+		private MapIndexPSX(){}
 
 		public static IReadOnlyList<MapIndexPSX> ParseIndexGrid(int pieceCount, WadReader reader)
 		{
@@ -230,6 +287,11 @@ namespace ArgonautReverse.PSX
 		public LightTuplePSX[]? LightTuples;
 		public IReadOnlyList<OmniLightPSX> omniLights;
 		public IReadOnlyList<IReadOnlyList<PreLitPSX>> pre_map;
+
+		public int MaxCameraHeight;
+		public CameraEntryPSX[] CameraPointTable;
+		public (uint[] Palette, uint[] Bitmap)[] InvAddresses;
+		public string[][] LanguageBase;
 
 		//Didn't have fields originally
 		public int SequenceCount;
@@ -456,7 +518,7 @@ namespace ArgonautReverse.PSX
 				if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 				{
 					//Getting here means that DUMMY definitely supports the WF_NOMATPOS flag.
-					throw new NotImplementedException("The DUMMY version supports WF_NOMATPOS. Document this and remove this exception.");
+					throw new NotImplementedException("This confirmed the DUMMY version supports WF_NOMATPOS. Document this and remove this exception.");
 				}
 			}
 			else
@@ -470,7 +532,6 @@ namespace ArgonautReverse.PSX
 				var matpos = data_in.ReadArray<MATRIX>(map.NumberOfPieces);
 				var matdraw = data_in.ReadArray<MATRIX>(map.NumberOfPieces);
 			}
-			
 
 			if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
@@ -478,11 +539,7 @@ namespace ArgonautReverse.PSX
 				var unknownData = data_in.ReadArray<int>(20);
 			}
 
-			if((wadFlag & WadFlagPSX.WF_CAMERAPOINTS) != 0)
-			{
-				//TODO: WF_CAMERAPOINTS
-				throw new NotImplementedException();
-			}
+			ParseCameraPoints(map, data_in, wadFlag);
 
 			if((wadFlag & WadFlagPSX.WF_HASOTHERPIECES) != 0)
 			{
@@ -656,18 +713,122 @@ namespace ArgonautReverse.PSX
 
 			if((wadFlag & WadFlagPSX.WF_HASINVENTORY) != 0)
 			{
-				throw new NotImplementedException();
+				int invCount;
+				if((wadFlag & WadFlagPSX.WF_HASEXTRAINVENTORY) != 0)
+				{
+					invCount = 7;
+				}
+				if((wadFlag & WadFlagPSX.WF_HASFULLSETOFICONS) != 0)
+				{
+					invCount = 10;
+				}
+				else
+				{
+					invCount = 6;
+				}
+				map.InvAddresses = new (uint[],uint[])[invCount];
+				for(int i = 0; i < invCount; i++)
+				{
+					var palette = data_in.ReadArray<uint>(128);
+					var bitmap = data_in.ReadArray<uint>(16*40);
+					map.InvAddresses[i] = (palette, bitmap);
+				}
 			}
 
-			if((wadFlag & WadFlagPSX.WF_HASLANGUAGES) != 0)
+			if((wadFlag & WadFlagPSX.WF_HASLANGUAGES) != 0 && (data_in.ReadVersion != HARRY_POTTER_1_PS1.WadVersion))//Languages stored in LPSX chunk in HP.
 			{
-				if(data_in.ReadVersion != HARRY_POTTER_1_PS1.WadVersion)//Languages stored in LPSX chunk.
+				if(data_in.ReadVersion != CROC_2_PS1.WadVersion)
 				{
-					throw new NotImplementedException();
+					throw new NotImplementedException("Language only implemented on Croc2PSX");
+				}
+				int lastLanguageIndex = data_in.Read<int>();
+				int numberOfLanguages = lastLanguageIndex + 1;
+				int phraseCount = data_in.Read<int>();
+				int stringDataSize = data_in.Read<int>();
+				var stringOffsets = data_in.ReadArray<int>(numberOfLanguages * phraseCount);
+				map.LanguageBase = new string[numberOfLanguages][];
+				for(int i=0; i<numberOfLanguages; i++)
+				{
+					map.LanguageBase[i] = new string[phraseCount];
+				}
+				var stringData = data_in.ReadArray<sbyte>(4*(stringDataSize+1));//TODO:T3L1M001 needed +1. They forgot to count the null terminator?
+				unsafe
+				{
+					fixed(sbyte* stringData0 = stringData)
+					{
+						int langIndex = 0;
+						for(int l = 0; l < numberOfLanguages; l++)
+						{
+							for(int p = 0; p < phraseCount; p++)
+							{
+								map.LanguageBase[l][p] = new string(&stringData0[stringOffsets[langIndex]]);// Values are offsets from the LanguageBase
+								langIndex++;
+							}
+						}
+					}
 				}
 			}
 
 			return map;
+		}
+
+		private static void ParseCameraPoints(MapPSX map, WadReader reader, WadFlagPSX wadFlag)
+		{
+			if((wadFlag & WadFlagPSX.WF_CAMERAPOINTS) == 0){return;}
+
+			if(reader.ReadVersion != CROC_2_PS1.WadVersion)
+			{
+				throw new NotImplementedException("CAMERAPOINTS Only implemented on Croc2PSX");
+			}
+
+			var cameraEntryCount = reader.Read<int>();
+			map.CameraPointTable = new CameraEntryPSX[cameraEntryCount];
+			for(int i = 0; i < cameraEntryCount; i++)
+			{
+				uint loopCount = reader.Read<uint>();
+				reader.AssertRead<uint>(0);//Loops placeholder
+				map.CameraPointTable[i] = new(new CameraLoopPSX[loopCount]);
+			}
+
+			foreach(var entry in map.CameraPointTable)
+			{
+				for(int j = 0; j < entry.Loops.Length; j++)
+				{
+					reader.AssertRead<ushort>(0);//CameraLoopPSX.PointCount placeholder
+					reader.AssertRead<ushort>(0);//CameraLoopPSX.Flags placeholder
+					reader.AssertRead<uint>(0);//CameraLoopPSX.Points placeholder
+				}
+			}
+
+			foreach(var entry in map.CameraPointTable)
+			{
+				for(int j = entry.Loops.Length - 1; j >= 0; j--)//Must be signed
+				{
+					var loop = new List<CameraPointPSX>();
+					bool hasNext = true;
+					while(hasNext)
+					{
+						var cameraPoint = new CameraPointPSX();
+						reader.AssertRead<uint>(0);//Prev placeholder
+						hasNext = reader.Read<uint>() switch
+						{
+							0 => false,
+							1 => true,
+							_ => throw new Exception("Invalid value"),
+						};
+						cameraPoint.X = reader.Read<Fixed32>();
+						cameraPoint.Z = reader.Read<Fixed32>();
+						cameraPoint.Y = reader.Read<Fixed32>();
+						cameraPoint.Type = reader.Read<ushort>();
+						cameraPoint.Angle = reader.Read<ushort>();
+						reader.AssertRead<uint>(0);//Padding
+
+						loop.Add(cameraPoint);
+					}
+					entry.Loops[j] = new(loop.ToArray());
+				}
+			}
+			map.MaxCameraHeight = cameraEntryCount - 1;
 		}
 	}
 }

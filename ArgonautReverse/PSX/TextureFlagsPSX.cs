@@ -10,6 +10,9 @@ namespace ArgonautReverse.PSX
 	{
 		extension(TextureFlagsPSX that)
 		{
+			public bool Has256ColorPalette => (that & TextureFlagsPSX.HAS_256_COLORS_PALETTE) != 0;
+			public bool HasNoPaletted => (that & TextureFlagsPSX.IS_NOT_PALETTED) != 0;
+
 			public int n_row() => (((int)that & 4) >> 1) + (((int)that & 16) >> 4);
 
 			public int n_column() => (int)that & 3;

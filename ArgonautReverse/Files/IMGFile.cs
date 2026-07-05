@@ -155,20 +155,13 @@ namespace ArgonautReverse.Files
 					ColorARGB555[] palette;
 					if(image_type.n_palette_colors != 0)
 					{
-						palette = Utils.ParsePalette(image_data, image_type.n_palette_colors, image_type.has_alpha);
+						palette = Utils.ParsePalette(image_data.Slice(0, 2*image_type.n_palette_colors), image_type.has_alpha);
 					}
 					else
 					{
 						palette = null;
 					}
-					images.Add(to_full_colorized(
-							image_data,
-							image_type.dimensions,
-							palette,
-							image_type.n_palette_colors,
-							image_type.has_alpha
-						)
-					);
+					images.Add(to_full_colorized(image_data, image_type.dimensions, palette, image_type.n_palette_colors, image_type.has_alpha));
 				}
 				else
 				{
@@ -232,8 +225,6 @@ namespace ArgonautReverse.Files
 				fixed(ColorARGB555* highColor0 = highColor)
 				{
 					return new Bitmap(dimensions.Y, dimensions.X, dimensions.Y*sizeof(ColorARGB555), PixelFormat.Format16bppArgb1555, (IntPtr)highColor0);
-					//var pixels = np.reshape(np.array(Utils.parse_high_color(pixels_data, has_alpha), dtype:np.uint8),(dimensions.Y, dimensions.X, has_alpha?4:3));
-					//return Image.fromarray(pixels, mode);
 				}
 			}
 		}

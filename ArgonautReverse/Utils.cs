@@ -57,9 +57,9 @@ namespace ArgonautReverse
 			return res;
 		}
 
-		public static ColorARGB555[] ParsePalette(Span<byte> data, int n_palette_colors, bool has_alpha, bool legacy_alpha=false, int start=0)
+		public static ColorARGB555[] ParsePalette(Span<byte> data, bool has_alpha, bool legacy_alpha=false)
 		{
-			return ParseHighColor(data.Slice(start, 2*n_palette_colors), has_alpha, legacy_alpha);
+			return ParseHighColor(data, has_alpha, legacy_alpha);
 		}
 
 		public static void Assert(bool condition)

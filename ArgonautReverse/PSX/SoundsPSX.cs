@@ -31,7 +31,7 @@ namespace ArgonautReverse.PSX
 			_size = null;
 		}
 
-		public void serialize_vag(WadWriter data_out) => vag.serialize(data_out);
+		public void serialize_vag(WadWriter data_out) => vag!.serialize(data_out);
 
 		public abstract void serialize(WadWriter data_out, uint end_section_offset);
 	}
@@ -46,7 +46,7 @@ namespace ArgonautReverse.PSX
 		public readonly ushort uk1;
 		public readonly ushort uk2;
 
-		public _AmbientOrEffectSoundPSX(uint sampling_rate, int volume_level, SoundEffectsAmbientFlagsPSX flags, ushort uk1, ushort uk2, int size, VAGSoundDataPSX vag = null) : base(sampling_rate, vag, size)
+		public _AmbientOrEffectSoundPSX(uint sampling_rate, int volume_level, SoundEffectsAmbientFlagsPSX flags, ushort uk1, ushort uk2, int size, VAGSoundDataPSX? vag = null) : base(sampling_rate, vag, size)
 		{
 			flagsAndLoop = flags;
 			this.volume_level = volume_level;
@@ -87,7 +87,7 @@ namespace ArgonautReverse.PSX
 			vag = VAGSoundDataPSX.parse
 			(
 				data_in,
-				size: _size.Value,
+				size: _size!.Value,
 				n_channels: VAGSoundDataPSX.MONO,
 				sampling_rate: sampling_rate
 			);
@@ -109,7 +109,7 @@ namespace ArgonautReverse.PSX
 
 	public sealed class AmbientSoundPSX:_AmbientOrEffectSoundPSX
 	{
-		private AmbientSoundPSX(uint sampling_rate, int volume_level, SoundEffectsAmbientFlagsPSX flags, ushort uk1, ushort uk2, int size, VAGSoundDataPSX vag = null) : base(sampling_rate, volume_level, flags, uk1, uk2, size, vag) { }
+		private AmbientSoundPSX(uint sampling_rate, int volume_level, SoundEffectsAmbientFlagsPSX flags, ushort uk1, ushort uk2, int size, VAGSoundDataPSX? vag = null) : base(sampling_rate, volume_level, flags, uk1, uk2, size, vag) { }
 
 		public static AmbientSoundPSX parse(WadReader data_in)
 		{
@@ -137,7 +137,7 @@ namespace ArgonautReverse.PSX
 
 	public sealed class EffectSoundPSX:_AmbientOrEffectSoundPSX
 	{
-		private EffectSoundPSX(uint sampling_rate, int volume_level, SoundEffectsAmbientFlagsPSX flags, ushort uk1, ushort uk2, int size, VAGSoundDataPSX vag = null) : base(sampling_rate, volume_level, flags, uk1, uk2, size, vag) { }
+		private EffectSoundPSX(uint sampling_rate, int volume_level, SoundEffectsAmbientFlagsPSX flags, ushort uk1, ushort uk2, int size, VAGSoundDataPSX? vag = null) : base(sampling_rate, volume_level, flags, uk1, uk2, size, vag) { }
 
 		public static EffectSoundPSX parse(WadReader data_in)
 		{
@@ -155,7 +155,7 @@ namespace ArgonautReverse.PSX
 		public readonly DialoguesBGMsSoundFlagsPSX flagsAndLoop;
 		public readonly uint uk1;
 
-		private DialogueBGMSoundPSX(uint sampling_rate, DialoguesBGMsSoundFlagsPSX flags, uint uk1, int size, VAGSoundDataPSX vag = null) : base(sampling_rate, vag, size)
+		private DialogueBGMSoundPSX(uint sampling_rate, DialoguesBGMsSoundFlagsPSX flags, uint uk1, int size, VAGSoundDataPSX? vag = null) : base(sampling_rate, vag, size)
 		{
 			flagsAndLoop = flags;
 			this.uk1 = uk1;
@@ -189,7 +189,7 @@ namespace ArgonautReverse.PSX
 			vag = VAGSoundDataPSX.parse
 			(
 				data_in,
-				size: _size.Value,
+				size: _size!.Value,
 				sampling_rate: sampling_rate,
 				n_channels: (flagsAndLoop & DialoguesBGMsSoundFlagsPSX.IS_STEREO) != 0 ? VAGSoundDataPSX.STEREO : VAGSoundDataPSX.MONO
 			);

@@ -154,7 +154,11 @@ namespace ArgonautReverse.PSX
 					var rect = Rectangle.FromLTRB(box._0, box._1, box._2, box._3);
 
 					Bitmap texture_image;
-					if((texture.flags & TextureFlagsPSX.IS_NOT_PALETTED) == 0)
+					if(texture.flags.HasNoPaletted)// True color (no palette)
+					{
+						texture_image = im_high_color.Clone(rect, PixelFormat.Format32bppArgb);
+					}
+					else
 					{
 						int paletteSize;
 						if((texture.flags & TextureFlagsPSX.HAS_256_COLORS_PALETTE) != 0)  // 256-colors paletted
@@ -171,11 +175,9 @@ namespace ArgonautReverse.PSX
 
 						var paletteColors = Utils.ParsePalette
 						(
-							textures_data,
-							paletteSize,
+							textures_data.AsSpan(texture.palette_start ?? 0, 2*paletteSize),
 							has_alpha,
-							legacy_alpha,
-							texture.palette_start ?? 0
+							legacy_alpha
 						);
 
 						for(int p = 0; p < palette.Entries.Length; p++)
@@ -183,10 +185,6 @@ namespace ArgonautReverse.PSX
 							palette.Entries[p] = paletteColors[p].ToSystem();
 						}
 						texture_image.Palette = palette;
-					}
-					else// True color (no palette)
-					{
-						texture_image = im_high_color.Clone(rect, PixelFormat.Format32bppArgb);
 					}
 					var drawPos = texture.output_top_left_corner;
 					resGraphics.DrawImageUnscaled(texture_image, drawPos.X, drawPos.Y);

@@ -13,7 +13,15 @@
 		},
 		"Extract Croc 2 PSX": {
 			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Croc 2 Demo PS1\" --read-psx-dirdat \"GameFiles/CROCII/Raw/CROCII.DIR\" --write-wads \"Extracted/CROCII\""
+			"commandLineArgs": "--read-format \"Croc 2 PS1\" --read-psx-dirdat \"GameFiles/Croc2PSX/Raw/CROCII.DIR\" --write-wads \"Extracted/Croc2PSX\""
+		},
+		"Extract Croc 2 Demo PSX": {
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 Demo PS1\" --read-psx-dirdat \"GameFiles/Croc2DemoPSX/Raw/CROCII.DIR\" --write-wads \"Extracted/Croc2DemoPSX\""
+		},
+		"Dump Croc 2 PSX": {
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 PS1\" --read-psx-dirdat \"GameFiles/Croc2PSX/Raw/CROCII.DIR\" --dump-dat \"Extracted/Croc2PSX\""
 		},
 		"Export Jungle Level 1": {
 			"commandName": "Project",
@@ -43,9 +51,17 @@
 			"commandName": "Project",
 			"commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/T1L1M001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract levels,models"
 		},
+		"Export C2PC T4L5M001 Scripts": {
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/T4L5M001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract scripts"
+		},
 		"Export C2PC Dante's Peak": {
 			"commandName": "Project",
 			"commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/t4b1m001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract levels,textures,models,scripts"
+		},
+		"Export C2PSX T3L1M001": {
+			"commandName": "Project",
+			"commandLineArgs": "--read-format \"Croc 2 PS1\" --read-wads \"GameFiles/Croc2PSX/T3L1M001.WAD\" --extract-path \"Extracted/Croc2PSX\" --extract levels,textures,models,scripts"
 		},
 		"Export TENG - T1L7M003": {
 			"commandName": "Project",

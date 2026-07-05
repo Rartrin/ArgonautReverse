@@ -73,7 +73,7 @@ namespace ArgonautReverse.PC
 			}
 			else
 			{
-				if(numberParameters+ptrOffset >= map.Params.Length || numberParameters<=0 || ptrOffset<0 || numberParameters>=map.Params.Length || ptrOffset>=map.Params.Length)//TODO: Aladdin check
+				if(numberParameters+ptrOffset > map.Params.Length || numberParameters<=0 || ptrOffset<0 || numberParameters>map.Params.Length || ptrOffset>=map.Params.Length)//TODO: Aladdin check
 				{
 					if(reader.ReadVersion == Aladdin_PC.WadVersion)
 					{

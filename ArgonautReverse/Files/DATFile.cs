@@ -4,7 +4,7 @@ namespace ArgonautReverse.Files
 {
 	public abstract class DATFile
 	{
-		protected readonly byte[] _data;
+		internal protected readonly byte[] _data;
 		public string Stem{get;}
 
 		public string Name => $"{Stem}.{Suffix}";

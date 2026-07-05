@@ -51,14 +51,18 @@ namespace ArgonautReverse.WadChunks.PSX
 			if((wadFlag & WadFlagPSX.WF_HASCUTSCENES) != 0)//if(data_in.Version==CROC_2_PS1.Instance || data_in.Version==CROC_2_DEMO_PS1.Instance)
 			{
 				//TODO: Cutscene data
-				//This probably shouldn't be a fixed amount
-				var n_dpsx_legacy_textures = data_in.Read<int>();
-				data_in.SkipBytes(n_dpsx_legacy_textures * 3072);
+				throw new NotImplementedException();
 			}
 
 			if((wadFlag & WadFlagPSX.WF_HASHEADS) != 0)
 			{
-				throw new NotImplementedException();
+				//TODO: Store head data
+				var headCount = data_in.Read<int>();
+				for(int i=0; i<headCount; i++)
+				{
+					data_in.SkipBytes(sizeof(ushort) * 256);//Palette
+					data_in.SkipBytes(sizeof(byte) * 64 * 40);//Bitmap
+				}
 			}
 
 			var n_actors = data_in.Read<int>();

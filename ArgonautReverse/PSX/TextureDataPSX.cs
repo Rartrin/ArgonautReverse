@@ -26,7 +26,7 @@ namespace ArgonautReverse.PSX
 			var brX = data_in.Read<byte>();
 			var brY = data_in.Read<byte>();
 
-			var palette_info = data_in.Read<ushort>();
+			var colorLUT = data_in.Read<ushort>();
 
 			//Bottom Left
 			var blX = data_in.Read<byte>();
@@ -79,9 +79,9 @@ namespace ArgonautReverse.PSX
 			}
 
 			int? palette_start = null;
-			if((flags & TextureFlagsPSX.IS_NOT_PALETTED) == 0)
+			if(!flags.HasNoPaletted)
 			{
-				palette_start = ((palette_info & 0xFFC0) << 3) + ((palette_info & 0xF) << 5);
+				palette_start = ((colorLUT & 0xFFC0) << 3) + ((colorLUT & 0xF) << 5);
 			}
 
 			// The top-left x coordinate of the 256-colors or high color textures needs to be corrected
