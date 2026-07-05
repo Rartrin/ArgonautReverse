@@ -267,7 +267,7 @@ namespace ArgonautReverse.PSX
 		public IReadOnlyList<Zone>? ZoneData;
 		public IReadOnlyList<uint> Pieces;
 		public IReadOnlyList<TrackChangePSX> TrackChangeData;
-		public IReadOnlyList<CVECTOR[]> LightTables;
+		public CVECTOR[][] LightTables;
 
 		#region Pre Croc 2 Demo
 		//Moved to Door
@@ -553,7 +553,6 @@ namespace ArgonautReverse.PSX
 
 			if(data_in.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
-				//TODO: Omni Lights
 				var omniLightCount = data_in.Read<int>();
 
 				if(data_in.DatVersion == CROC_2_DEMO_PS1.DatVersion && omniLightCount != 1)
@@ -573,7 +572,16 @@ namespace ArgonautReverse.PSX
 				//TODO: This is a lot to be skipping on the release version
 				if(data_in.DatVersion == CROC_2_PS1.DatVersion)
 				{
-					data_in.SkipBytes(30732);
+					//TODO: Why did this originally just skipped 30732 bytes? data_in.SkipBytes(30732);
+
+					var lightingTableIndices = data_in.ReadArray<int>(map.NumberOfPieces);
+					map.LightTables = new CVECTOR[map.NumberOfPieces][];
+					for(int i=0; i<map.NumberOfPieces; i++)
+					{
+						if(lightingTableIndices[i] == 0){continue;}
+
+						map.LightTables[i] = data_in.ReadArray<CVECTOR>(chunk_models[map.Pieces[i]].Object.nvert * lightingTableIndices[i]);
+					}
 				}
 				else if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 				{
@@ -583,7 +591,7 @@ namespace ArgonautReverse.PSX
 				{
 					if(map.NumberOfPieces != 0)
 					{
-						//TODO: This appears to be in the wrong order compared to any of my versions
+						//TODO: What gaems use this? This appears to be in the wrong order compared to any of my versions.
 
 						var sub_chunks_n_lighting = data_in.ReadArray<uint>(map.NumberOfPieces);
 						var sub_chunks_n_add_lighting = data_in.ReadArray<uint>(map.NumberOfOtherPieces!.Value);

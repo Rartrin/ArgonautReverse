@@ -278,7 +278,7 @@ namespace ArgonautReverse.PSX
 			int sub_chunk_id = 0;
 			foreach(var texture in TPSX.TextureFile.Textures)
 			{
-				foreach(var coord in texture.output_coords)
+				foreach(var coord in texture.GetOutputCoords())
 				{
 					obj.WriteLine($"vt {coord.X / 1024f} {(1024 - coord.Y) / 1024f}");
 				}

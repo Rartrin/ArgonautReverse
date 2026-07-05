@@ -116,7 +116,7 @@ namespace ArgonautReverse.PSX
 		{
 			foreach(var texture in textures)
 			{
-				foreach(var coord in texture.output_coords)
+				foreach(var coord in texture.GetOutputCoords())
 				{
 					obj.WriteLine($"vt {coord.X / 1024.0} {(1024 - coord.Y) / 1024.0}");
 				}

@@ -144,14 +144,14 @@ namespace ArgonautReverse.PSX
 				{
 					var texture = Textures[t];
 
-					var box = texture.input_box;
-					if(box._0 == box._2 || box._1 == box._3)
+					var box = texture.GetInputBox();
+					if(box.TL == box.BL || box.TR == box.BR)
 					{
-						Console.WriteLine($"Invalid texture dimentions {box._0},{box._1},{box._2},{box._3}");
+						Console.WriteLine($"Invalid texture dimentions {box.TL},{box.TR},{box.BL},{box.BR}");
 						continue;
 					}
 
-					var rect = Rectangle.FromLTRB(box._0, box._1, box._2, box._3);
+					var rect = Rectangle.FromLTRB(box.TL, box.TR, box.BL, box.BR);
 
 					Bitmap texture_image;
 					if(texture.flags.HasNoPaletted)// True color (no palette)

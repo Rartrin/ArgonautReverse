@@ -5,6 +5,7 @@ using ArgonautReverse.Universal.StratLang;
 namespace ArgonautReverse.Engine.Versions
 {
 	//Croc 1 PS1 NA Release
+	[Obsolete("Most likely intended to use Croc_2_PS1")]
 	public static class CROC_1_PS1
 	{
 		public static DatVersion DatVersion => CROC_1_PS1_Dat.Instance;

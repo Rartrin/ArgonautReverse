@@ -9,15 +9,15 @@ namespace ArgonautReverse.PSX
 {
 	public sealed class OmniLightPSX:IReadable<OmniLightPSX>//OMNI_LIGHT
 	{
-		//32 bytes for finished version
-		//28 bytes in demo
+		//32 bytes after Croc 2
+		//28 bytes in Croc 2.
 
 		public readonly VECTOR trn;     // Omni position
 		public readonly CVECTOR col;    // Light color
 		public readonly int fade_from;  // Fade from distance
 		public readonly int fade_to;    // Fade to distance
 
-		//Didn't exist in Demo
+		//Didn't exist in Croc 2
 		public readonly uint? level;     // Light level (0 = off, 1 = full). UFx32 (20.12)
 
 		private OmniLightPSX(VECTOR trn, CVECTOR col, int fade_from, int fade_to, uint? level)
@@ -36,7 +36,7 @@ namespace ArgonautReverse.PSX
 			var fade_from = reader.Read<int>();
 			var fade_to = reader.Read<int>();
 			uint? level = null;
-			if(reader.ReadVersion.IsNewerOrSame(CROC_1_PS1.WadVersion))
+			if(!reader.ReadVersion.IsOlderOrSame(CROC_2_PS1.WadVersion))//Added sometime after Croc 2
 			{
 				level = reader.Read<uint>();
 			}
