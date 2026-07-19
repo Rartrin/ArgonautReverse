@@ -104,7 +104,7 @@ namespace ArgonautReverse.PSX
 			mtl_file.WriteLine("newmtl mtl1");
 			mtl_file.WriteLine($"map_Kd {wad_filename}.png");
 			File.WriteAllText(Path.Join(folder_path, wad_filename+".mtl"), mtl_file.ToString());
-			this.TPSX.TextureFile.to_colorized_texture().Save(Path.Join(folder_path, wad_filename + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+			this.TPSX.TextureFile.ToColorizedTexture().Save(Path.Join(folder_path, wad_filename + ".png"), System.Drawing.Imaging.ImageFormat.Png);
 		}
 		/// <summary>
 		/// Tries to find one compatible animation for each model in the WAD, animates it to make it clean
@@ -349,7 +349,9 @@ namespace ArgonautReverse.PSX
 
 			if(args.ExtractTextures)
 			{
-				TPSX.TextureFile.to_colorized_texture().Save(Path.Join(args.ExtractPath, Stem, "Textures.png"), System.Drawing.Imaging.ImageFormat.Png);
+				TPSX.TextureFile.SaveRawTextureData(Path.Join(args.ExtractPath, Stem, "TexturesRaw.bmp"));
+
+				TPSX.TextureFile.ToColorizedTexture().Save(Path.Join(args.ExtractPath, Stem, "Textures.png"), System.Drawing.Imaging.ImageFormat.Png);
 			}
 		}
 

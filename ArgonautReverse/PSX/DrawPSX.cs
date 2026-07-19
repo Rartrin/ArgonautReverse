@@ -90,7 +90,7 @@ namespace ArgonautReverse.PSX
 			matrix.trans.X = t[0]*fixedPointConversion;
 			matrix.trans.Y = t[1]*fixedPointConversion;
 			matrix.trans.Z = t[2]*fixedPointConversion;
-			matrix.scale = 0;//TODO:Should this be a 1 or 0?
+			matrix.scale = 1;//TODO:Should this be a 1 or 0?
 
 			return matrix;
 		}

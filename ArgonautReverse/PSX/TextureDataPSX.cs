@@ -20,7 +20,7 @@ namespace ArgonautReverse.PSX
 			this.palette_start = palette_start;
 		}
 
-		public static TextureDataPSX parse(WadReader data_in)
+		public static TextureDataPSX Parse(WadReader data_in)
 		{
 			//Bottom Right
 			var brX = data_in.Read<byte>();

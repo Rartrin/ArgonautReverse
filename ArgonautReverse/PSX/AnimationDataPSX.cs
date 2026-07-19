@@ -43,7 +43,7 @@ namespace ArgonautReverse.PSX
 							m41: frameMatrix.t[0] / 4096f,
 							m42: frameMatrix.t[1] / 4096f,
 							m43: frameMatrix.t[2] / 4096f,
-							m44: 0
+							m44: 1
 						);
 						frame[i] = matrix;
 					}

@@ -55,7 +55,7 @@ namespace ArgonautReverse.PSX
 			}
 			for(int texture_id = 0; texture_id < n_stored_textures; texture_id++)
 			{
-				textures.Add(TextureDataPSX.parse(data_in));
+				textures.Add(TextureDataPSX.Parse(data_in));
 			}
 			if(data_in.ReadVersion == HARRY_POTTER_1_PS1.WadVersion || data_in.ReadVersion == HARRY_POTTER_2_PS1.WadVersion)
 			{
@@ -123,7 +123,7 @@ namespace ArgonautReverse.PSX
 		}
 
 		/// <summary>Draws a complete colored texture image (composed of multiple single textures).</summary>
-		public unsafe Bitmap to_colorized_texture()
+		public unsafe Bitmap ToColorizedTexture()
 		{
 			var res = new Bitmap(image_dimensions.Width, image_dimensions.Height, PixelFormat.Format32bppArgb);
 
@@ -191,6 +191,23 @@ namespace ArgonautReverse.PSX
 				}
 			}
 			return res;
+		}
+
+		public unsafe void SaveRawTextureData(string path)
+		{
+			var textureData4bit = Utils.parse_4bits_paletted(textures_data);
+			fixed(byte* texturesData0 = textureData4bit)
+			{
+				var ret = new Bitmap(image_dimensions.Width, image_dimensions.Height, image_dimensions.Width/2, PixelFormat.Format4bppIndexed, (nint)texturesData0);
+				var palette = ret.Palette;
+				for(int p = 0; p < palette.Entries.Length; p++)
+				{
+					var shade = (255*p) / palette.Entries.Length;
+					palette.Entries[p] = Color.FromArgb(shade, shade, shade);
+				}
+				ret.Palette = palette;
+				ret.Save(path, ImageFormat.Bmp);
+			}
 		}
 	}
 }

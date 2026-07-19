@@ -70,8 +70,12 @@ namespace ArgonautReverse.WadChunks.PSX
 
 			var level_file = LevelFilePSX.Parse(data_in, wadFlag);
 
-			// FIXME End of Croc 2 & Croc 2 Demo Dummy's level files aren't reversed yet
-			if(data_in.ReadVersion != CROC_2_PS1.WadVersion && data_in.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
+			if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
+			{
+				//TODO: End of Demo Dummy's level files aren't reversed yet
+				data_in.AssertEndOfChunk(ChunkType, warn:true);
+			}
+			else
 			{
 				data_in.AssertEndOfChunk(ChunkType);
 			}

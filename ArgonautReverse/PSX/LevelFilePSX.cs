@@ -44,8 +44,11 @@ namespace ArgonautReverse.PSX
 			uint maxParticles = 200;
 			if((wadFlag & WadFlagPSX.WF_PARTICLESIZE) != 0)
 			{
-				//TODO: This check should not be needed
-				if(data_in.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
+				if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
+				{
+					//Nothing here in dummy.
+				}
+				else
 				{
 					maxParticles = data_in.Read<uint>();
 				}
