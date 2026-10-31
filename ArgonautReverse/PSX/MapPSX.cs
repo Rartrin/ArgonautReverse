@@ -642,28 +642,37 @@ namespace ArgonautReverse.PSX
 
 			if((wadFlag & WadFlagPSX.WF_MAP_PRELIT) != 0)
 			{
-				var preMap = new PreLitPSX[2][];
-				for(int i = 0; i < preMap.Length; i++)
+				//Some early dummy wads fail on this but other ones are fine. Some latter dummy wads fail while most are fine.
+				try
 				{
-					preMap[i] = new PreLitPSX[map.NumberOfPieces];
-
-					for(int j = 0; j < map.NumberOfPieces; j++)
+					var preMap = new PreLitPSX[2][];
+					for(int i = 0; i < preMap.Length; i++)
 					{
-						var lfacePlaceholder = data_in.Read<uint>();
-						if(lfacePlaceholder != 0)
+						preMap[i] = new PreLitPSX[map.NumberOfPieces];
+
+						for(int j = 0; j < map.NumberOfPieces; j++)
 						{
-							throw new Exception();
+							var lfacePlaceholder = data_in.Read<uint>();
+							if(lfacePlaceholder != 0)
+							{
+								throw new Exception();
+							}
+							preMap[i][j] = new PreLitPSX();
 						}
-						preMap[i][j] = new PreLitPSX();
-					}
 
-					for(int j = 0; j < map.NumberOfPieces; j++)
-					{
-						var trackObj = chunk_models[map.Pieces[j]];
-						preMap[i][j].lface = data_in.ReadArray<PolyAllPSX>(trackObj.Object.nface);
+						for(int j = 0; j < map.NumberOfPieces; j++)
+						{
+							var trackObj = chunk_models[map.Pieces[j]];
+							preMap[i][j].lface = data_in.ReadArray<PolyAllPSX>(trackObj.Object.nface);
+						}
 					}
+					map.pre_map = preMap;
 				}
-				map.pre_map = preMap;
+				catch(Exception e)
+				{
+					Console.WriteLine("ERROR: Failed to read prelit data.");
+					Console.WriteLine(e.Message);
+				}
 			}
 			else
 			{

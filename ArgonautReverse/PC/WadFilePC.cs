@@ -183,18 +183,44 @@ namespace ArgonautReverse.PC
 
 		public unsafe void ExtractTexture(TextureStructPC texture, string path)
 		{
-			var abgrPixels = texture.pixels;
-			var argbPixels = new ColorARGB555[abgrPixels.Length];
-			for(int i=0; i<abgrPixels.Length; i++)
+			if(texture.pixels.Length < texture.Width * texture.Height)
 			{
-				argbPixels[i] = new ColorABGR555(abgrPixels[i]).ToRGB555();
+				//The pixels length can be less than the actually number of pixels in the texture. This can happen when a palette is used.
+				//Only supported 8 bit indexing.
+
+				fixed(ushort* pixels0 = texture.pixels)
+				{
+					var ret = new Bitmap(texture.Width, texture.Height, texture.Width, PixelFormat.Format8bppIndexed, (nint)pixels0);
+					var palette = ret.Palette;
+
+					//We don't know the palette so just use a simple grayscale
+					palette.Entries[0] = Color.Transparent;
+					for(int p = 1; p < palette.Entries.Length; p++)
+					{
+						palette.Entries[p] = Color.FromArgb(p, p, p);
+					}
+					ret.Palette = palette;
+
+					ret.Save(path, ImageFormat.Png);
+					ret.Dispose();
+				}
 			}
-			//Save before leaving. Bitmap seem to load lazily meaning there could be pointer degradation regardless of stackalloc or fixed.
-			fixed(ColorARGB555* argbPixels0 = argbPixels)
+			else
 			{
-				var ret = new Bitmap(texture.Width, texture.Height, texture.Width * sizeof(ColorARGB555), PixelFormat.Format16bppArgb1555, (nint)argbPixels0);
-				ret.Save(path, ImageFormat.Png);
-				ret.Dispose();
+				var abgrPixels = texture.pixels;
+				var argbPixels = new ColorARGB555[abgrPixels.Length];
+				for(int i=0; i<abgrPixels.Length; i++)
+				{
+					argbPixels[i] = new ColorABGR555(abgrPixels[i]).ToRGB555();
+				}
+
+				//Save before leaving. Bitmap seem to load lazily meaning there could be pointer degradation regardless of stackalloc or fixed.
+				fixed(ColorARGB555* argbPixels0 = argbPixels)
+				{
+					var ret = new Bitmap(texture.Width, texture.Height, texture.Width * sizeof(ColorARGB555), PixelFormat.Format16bppArgb1555, (nint)argbPixels0);
+					ret.Save(path, ImageFormat.Png);
+					ret.Dispose();
+				}
 			}
 		}
 

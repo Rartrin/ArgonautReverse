@@ -11,6 +11,7 @@ namespace ArgonautReverse.Engine.Versions
 		public static DirFormat? DirFormat => null;
 
 		public static WadVersion WadVersion_Early => CROC_2_DEMO_PS1_DUMMY_Wad.Instance_Early;
+		//public static WadVersion WadVersion_Early2 => CROC_2_DEMO_PS1_DUMMY_Wad.Instance_Early2;
 		public static WadVersion WadVersion_Latest => CROC_2_DEMO_PS1_DUMMY_Wad.Instance_Latest;
 
 		private sealed class CROC_2_DEMO_PS1_DUMMY_Dat:DatVersionPSX
@@ -230,6 +231,7 @@ namespace ArgonautReverse.Engine.Versions
 			public override TriggerType MapTriggerType(int value) => MapperCroc2.TriggerTypeMapper(value);
 
 			public static readonly WadVersion Instance_Early;
+			//public static readonly WadVersion Instance_Early2;
 			//Version used by most
 			public static readonly WadVersion Instance_Latest;
 
@@ -243,6 +245,11 @@ namespace ArgonautReverse.Engine.Versions
 					"01BEF000",//Early Sledding/Snowman roll
 					"01CBF000"//Widgies
 				);
+				//Instance_Early2 = new CROC_2_DEMO_PS1_DUMMY_Wad
+				//(
+				//	200,
+				//	"01507800"//Sandy Square 2
+				//);
 				Instance_Latest = new CROC_2_DEMO_PS1_DUMMY_Wad(999, "__Latest__");
 			}
 		}
