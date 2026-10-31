@@ -4,7 +4,7 @@ using ArgonautReverse.Universal.StratLang;
 
 namespace ArgonautReverse.PSX
 {
-	public sealed class ActorDataPSX(WADFile wadFile, int[] data, int dataChunkAddress):Script(wadFile, data, dataChunkAddress),IReadable<ActorDataPSX>
+	public sealed class ActorDataPSX(WADFile wadFile, int[] data, int dataChunkAddress):Script(wadFile, data, dataChunkAddress),IReadable<ActorDataPSX>,IWritable
 	{
 		public static ActorDataPSX Parse(WadReader data_in)
 		{
@@ -13,6 +13,12 @@ namespace ArgonautReverse.PSX
 			var dataChunkAddress = data_in.Position;
 			var data = data_in.ReadArray<int>(size);
 			return new(data_in.WadFile, data, dataChunkAddress);
+		}
+
+		void IWritable.Write(WadWriter writer)
+		{
+			writer.Write<int>(Data.Length);
+			writer.WriteArray<int>(Data);
 		}
 	}
 }

@@ -9,10 +9,15 @@ namespace ArgonautReverse.PSX
 
 		public readonly MapPSX map;
 
-		public LevelFilePSX(ChunksMatrixPSX chunks_matrix, MapPSX map)
+		public uint LocalPoolSize;
+		public uint MaxParticles;
+
+		private LevelFilePSX(ChunksMatrixPSX chunks_matrix, MapPSX map, uint localPoolSize, uint maxParticles)
 		{
 			this.chunks_matrix = chunks_matrix;
 			this.map = map;
+			LocalPoolSize = localPoolSize;
+			MaxParticles = maxParticles;
 		}
 
 		public static LevelFilePSX Parse(WadReader data_in, WadFlagPSX wadFlag)
@@ -35,7 +40,7 @@ namespace ArgonautReverse.PSX
 			{
 				if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 				{
-					throw new Exception();
+					throw new NotImplementedException();
 				}
 				localPoolSize = data_in.Read<uint>();
 			}
@@ -46,7 +51,7 @@ namespace ArgonautReverse.PSX
 			{
 				if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 				{
-					//Nothing here in dummy.
+					//Nothing here in dummy. Likly this just indicates to use a different hardcoded count.
 				}
 				else
 				{
@@ -173,7 +178,9 @@ namespace ArgonautReverse.PSX
 						map.MapX,
 						map.ZoneData is not null
 					),
-					map
+					map,
+					localPoolSize,
+					maxParticles
 				);
 			}
 			else
@@ -188,8 +195,54 @@ namespace ArgonautReverse.PSX
 						0,
 						false
 					),
-					map
+					map,
+					localPoolSize,
+					maxParticles
 				);
+			}
+		}
+
+		public void Write(WadWriter writer, WadFlagPSX wadFlag)
+		{
+			//Track Objects
+			writer.Write<int>(chunks_matrix.chunks_models.Length);
+			for(int i = 0; i < chunks_matrix.chunks_models.Length; i++)
+			{
+				writer.Write<TObjectPSX>(chunks_matrix.chunks_models[i].Object);
+			}
+			for(int i = 0; i < chunks_matrix.chunks_models.Length; i++)
+			{
+				chunks_matrix.chunks_models[i].Write(writer);
+			}
+
+			if((wadFlag & WadFlagPSX.WF_LOCALPOOLSIZE) != 0)
+			{
+				if(writer.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
+				{
+					throw new NotImplementedException();
+				}
+				writer.Write<uint>(LocalPoolSize >> 10);
+			}
+
+			if((wadFlag & WadFlagPSX.WF_PARTICLESIZE) != 0)
+			{
+				if(writer.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
+				{
+					//Nothing here in dummy. Likly this just indicates to use a different hardcoded count.
+				}
+				else
+				{
+					writer.Write<uint>(MaxParticles);
+				}
+			}
+			if(map != null)
+			{
+				writer.Write<int>(map.NumberOfPieces);
+				map.Write(writer, wadFlag, chunks_matrix.chunks_models);
+			}
+			else
+			{
+				writer.Write<int>(0);
 			}
 		}
 	}

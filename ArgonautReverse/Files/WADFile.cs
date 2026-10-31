@@ -187,7 +187,9 @@ namespace ArgonautReverse.Files
 
 			var wadEnd = writer.Position;
 			wadSize.Set(wadEnd - wadStart);
-			throw new Exception("Remember to write writer stream to file.");
+			using var fileStream = File.OpenWrite(Path.Join(args.WriteWads, Stem + ".WAD"));
+			writer.Position = 0;
+			writer.Stream.CopyTo(fileStream);
 		}
 
 		public override void Serialize(WadWriter data_out)

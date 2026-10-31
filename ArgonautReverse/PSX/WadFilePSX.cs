@@ -92,7 +92,7 @@ namespace ArgonautReverse.PSX
 			}
 			if(DPSX != null)
 			{
-				output.Write($" {DPSX.Models3D.Count} model(s) {DPSX.Animations.Count} animation(s) {DPSX.LevelFile.chunks_matrix.n_filled_chunks} chunk(s)");
+				output.Write($" {DPSX.Models3D.Count} model(s) {DPSX.AnimationData.Count} animation(s) {DPSX.LevelFile.chunks_matrix.n_filled_chunks} chunk(s)");
 			}
 			output.WriteLine();
 		}
@@ -113,7 +113,7 @@ namespace ArgonautReverse.PSX
 		public void ExportModels(string folder_path, string wad_filename)
 		{
 			var n_models = DPSX.Models3D.Count;
-			var n_animations = DPSX.Animations.Count;
+			var n_animations = DPSX.AnimationData.Count;
 
 			int? guess_compatible_animation(int position, int n_vertices_groups)
 			{
@@ -125,7 +125,7 @@ namespace ArgonautReverse.PSX
 				{
 					if(a > -1)
 					{
-						if(DPSX.Animations[a].n_vertices_groups == n_vertices_groups)
+						if(DPSX.AnimationData[a].n_vertices_groups == n_vertices_groups)
 						{
 							return a;
 						}
@@ -133,7 +133,7 @@ namespace ArgonautReverse.PSX
 					}
 					if(b < n_animations)
 					{
-						if(DPSX.Animations[b].n_vertices_groups == n_vertices_groups)
+						if(DPSX.AnimationData[b].n_vertices_groups == n_vertices_groups)
 						{
 							return b;
 						}
@@ -171,7 +171,7 @@ namespace ArgonautReverse.PSX
 					}
 					else
 					{
-						model_3d.Animate(DPSX.Animations[animation_id.Value]).Data.ToSingleObj(obj_file, obj_filename, textures, wad_filename);
+						model_3d.Animate(DPSX.AnimationData[animation_id.Value]).Data.ToSingleObj(obj_file, obj_filename, textures, wad_filename);
 					}
 				}
 				File.WriteAllText(Path.Join(folder_path, obj_filename + ".obj"), obj_file.ToString());

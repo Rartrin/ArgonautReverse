@@ -26,12 +26,15 @@ namespace ArgonautReverse.PSX
 		public int AddrOffset;
 		public ActorDataPSX Script;
 
-		//public uint NumberParameters;
+		public uint ParameterCount;
+		public int ParamBlockOffset;
 		public IReadOnlyList<int> ParamBlock;
 		public uint NumberLocals;
 		public uint NumberTriggers;
 		public CollisionTypePSX Collision;
 		public uint CollisionBones;
+		public int FirstWaypointOffset;
+		//public int LastWaypointOffset;
 		public WaypointPSX FirstWP;
 		public WaypointPSX LastWP;
 		public ushort? Flag;
@@ -54,20 +57,20 @@ namespace ArgonautReverse.PSX
 			//This offset is from the start of the data chunk
 			mapStrat.AddrOffset = reader.Read<int>();
 
-			var numberParameters = reader.Read<uint>();
+			mapStrat.ParameterCount = reader.Read<uint>();
 
-			var paramBlockOffset = reader.Read<int>();
+			mapStrat.ParamBlockOffset = reader.Read<int>();
 
-			//NumberParameters is 0 IFF ParamBlockOffset is -1
-			Utils.Assert(numberParameters == 0 == (paramBlockOffset == -1));
+			//ParameterCount is 0 IFF ParamBlockOffset is -1
+			Utils.Assert((mapStrat.ParameterCount == 0) == (mapStrat.ParamBlockOffset == -1));
 
-			if(paramBlockOffset == -1)
+			if(mapStrat.ParamBlockOffset == -1)
 			{
 				mapStrat.ParamBlock = null;
 			}
 			else
 			{
-				mapStrat.ParamBlock = map.Params.Skip(paramBlockOffset / sizeof(int)).Take((int)numberParameters).ToArray();
+				mapStrat.ParamBlock = map.Params.Skip(mapStrat.ParamBlockOffset / sizeof(int)).Take((int)mapStrat.ParameterCount).ToArray();
 			}
 
 			mapStrat.NumberLocals = reader.Read<uint>();
@@ -75,21 +78,17 @@ namespace ArgonautReverse.PSX
 			mapStrat.Collision = (CollisionTypePSX)reader.Read<uint>();
 			mapStrat.CollisionBones = reader.Read<uint>();
 
-			var firstWaypointOffset = reader.Read<int>();
-			var lastWaypointValue = reader.Read<int>();
-			if(lastWaypointValue != 0)
-			{
-				throw new Exception();
-			}
+			mapStrat.FirstWaypointOffset = reader.Read<int>();
+			reader.AssertRead<int>(0);//LastWaypointOffset
 
-			if(firstWaypointOffset == -1)
+			if(mapStrat.FirstWaypointOffset == -1)
 			{
 				mapStrat.FirstWP = null;
 			}
 			else
 			{
-				Utils.Assert(firstWaypointOffset % WaypointPSX.ByteSize == 0);
-				mapStrat.FirstWP = map.WPList[firstWaypointOffset / WaypointPSX.ByteSize];
+				Utils.Assert(mapStrat.FirstWaypointOffset % WaypointPSX.ByteSize == 0);
+				mapStrat.FirstWP = map.WPList[mapStrat.FirstWaypointOffset / WaypointPSX.ByteSize];
 
 				var cur = mapStrat.FirstWP;
 				while(cur.Next != null)
@@ -112,6 +111,37 @@ namespace ArgonautReverse.PSX
 			}
 
 			return mapStrat;
+		}
+
+		public void Write(WadWriter writer)
+		{
+			writer.Write<POS>(Pos);
+
+			//TODO: Setup Addr
+			//This offset is from the start of the data chunk
+			writer.Write<int>(AddrOffset);
+
+			//ParameterCount is 0 IFF ParamBlockOffset is -1
+			Utils.Assert((ParameterCount == 0) == (ParamBlockOffset == -1));
+
+			writer.Write<uint>(ParameterCount);
+
+			writer.Write<int>(ParamBlockOffset);
+
+			writer.Write<uint>(NumberLocals);
+			writer.Write<uint>(NumberTriggers);
+			writer.Write<uint>((uint)Collision);
+			writer.Write<uint>(CollisionBones);
+
+			writer.Write<int>(FirstWaypointOffset);
+			writer.Write<int>(0);//LastWaypointOffset
+
+			//Not entirely sure that these are the fields missing but it would match up
+			if(writer.WriteVersion.IsNewerOrSame(CROC_2_DEMO_PS1_DUMMY.WadVersion_Latest))
+			{
+				writer.Write<ushort>(Flag!.Value);
+				writer.Write<ushort>(Wait!.Value);
+			}
 		}
 	}
 }

@@ -85,7 +85,9 @@ namespace ArgonautReverse.WadChunks.PSX
 
 		protected override void WriteData(ChunkWriter writer)
 		{
-			throw new NotImplementedException();
+			//TODO: Rebuild TPSX data
+			writer.WriteArray(Data!);
+			//throw new NotImplementedException();
 		}
 
 		public IReadOnlyList<ChunkOSE> ToOSE()

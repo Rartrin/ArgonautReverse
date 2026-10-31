@@ -28,7 +28,7 @@ namespace ArgonautReverse.WadChunks.PSX
 			//TODO: Implement sound for other games
 			if(!isHarryPotterGame)
 			{
-				return new SPSXChunk(spsx_flags, null, null, null, null, null, null, null);
+				return new SPSXChunk(spsx_flags, null, null, null, null, null, null, null, data_in.GetAllWadData());
 			}
 
 			Utils.Assert(!isHarryPotterGame || (spsx_flags & SPSXFlagsPSX.AmbientSeparate) == 0);// Bit 1 is always unset, bit 0 and 4 are identical
@@ -119,7 +119,7 @@ namespace ArgonautReverse.WadChunks.PSX
 				ambient_tracks.parse_vags(data_in);
 			}
 			data_in.AssertEndOfChunk(ChunkType);
-			return new SPSXChunk(spsx_flags, common_sfx, ambient_tracks, level_sfx_groups, level_sfx_mapping, idk1, idk2, dialogues_bgms);
+			return new SPSXChunk(spsx_flags, common_sfx, ambient_tracks, level_sfx_groups, level_sfx_mapping, idk1, idk2, dialogues_bgms, data_in.GetAllWadData());
 		}
 	}
 	public sealed class SPSXChunk:BaseWadChunk
@@ -133,7 +133,7 @@ namespace ArgonautReverse.WadChunks.PSX
 		public readonly int? idk2;
 		public readonly DialoguesBGMsContainerPSX dialogues_bgms;
 
-		public SPSXChunk(SPSXFlagsPSX spsx_flags, CommonSFXContainerPSX common_sfx, AmbientContainerPSX ambient_tracks, LevelSFXContainerPSX level_sfx_groups, LevelSFXMappingPSX level_sfx_mapping, int? idk1, int? idk2, DialoguesBGMsContainerPSX dialogues_bgms) : base(SPSXChunkInfo.Instance)
+		public SPSXChunk(SPSXFlagsPSX spsx_flags, CommonSFXContainerPSX common_sfx, AmbientContainerPSX ambient_tracks, LevelSFXContainerPSX level_sfx_groups, LevelSFXMappingPSX level_sfx_mapping, int? idk1, int? idk2, DialoguesBGMsContainerPSX dialogues_bgms, byte[] data) : base(SPSXChunkInfo.Instance, data)
 		{
 			this.spsx_flags = spsx_flags;
 			this.common_sfx = common_sfx ?? new CommonSFXContainerPSX();
@@ -165,7 +165,9 @@ namespace ArgonautReverse.WadChunks.PSX
 
 		protected override void WriteData(ChunkWriter writer)
 		{
-			throw new NotImplementedException();
+			//TODO: Rebuild SPSX data
+			writer.WriteArray(Data!);
+			//throw new NotImplementedException();
 		}
 
 		public override void Serialize(WadWriter data_out)

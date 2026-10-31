@@ -42,13 +42,13 @@ namespace ArgonautReverse.PSX
 	public sealed class ChunksMatrixPSX
 	{
 		public readonly IReadOnlyList<ChunkHolderPSX> ChunkHolders;
-		public readonly IReadOnlyList<TObjectDataPSX> chunks_models;
+		public readonly TObjectDataPSX[] chunks_models;
 		public readonly int n_rows;
 		public readonly int n_columns;
 		public readonly bool has_zone_ids;
 		public readonly Zone max_zone_id;
 
-		public ChunksMatrixPSX(IReadOnlyList<ChunkHolderPSX> chunks_holders, IReadOnlyList<TObjectDataPSX> chunks_models, int n_rows, int n_columns, bool has_zone_ids)
+		public ChunksMatrixPSX(IReadOnlyList<ChunkHolderPSX> chunks_holders, TObjectDataPSX[] chunks_models, int n_rows, int n_columns, bool has_zone_ids)
 		{
 			ChunkHolders = chunks_holders;
 

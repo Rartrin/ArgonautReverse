@@ -4,7 +4,7 @@ using ArgonautReverse.Universal;
 
 namespace ArgonautReverse.PSX
 {
-	public readonly struct POS:IReadable<POS>
+	public readonly struct POS:IReadable<POS>,IWritable
 	{
 		public const int ByteSize = SVECTOR.ByteSize + VECTOR.ByteSize;//24
 
@@ -25,6 +25,12 @@ namespace ArgonautReverse.PSX
 			return new POS(rot, trn);
 		}
 
+		void IWritable.Write(WadWriter writer)
+		{
+			writer.Write<SVECTOR>(rot);
+			writer.Write<VECTOR>(trn);
+		}
+
 		public static POS ParseWithImportantPadding(WadReader parser)
 		{
 			var rot = SVECTOR.ParseWithImportantPadding(parser);
@@ -32,10 +38,16 @@ namespace ArgonautReverse.PSX
 
 			return new POS(rot, trn);
 		}
+
+		public static void WriteWithImportantPadding(WadWriter writer, POS pos)
+		{
+			SVECTOR.WriteWithImportantPadding(writer, pos.rot);
+			VECTOR.WriteWithImportantPadding(writer, pos.trn);
+		}
 	}
 
 	///<summary>Larger version of a POS with 32 bit rotation (4.20 << 16)</summary>
-	public readonly struct BPOS:IReadable<BPOS>
+	public readonly struct BPOS:IReadable<BPOS>,IWritable
 	{
 		public const int ByteSize = VECTOR.ByteSize + VECTOR.ByteSize;//32
 
@@ -52,12 +64,17 @@ namespace ArgonautReverse.PSX
 		{
 			var brot = parser.Read<VECTOR>();
 			var btrn = parser.Read<VECTOR>();
-
 			return new BPOS(brot, btrn);
+		}
+
+		void IWritable.Write(WadWriter writer)
+		{
+			writer.Write<VECTOR>(brot);
+			writer.Write<VECTOR>(btrn);
 		}
 	}
 
-	public unsafe struct SMATRIX:IReadable<SMATRIX>,IConvertibleToOSE<Matrix4x4F>
+	public unsafe struct SMATRIX:IReadable<SMATRIX>,IWritable,IConvertibleToOSE<Matrix4x4F>
 	{
 		public fixed short m[3*3];//Rotation
 		public fixed short t[3];//Translation
@@ -68,6 +85,15 @@ namespace ArgonautReverse.PSX
 			reader.ReadData(matrix.m, 3*3);
 			reader.ReadData(matrix.t, 3);
 			return matrix;
+		}
+
+		void IWritable.Write(WadWriter writer)
+		{
+			fixed(SMATRIX* this0 = &this)
+			{
+				writer.WriteData(this0->m, 3*3);
+				writer.WriteData(this0->t, 3);
+			}
 		}
 
 		readonly Matrix4x4F IConvertibleToOSE<Matrix4x4F>.ToOSE()

@@ -7,7 +7,7 @@ using ArgonautReverse.Universal;
 
 namespace ArgonautReverse.PSX
 {
-	public sealed class OmniLightPSX:IReadable<OmniLightPSX>//OMNI_LIGHT
+	public sealed class OmniLightPSX:IReadable<OmniLightPSX>,IWritable//OMNI_LIGHT
 	{
 		//32 bytes after Croc 2
 		//28 bytes in Croc 2.
@@ -42,9 +42,22 @@ namespace ArgonautReverse.PSX
 			}
 			return new OmniLightPSX(trn, col, fade_from, fade_to, level);
 		}
+
+		void IWritable.Write(WadWriter writer)
+		{
+			writer.Write<VECTOR>(trn);
+			writer.Write<CVECTOR>(col);
+			writer.Write<int>(fade_from);
+			writer.Write<int>(fade_to);
+			uint? level = null;
+			if(!writer.WriteVersion.IsOlderOrSame(CROC_2_PS1.WadVersion))//Added sometime after Croc 2
+			{
+				writer.Write<uint>(level!.Value);
+			}
+		}
 	}
 
-	public readonly struct TVectorPSX:IReadable<TVectorPSX>
+	public readonly struct TVectorPSX:IReadable<TVectorPSX>,IWritable
 	{
 		public readonly ushort tex_no;
 		public readonly ushort flags;
@@ -61,9 +74,15 @@ namespace ArgonautReverse.PSX
 			var flags = reader.Read<ushort>();
 			return new TVectorPSX(tex_no, flags);
 		}
+
+		void IWritable.Write(WadWriter writer)
+		{
+			writer.Write<ushort>(tex_no);
+			writer.Write<ushort>(flags);
+		}
 	}
 
-	public unsafe struct FacePSX:IReadable<FacePSX>
+	public unsafe struct FacePSX:IReadable<FacePSX>,IWritable
 	{
 		public SVECTOR normal;/* face normal for flat polys + face count */
 
@@ -80,9 +99,19 @@ namespace ArgonautReverse.PSX
 			face.texture = reader.Read<TVectorPSX>();
 			return face;
 		}
+
+		void IWritable.Write(WadWriter writer)
+		{
+			writer.WriteFrom<SVECTOR>(SVECTOR.WriteWithImportantPadding, normal);
+			fixed(ushort* vertexIndices0 = VertexIndices)
+			{
+				writer.WriteData(vertexIndices0, 4);
+			}
+			writer.Write<TVectorPSX>(texture);
+		}
 	}
 
-	public unsafe struct TFacePSX:IReadable<TFacePSX>
+	public unsafe struct TFacePSX:IReadable<TFacePSX>,IWritable
 	{
 		//Normally only on non-track objects. Track object only have this in the dummy and was removed in all later versions.
 		public SVECTOR? normal;/* face normal for flat polys + face count */
@@ -107,9 +136,22 @@ namespace ArgonautReverse.PSX
 			face.texture = reader.Read<TVectorPSX>();
 			return face;
 		}
+
+		void IWritable.Write(WadWriter writer)
+		{
+			if(writer.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
+			{
+				writer.WriteFrom(SVECTOR.WriteWithImportantPadding, normal!.Value);
+			}
+			fixed(ushort* vertexIndices0 = VertexIndices)
+			{
+				writer.WriteData(vertexIndices0, 4);
+			}
+			writer.Write<TVectorPSX>(texture);
+		}
 	}
 
-	public abstract class BaseObjectPSX<Face> where Face:IReadable<Face>
+	public abstract class BaseObjectPSX<Face> where Face:IReadable<Face>,IWritable
 	{
 		public IReadOnlyList<SVECTOR> bbox;//[9];	/* bounding box */
 		public int nvert;							/* number of vertices */
@@ -160,15 +202,39 @@ namespace ArgonautReverse.PSX
 			}
 			reader.AssertRead<uint>(0);//lcoll placeholder
 		}
+
+		protected void BaseWrite(WadWriter writer)
+		{
+			writer.WriteSizedArray<SVECTOR>(9, bbox);
+			writer.Write<int>(nvert);
+			writer.Write<uint>(0);//lvert placeholder
+			writer.Write<uint>(0);//lnorm placeholder
+			writer.Write<int>(nface);
+			writer.Write<uint>(0);//lface placeholder
+			writer.Write<ushort>(nfloor);
+			writer.Write<ushort>(nceil);
+
+			if(writer.WriteVersion.NEW_COLLISION)
+			{
+				writer.Write<ushort>(nwall!.Value);
+				writer.Write<ushort>(pad!.Value);
+			}
+			writer.Write<uint>(0);//lcoll placeholder
+		}
 	}
 
-	public sealed class ObjectPSX:BaseObjectPSX<FacePSX>, IReadable<ObjectPSX>
+	public sealed class ObjectPSX:BaseObjectPSX<FacePSX>,IReadable<ObjectPSX>,IWritable
 	{
 		public static ObjectPSX Parse(WadReader reader)
 		{
 			var ret = new ObjectPSX();
 			ret.BaseParse(reader);
 			return ret;
+		}
+
+		void IWritable.Write(WadWriter writer)
+		{
+			BaseWrite(writer);
 		}
 
 		public void ParseSetupData(WadReader reader)
@@ -185,15 +251,28 @@ namespace ArgonautReverse.PSX
 			}
 			lcoll = reader.ReadArray<FaceCollision>(ncoll);
 		}
+
+		public void WriteSetupData(WadWriter writer)
+		{
+			writer.WriteFromArray(SVECTOR.WriteWithImportantPadding, lvert);
+			writer.WriteFromArray(SVECTOR.WriteWithImportantPadding, lnorm);
+			writer.WriteArray<FacePSX>(lface);
+			writer.WriteArray<FaceCollision>(lcoll);
+		}
 	}
 
-	public sealed class TObjectPSX:BaseObjectPSX<TFacePSX>, IReadable<TObjectPSX>
+	public sealed class TObjectPSX:BaseObjectPSX<TFacePSX>,IReadable<TObjectPSX>,IWritable
 	{
 		public static TObjectPSX Parse(WadReader reader)
 		{
 			var ret = new TObjectPSX();
 			ret.BaseParse(reader);
 			return ret;
+		}
+
+		void IWritable.Write(WadWriter writer)
+		{
+			BaseWrite(writer);
 		}
 
 		public void ParseSetupData(WadReader reader)
@@ -218,10 +297,26 @@ namespace ArgonautReverse.PSX
 			}
 			lcoll = reader.ReadArray<FaceCollision>(ncoll);
 		}
+
+		public void WriteSetupData(WadWriter writer)
+		{
+			writer.WriteFromArray(SVECTOR.WriteWithImportantPadding, lvert);
+			if(writer.WriteVersion != HARRY_POTTER_1_PS1.WadVersion && writer.WriteVersion != HARRY_POTTER_2_PS1.WadVersion)
+			{
+				writer.WriteFromArray(SVECTOR.WriteWithImportantPadding, lnorm);
+			}
+			else
+			{
+				lnorm = null;
+			}
+
+			writer.WriteArray<TFacePSX>(lface);
+			writer.WriteArray<FaceCollision>(lcoll);
+		}
 	}
 
 	[StructLayout(LayoutKind.Explicit, Pack = 1)]
-	public struct PolyAllPSX:IReadable<PolyAllPSX>//POLY_ALL//union
+	public struct PolyAllPSX:IReadable<PolyAllPSX>,IWritable//POLY_ALL//union
 	{
 		[FieldOffset(0)] public uint Tag;
 
@@ -245,9 +340,18 @@ namespace ArgonautReverse.PSX
 		{
 			if(sizeof(PolyAllPSX) != sizeof(int) * 13)
 			{
-				throw new NotImplementedException();
+				throw new Exception();
 			}
 			return reader.ReadData<PolyAllPSX>();
+		}
+
+		unsafe void IWritable.Write(WadWriter writer)
+		{
+			if(sizeof(PolyAllPSX) != sizeof(int) * 13)
+			{
+				throw new Exception();
+			}
+			writer.WriteData<PolyAllPSX>(this);
 		}
 	}
 

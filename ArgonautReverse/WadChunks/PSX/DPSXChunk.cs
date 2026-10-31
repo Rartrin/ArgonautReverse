@@ -23,7 +23,7 @@ namespace ArgonautReverse.WadChunks.PSX
 		public override DPSXChunk Parse(WadReader data_in)
 		{
 			//TODO: WadFlag and SpriteOffset
-			WadFlagPSX wadFlag = (WadFlagPSX)data_in.Read<uint>();
+			WadFlagPSX wadFlags = (WadFlagPSX)data_in.Read<uint>();
 
 			//TODO: Why are these also in TPSX?
 			var spriteOffset = data_in.Read<int>();
@@ -48,27 +48,27 @@ namespace ArgonautReverse.WadChunks.PSX
 				animationData[i] = AnimationDataPSX.Parse(animations[i]);
 			}
 
-			if((wadFlag & WadFlagPSX.WF_HASCUTSCENES) != 0)//if(data_in.Version==CROC_2_PS1.Instance || data_in.Version==CROC_2_DEMO_PS1.Instance)
+			if((wadFlags & WadFlagPSX.WF_HASCUTSCENES) != 0)//if(data_in.Version==CROC_2_PS1.Instance || data_in.Version==CROC_2_DEMO_PS1.Instance)
 			{
 				//TODO: Cutscene data
 				throw new NotImplementedException();
 			}
 
-			if((wadFlag & WadFlagPSX.WF_HASHEADS) != 0)
+			SimpleImagePSX[] heads;
+			if((wadFlags & WadFlagPSX.WF_HASHEADS) != 0)
 			{
-				//TODO: Store head data
 				var headCount = data_in.Read<int>();
-				for(int i=0; i<headCount; i++)
-				{
-					data_in.SkipBytes(sizeof(ushort) * 256);//Palette
-					data_in.SkipBytes(sizeof(byte) * 64 * 40);//Bitmap
-				}
+				heads = data_in.ReadArray<SimpleImagePSX>(headCount);
+			}
+			else
+			{
+				heads = [];
 			}
 
 			var n_actors = data_in.Read<int>();
 			var actors = data_in.ReadArray<ActorDataPSX>(n_actors);
 
-			var level_file = LevelFilePSX.Parse(data_in, wadFlag);
+			var level_file = LevelFilePSX.Parse(data_in, wadFlags);
 
 			if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
@@ -79,14 +79,16 @@ namespace ArgonautReverse.WadChunks.PSX
 			{
 				data_in.AssertEndOfChunk(ChunkType);
 			}
-			return new DPSXChunk(models_3d, animationData, actors, level_file, data_in.GetAllWadData());
+			return new DPSXChunk(wadFlags, spriteOffset, fontLookup, models_3d, animations, animationData, heads, actors, level_file, data_in.GetAllWadData());
 		}
 	}
 
-	public sealed class DPSXChunk(ObjectDataPSX[] models3D, AnimationDataPSX[] animations, ActorDataPSX[] actors, LevelFilePSX levelFile, byte[]? fallback_data = null):BaseWadChunk(DPSXChunkInfo.Instance, fallback_data)
+	public sealed class DPSXChunk(WadFlagPSX wadFlags, int spriteOffset, FontPSX[] fontLookup, ObjectDataPSX[] models3D, IReadOnlyList<AnimationPSX> animations, AnimationDataPSX[] animationData, SimpleImagePSX[] heads, ActorDataPSX[] actors, LevelFilePSX levelFile, byte[]? fallback_data = null):BaseWadChunk(DPSXChunkInfo.Instance, fallback_data)
 	{
 		public readonly IReadOnlyList<ObjectDataPSX> Models3D = models3D;
-		public readonly IReadOnlyList<AnimationDataPSX> Animations = animations;
+		public readonly IReadOnlyList<AnimationPSX> Animations = animations;
+		public readonly IReadOnlyList<AnimationDataPSX> AnimationData = animationData;
+		public readonly IReadOnlyList<SimpleImagePSX> Heads = heads;
 		public readonly IReadOnlyList<ActorDataPSX> Actors = actors;
 		public readonly LevelFilePSX LevelFile = levelFile;
 
@@ -118,7 +120,42 @@ namespace ArgonautReverse.WadChunks.PSX
 
 		protected override void WriteData(ChunkWriter writer)
 		{
-			throw new NotImplementedException();
+			//TODO: Build WadFlags based on data.
+			writer.Write<uint>((uint)wadFlags);
+
+			//TODO: Why are these also in TPSX?
+			writer.Write<int>(spriteOffset);
+
+			writer.WriteSizedArray<FontPSX>(256, fontLookup);
+
+			if(writer.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
+			{
+				//writer.Write<int>(unknown);
+				throw new Exception();
+			}
+
+			writer.Write<int>(Models3D.Count);
+			writer.WriteArray<ObjectDataPSX>(Models3D);
+
+			writer.Write<int>(AnimationData.Count);
+			writer.WriteArrayWithoutMultipass<AnimationPSX>(Animations);
+
+			if((wadFlags & WadFlagPSX.WF_HASCUTSCENES) != 0)//if(data_in.Version==CROC_2_PS1.Instance || data_in.Version==CROC_2_DEMO_PS1.Instance)
+			{
+				//TODO: Cutscene data
+				throw new NotImplementedException();
+			}
+
+			if((wadFlags & WadFlagPSX.WF_HASHEADS) != 0)
+			{
+				writer.Write<int>(Heads.Count);
+				writer.WriteArray<SimpleImagePSX>(Heads);
+			}
+
+			writer.Write<int>(Actors.Count);
+			writer.WriteArray<ActorDataPSX>(Actors);
+
+			LevelFile.Write(writer, wadFlags);
 		}
 
 		public void ProcessScipts(WADFile wadFile)

@@ -267,6 +267,11 @@ namespace ArgonautReverse.PSX
 				vertices.Count
 			);
 		}
+
+		public void Write(WadWriter writer, ObjectPSX obj)
+		{
+			obj.WriteSetupData(writer);
+		}
 	}
 
 	public sealed class TrackModelDataPSX(TObjectPSX header, IReadOnlyList<IReadOnlyList<Vector3>> vertices, IReadOnlyList<IReadOnlyList<Vector3>> normals, IReadOnlyList<int[]> quads, IReadOnlyList<Vector3> tris, IReadOnlyList<Vector3> facesNormals, IReadOnlyList<int> facesTextureIds, int verticesGroups):Model3DDataPSX<TFacePSX>(true, vertices, normals, quads, tris, facesNormals, facesTextureIds, verticesGroups)
@@ -396,9 +401,14 @@ namespace ArgonautReverse.PSX
 				vertices.Count
 			);
 		}
+
+		public void Write(WadWriter writer, TObjectPSX obj)
+		{
+			obj.WriteSetupData(writer);
+		}
 	}
 
-	public sealed class ObjectDataPSX:IReadable<ObjectDataPSX>
+	public sealed class ObjectDataPSX:IReadable<ObjectDataPSX>,IWritable
 	{
 		public ObjectPSX Object{get;}
 		public ObjectModelDataPSX Data{get;}
@@ -414,6 +424,12 @@ namespace ArgonautReverse.PSX
 			var obj = ObjectPSX.Parse(data_in);
 			var data = ObjectModelDataPSX.Parse(data_in, obj);
 			return new ObjectDataPSX(obj, data);
+		}
+
+		void IWritable.Write(WadWriter writer)
+		{
+			writer.Write<ObjectPSX>(Object);
+			Data.Write(writer, Object);
 		}
 
 		/// <summary>
@@ -475,6 +491,11 @@ namespace ArgonautReverse.PSX
 		{
 			var data = TrackModelDataPSX.Parse(data_in, obj);
 			return new TObjectDataPSX(obj, data);
+		}
+
+		public void Write(WadWriter writer)
+		{
+			Data.Write(writer, Object);
 		}
 	}
 }

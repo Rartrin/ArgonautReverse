@@ -2,7 +2,7 @@
 
 namespace ArgonautReverse.PSX.LibGTE
 {
-	public readonly struct MATRIX:IReadable<MATRIX>
+	public readonly struct MATRIX:IReadable<MATRIX>,IWritable
 	{
 		public const int ByteSize = 32;
 
@@ -34,10 +34,20 @@ namespace ArgonautReverse.PSX.LibGTE
 
 			return new MATRIX(m, t);
 		}
+
+		void IWritable.Write(WadWriter writer)
+		{
+			for(int i=0; i < 3; i++)
+			{
+				writer.WriteSizedArray<short>(3, m[i]);
+			}
+			writer.Write<short>(0);
+			writer.WriteSizedArray<int>(3, t);
+		}
 	}
 
 	/// <summary>Long (int32) word type 3D vector</summary>
-	public readonly struct VECTOR:IReadable<VECTOR>
+	public readonly struct VECTOR:IReadable<VECTOR>,IWritable
 	{
 		public const int ByteSize = 16;
 
@@ -54,17 +64,21 @@ namespace ArgonautReverse.PSX.LibGTE
 
 		public static VECTOR Parse(WadReader parser)
 		{
-			var vx = parser.Read<int>();
-			var vy = parser.Read<int>();
-			var vz = parser.Read<int>();
-			var pad = parser.Read<int>();
-
-			if(pad != 0)
+			var ret = ParseWithImportantPadding(parser);
+			if(ret.pad != 0)
 			{
 				throw new Exception("VECTOR padding is not 0");
 			}
+			return ret;
+		}
 
-			return new VECTOR(vx, vy, vz, pad);
+		public void Write(WadWriter writer)
+		{
+			if(pad!=0)
+			{
+				throw new Exception("VECTOR padding is not 0");
+			}
+			WriteWithImportantPadding(writer, this);
 		}
 
 		/// <summary>Parse the data but allow the padding to have non-zero values</summary>
@@ -77,10 +91,19 @@ namespace ArgonautReverse.PSX.LibGTE
 			
 			return new VECTOR(vx, vy, vz, pad);
 		}
+
+		/// <summary>Write the data but allow the padding to have non-zero values</summary>
+		public static void WriteWithImportantPadding(WadWriter writer, VECTOR v)
+		{
+			writer.Write<int>(v.vx);
+			writer.Write<int>(v.vy);
+			writer.Write<int>(v.vz);
+			writer.Write<int>(v.pad);
+		}
 	}
 	
 	/// <summary>Short word type 3D vector</summary>
-	public readonly struct SVECTOR:IReadable<SVECTOR>,IConvertibleToOSE<Vector3I>
+	public readonly struct SVECTOR:IReadable<SVECTOR>,IWritable,IConvertibleToOSE<Vector3I>
 	{
 		public const int ByteSize = 8;
 
@@ -110,6 +133,16 @@ namespace ArgonautReverse.PSX.LibGTE
 			}
 			return ret;
 		}
+
+		/// <summary>Write the data. The Padding is required to be zero.</summary>
+		public void Write(WadWriter writer)
+		{
+			if(PAD!=0)
+			{
+				throw new Exception("SVECTOR padding is not 0");
+			}
+			WriteWithImportantPadding(writer, this);
+		}
 		
 		/// <summary>Parse the data but allow the padding to have non-zero values</summary>
 		public static SVECTOR ParseWithImportantPadding(WadReader parser)
@@ -120,6 +153,15 @@ namespace ArgonautReverse.PSX.LibGTE
 			var pad = parser.Read<short>();
 			
 			return new SVECTOR(vx, vy, vz, pad);
+		}
+
+		/// <summary>Write the data but allow the padding to have non-zero values</summary>
+		public static void WriteWithImportantPadding(WadWriter writer, SVECTOR v)
+		{
+			writer.Write<short>(v.X);
+			writer.Write<short>(v.Y);
+			writer.Write<short>(v.Z);
+			writer.Write<short>(v.PAD);
 		}
 
 		readonly Vector3I IConvertibleToOSE<Vector3I>.ToOSE()
@@ -133,7 +175,7 @@ namespace ArgonautReverse.PSX.LibGTE
 	}
 
 	/// <summary>Color type Vector</summary>
-	public readonly struct CVECTOR:IReadable<CVECTOR>
+	public readonly struct CVECTOR:IReadable<CVECTOR>,IWritable
 	{
 		public const int ByteSize = 4;
 
@@ -156,6 +198,13 @@ namespace ArgonautReverse.PSX.LibGTE
 
 			return new CVECTOR(r, g, b, cd);
 		}
-	}
 
+		void IWritable.Write(WadWriter writer)
+		{
+			writer.Write<byte>(R);
+			writer.Write<byte>(G);
+			writer.Write<byte>(B);
+			writer.Write<byte>(CD);
+		}
+	}
 }

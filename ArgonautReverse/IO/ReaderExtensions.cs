@@ -102,7 +102,7 @@
 			}
 			#endregion
 			#region IReadableMultipass<T>
-			public IReadOnlyList<T> ReadArrayMultipass<T>(int length) where T:class,IReadableArrayMultipass<T>
+			public T[] ReadArrayMultipass<T>(int length) where T:class,IReadableArrayMultipass<T>
 			{
 				if(length == 0){return [];}
 
@@ -117,7 +117,7 @@
 				}
 				return array;
 			}
-			public IReadOnlyList<T> ReadArrayWithoutMultipass<T>(int length) where T:class,IReadableArrayMultipass<T>
+			public T[] ReadArrayWithoutMultipass<T>(int length) where T:class,IReadableArrayMultipass<T>
 			{
 				if(length == 0){return [];}
 

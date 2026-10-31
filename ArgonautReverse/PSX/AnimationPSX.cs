@@ -5,7 +5,7 @@ using ArgonautReverse.Universal;
 
 namespace ArgonautReverse.PSX
 {
-	public readonly record struct QuatPSX(short W, short X, short Y, short Z):IReadable<QuatPSX>,IConvertibleToOSE<QuatOSE>
+	public readonly record struct QuatPSX(short W, short X, short Y, short Z):IReadable<QuatPSX>,IWritable,IConvertibleToOSE<QuatOSE>
 	{
 		public static QuatPSX Parse(WadReader reader)
 		{
@@ -16,10 +16,18 @@ namespace ArgonautReverse.PSX
 			return new QuatPSX(w, x, y, z);
 		}
 
+		void IWritable.Write(WadWriter writer)
+		{
+			writer.Write<short>(W);
+			writer.Write<short>(X);
+			writer.Write<short>(Y);
+			writer.Write<short>(Z);
+		}
+
 		public QuatOSE ToOSE() => new(W, X, Y, Z);
 	}
 
-	public sealed class AnimTriggerPSX(ushort frame, ushort trigger):IReadable<AnimTriggerPSX>, IConvertibleToOSE<AnimTriggerOSE>
+	public sealed class AnimTriggerPSX(ushort frame, ushort trigger):IReadable<AnimTriggerPSX>,IWritable,IConvertibleToOSE<AnimTriggerOSE>
 	{
 		public readonly ushort Frame = frame;
 		public readonly ushort Trigger = trigger;
@@ -31,10 +39,16 @@ namespace ArgonautReverse.PSX
 			return new AnimTriggerPSX(frame, trigger);
 		}
 
+		void IWritable.Write(WadWriter writer)
+		{
+			writer.Write<ushort>(Frame);
+			writer.Write<ushort>(Trigger);
+		}
+
 		public AnimTriggerOSE ToOSE() => new AnimTriggerOSE(Frame, Trigger);
 	}
 
-	public sealed class KeydataPSX(QuatPSX rotation, Vector3<short> position, ushort frame):IReadable<KeydataPSX>,IConvertibleToOSE<KeydataOSE>
+	public sealed class KeydataPSX(QuatPSX rotation, Vector3<short> position, ushort frame):IReadable<KeydataPSX>,IWritable,IConvertibleToOSE<KeydataOSE>
 	{
 		public readonly QuatPSX Rotation = rotation;
 		public readonly Vector3<short> Position = position;
@@ -48,6 +62,13 @@ namespace ArgonautReverse.PSX
 			return new KeydataPSX(rotation, position, frame);
 		}
 
+		void IWritable.Write(WadWriter writer)
+		{
+			writer.Write<QuatPSX>(Rotation);
+			writer.Write<Vector3<short>>(Position);
+			writer.Write<ushort>(Frame);
+		}
+
 		public KeydataOSE ToOSE() => new KeydataOSE
 		(
 			Rotation.ToOSE(),
@@ -56,7 +77,7 @@ namespace ArgonautReverse.PSX
 		);
 	}
 
-	public sealed class AnimationPSX:IReadableArrayMultipass<AnimationPSX>,IConvertibleToOSE<AnimationOSE>
+	public sealed class AnimationPSX:IReadableArrayMultipass<AnimationPSX>,IWritableArrayMultipass,IConvertibleToOSE<AnimationOSE>
 	{
 		public int TriggerCount;//n_flags
 		public IReadOnlyList<AnimTriggerPSX> Triggers;
@@ -191,6 +212,82 @@ namespace ArgonautReverse.PSX
 				}
 			}
 			animation.Keydata = keydata;
+		}
+
+		void IWritableArrayMultipass.WriteStruct(WadWriter writer)
+		{
+			writer.Write<int>(TriggerCount);
+			writer.Write<uint>(0);//Trigger placeholder
+			writer.Write<int>(FrameCount);
+			writer.Write<int>(Flag ? 1 : 0);
+			writer.Write<int>(MorphCount);
+			writer.Write<uint>(0);//Morphs placeholder
+			writer.Write<int>(BoneCount);
+			writer.Write<uint>(0);//Bones placeholder
+
+			if(writer.WriteVersion.KEYFRAME_STUFF)
+			{
+				writer.Write<int>(KeyframeCount);
+				
+				writer.Write<uint>(0);//Keydata placeholder
+				writer.Write<uint>(0);//CacheEntry placeholder
+				writer.Write<uint>(0);//Cache status. Should start empty.
+			}
+		}
+
+		void IWritableArrayMultipass.WriteData(WadWriter writer)
+		{
+			writer.WriteArray<AnimTriggerPSX>(Triggers);
+			if(!Flag)
+			{
+				writer.WriteFromArray(SVECTOR.WriteWithImportantPadding, PositionDeltas);
+			}
+			if(MorphCount != 0)
+			{
+				//Morphs array placeholder
+				writer.WriteEmptyArray<int>(FrameCount);
+			}
+			if(FrameCount!=0)
+			{
+				//Bones array placeholder
+				writer.WriteEmptyArray<uint>(FrameCount);
+			}
+			if(writer.WriteVersion.KEYFRAME_STUFF && KeyframeCount!=0)
+			{
+				//Keydata array placeholder
+				writer.WriteEmptyArray<uint>(KeyframeCount);
+			}
+			for(int frameIndex=0; frameIndex<FrameCount; frameIndex++)
+			{
+				if(MorphCount != 0 && MorphCount != -1)
+				{
+					if(frameIndex == 0)
+					{
+						//First value is a Vector4<short>
+						writer.WriteSizedArray<short>(4 * MorphCount, Morphs[frameIndex]);
+					}
+					else
+					{
+						writer.WriteSizedArray<short>(MorphCount, Morphs[frameIndex]);
+						if((MorphCount & 1) != 0)
+						{
+							writer.Write<short>(0);//Padding?
+						}
+					}
+				}
+				if(!writer.WriteVersion.KEYFRAME_STUFF || KeyframeCount==0)
+				{
+					writer.WriteSizedArray<SMATRIX>(BoneCount, Bones[frameIndex]);
+				}
+			}
+
+			if(writer.WriteVersion.KEYFRAME_STUFF)
+			{
+				for(int i=0; i<KeyframeCount; i++)
+				{
+					writer.WriteSizedArray<KeydataPSX>(BoneCount, Keydata[i]);
+				}
+			}
 		}
 
 		public AnimationOSE ToOSE()

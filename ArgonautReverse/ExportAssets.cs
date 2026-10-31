@@ -223,10 +223,6 @@ namespace ArgonautReverse
 				return;
 			}
 
-			if(args.ExtractPath != null)
-			{
-				CreateExportDirectory(args.ExtractPath);
-			}
 			Console.WriteLine("--Parsing--");
 			var parsedSuccessfully = new List<DATFile>();
 			RunOnFiles(files, datFile =>
@@ -248,6 +244,7 @@ namespace ArgonautReverse
 
 			if(args.ExtractPath != null)
 			{
+				CreateExportDirectory(args.ExtractPath);
 				Console.WriteLine("--Extracting--");
 				RunOnFiles(parsedSuccessfully, datFile =>
 				{
@@ -257,12 +254,14 @@ namespace ArgonautReverse
 
 			if(args.WriteFormat != null)
 			{
+				CreateExportDirectory(args.WriteWads!);
 				Console.WriteLine("--Converting to OSE--");
 				var convertedWads = new List<WADFile>();
 				RunOnFiles(parsedSuccessfully, datFile =>
 				{
 					if(datFile is not WADFile wadFile){return;}
 					//TODO: Convert
+					convertedWads.Add(wadFile);
 				});
 
 				Console.WriteLine("--Writing WADs--");

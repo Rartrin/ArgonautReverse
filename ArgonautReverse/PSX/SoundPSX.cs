@@ -3,7 +3,7 @@ using ArgonautReverse.PSX.LibGTE;
 
 namespace ArgonautReverse.PSX
 {
-	public sealed class ALAmbiencePSX:IReadable<ALAmbiencePSX>
+	public sealed class ALAmbiencePSX:IReadable<ALAmbiencePSX>,IWritable
 	{
 		public readonly VECTOR trn; // Position
 		public readonly int start;  // Fade from distance
@@ -35,6 +35,17 @@ namespace ArgonautReverse.PSX
 			var curVolume = reader.Read<uint>();
 
 			return new ALAmbiencePSX(trn, start, end, seqId, maxVolume, status, curVolume);
+		}
+
+		void IWritable.Write(WadWriter writer)
+		{
+			writer.Write<VECTOR>(trn);
+			writer.Write<int>(start);
+			writer.Write<int>(end);
+			writer.Write<uint>(seqId);
+			writer.Write<int>(maxVolume);
+			writer.Write<uint>(Status);
+			writer.Write<uint>(curVolume);
 		}
 	}
 }

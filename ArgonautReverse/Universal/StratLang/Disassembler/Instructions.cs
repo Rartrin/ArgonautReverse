@@ -75,7 +75,7 @@
 
 				var animationCount = reader.WadFile switch
 				{
-					PSX.WadFilePSX psx => psx.DPSX.Animations.Count,
+					PSX.WadFilePSX psx => psx.DPSX.AnimationData.Count,
 					PC.WadFilePC pc => pc.StratChunk.Animations.Count,
 					_ => throw new NotImplementedException(),
 				};

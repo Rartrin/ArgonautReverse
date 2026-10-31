@@ -1,95 +1,99 @@
 {
-	"profiles": {
-		"ArgonautReverse": {
-			"commandName": "Project"
-		},
-		"Help": {
-			"commandName": "Project",
-			"commandLineArgs": "--help"
-		},
-		"Extract DUMMY": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --search-psx-dat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --write-wads \"Extracted/DUMMY\""
-		},
-		"Extract Croc 2 PSX": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Croc 2 PS1\" --read-psx-dirdat \"GameFiles/Croc2PSX/Raw/CROCII.DIR\" --write-wads \"Extracted/Croc2PSX\""
-		},
-		"Extract Croc 2 Demo PSX": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Croc 2 Demo PS1\" --read-psx-dirdat \"GameFiles/Croc2DemoPSX/Raw/CROCII.DIR\" --write-wads \"Extracted/Croc2DemoPSX\""
-		},
-		"Dump Croc 2 PSX Dummy": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --search-psx-dat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --dump-dat \"Extracted/DUMMY\""
-		},
-		"Dump Croc 2 PSX": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Croc 2 PS1\" --read-psx-dirdat \"GameFiles/Croc2PSX/Raw/CROCII.DIR\" --dump-dat \"Extracted/Croc2PSX\""
-		},
-		"Export Jungle Level 1": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-wads \"GameFiles/DUMMY/Wads/00FFF800.WAD\" --extract-path \"Extracted/DUMMY/00FFF800\" --extract-levels"
-		},
-		"Export DUMMY": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --search-psx-dat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --extract-path \"Extracted/DUMMY\" --extract levels,scripts,textures,models"
-		},
-		"Export DUMMY - Scripts": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --search-psx-dat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --extract-path \"Extracted/DUMMY\" --extract scripts"
-		},
-		"Export DUMMY - Levels+Models+Textures": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --search-psx-dat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --extract-path \"Extracted/DUMMY\" --extract levels,textures,models"
-		},
-		"Export Croc 2 PC": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC\" --extract-path \"Extracted/Croc2PC\" --extract scripts,levels,textures,models"
-		},
-		"Export C2PC T1L1M001": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/T1L1M001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract levels,textures,models,scripts"
-		},
-		"Export C2PC T1L1M001 Models": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/T1L1M001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract levels,models"
-		},
-		"Export C2PC T3L1M001": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/T3L1M001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract levels,textures,models"
-		},
-		"Export C2PC T4L5M001 Scripts": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/T4L5M001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract scripts"
-		},
-		"Export C2PC Dante's Peak": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/t4b1m001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract levels,textures,models,scripts"
-		},
-		"Export C2PSX T3L1M001": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Croc 2 PS1\" --read-wads \"GameFiles/Croc2PSX/T3L1M001.WAD\" --extract-path \"Extracted/Croc2PSX\" --extract levels,textures,models,scripts"
-		},
-		"Export TENG - T1L7M003": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/TengPC/t1l7m003.wad\""
-		},
-		"Export JP DUMMY": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --search-psx-dat \"GameFiles/JPDEMO_DUMMY/Raw/JPDEMO_DUMMY.DAT\" --extract-path \"Extracted/JPDEMO_DUMMY\"  --extract levels,scripts,textures,models"
-		},
-		"Export Aladdin PC": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Aladdin PC\" --read-wads \"GameFiles/AladdinPC\" --extract-path \"Extracted/AladdinPC\" --extract levels"
-		},
-		"Export Harry Potter 1 PSX": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Harry Potter 1 PS1\" --read-psx-dirdat \"GameFiles/HarryPotter1PSX\" --extract-path \"Extracted/HarryPotter1PSX\" --extract textures,levels"
-		},
-		"Export Harry Potter 2 PSX": {
-			"commandName": "Project",
-			"commandLineArgs": "--read-format \"Harry Potter 2 PS1\" --read-psx-dirdat \"GameFiles/HarryPotter2PSX\" --extract-path \"Extracted/HarryPotter2PSX\" --extract textures,levels"
-		}
-	}
+  "profiles": {
+    "ArgonautReverse": {
+      "commandName": "Project"
+    },
+    "Help": {
+      "commandName": "Project",
+      "commandLineArgs": "--help"
+    },
+    "Extract DUMMY": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --search-psx-dat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --write-wads \"Extracted/DUMMY\""
+    },
+    "Extract Croc 2 PSX": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 PS1\" --read-psx-dirdat \"GameFiles/Croc2PSX/Raw/CROCII.DIR\" --write-wads \"Extracted/Croc2PSX\""
+    },
+    "Extract Croc 2 Demo PSX": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 Demo PS1\" --read-psx-dirdat \"GameFiles/Croc2DemoPSX/Raw/CROCII.DIR\" --write-wads \"Extracted/Croc2DemoPSX\""
+    },
+    "Dump Croc 2 PSX Dummy": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --search-psx-dat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --dump-dat \"Extracted/DUMMY\""
+    },
+    "Dump Croc 2 PSX": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 PS1\" --read-psx-dirdat \"GameFiles/Croc2PSX/Raw/CROCII.DIR\" --dump-dat \"Extracted/Croc2PSX\""
+    },
+    "Export Jungle Level 1": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-wads \"GameFiles/DUMMY/Wads/00FFF800.WAD\" --extract-path \"Extracted/DUMMY/00FFF800\" --extract-levels"
+    },
+    "Export DUMMY": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --search-psx-dat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --extract-path \"Extracted/DUMMY\" --extract levels,scripts,textures,models"
+    },
+    "Export DUMMY - Scripts": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --search-psx-dat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --extract-path \"Extracted/DUMMY\" --extract scripts"
+    },
+    "Export DUMMY - Levels+Models+Textures": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --search-psx-dat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --extract-path \"Extracted/DUMMY\" --extract levels,textures,models"
+    },
+    "Export Croc 2 PC": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC\" --extract-path \"Extracted/Croc2PC\" --extract scripts,levels,textures,models"
+    },
+    "Export C2PC T1L1M001": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/T1L1M001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract levels,textures,models,scripts"
+    },
+    "Export C2PC T1L1M001 Models": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/T1L1M001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract levels,models"
+    },
+    "Export C2PC T3L1M001": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/T3L1M001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract levels,textures,models"
+    },
+    "Export C2PC T4L5M001 Scripts": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/T4L5M001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract scripts"
+    },
+    "Export C2PC Dante's Peak": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/Croc2PC/t4b1m001.WAD\" --extract-path \"Extracted/Croc2PC\" --extract levels,textures,models,scripts"
+    },
+    "Export C2PSX T3L1M001": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 PS1\" --read-wads \"GameFiles/Croc2PSX/T3L1M001.WAD\" --extract-path \"Extracted/Croc2PSX\" --extract levels,textures,models,scripts"
+    },
+    "Rebuild C2PSX T1L1M001": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 PS1\" --write-format \"Croc 2 PS1\" --read-wads \"GameFiles/Croc2PSX_Remaster/T1L1M001.WAD\" --write-wads \"Rebuilt/Croc2PSX_Remaster\""
+    },
+    "Export TENG - T1L7M003": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 PC\" --read-wads \"GameFiles/TengPC/t1l7m003.wad\""
+    },
+    "Export JP DUMMY": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --search-psx-dat \"GameFiles/JPDEMO_DUMMY/Raw/JPDEMO_DUMMY.DAT\" --extract-path \"Extracted/JPDEMO_DUMMY\"  --extract levels,scripts,textures,models"
+    },
+    "Export Aladdin PC": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Aladdin PC\" --read-wads \"GameFiles/AladdinPC\" --extract-path \"Extracted/AladdinPC\" --extract levels"
+    },
+    "Export Harry Potter 1 PSX": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Harry Potter 1 PS1\" --read-psx-dirdat \"GameFiles/HarryPotter1PSX\" --extract-path \"Extracted/HarryPotter1PSX\" --extract textures,levels"
+    },
+    "Export Harry Potter 2 PSX": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Harry Potter 2 PS1\" --read-psx-dirdat \"GameFiles/HarryPotter2PSX\" --extract-path \"Extracted/HarryPotter2PSX\" --extract textures,levels"
+    }
+  }
 }

@@ -3,7 +3,7 @@ using ArgonautReverse.OpenStratEngine;
 
 namespace ArgonautReverse.PSX
 {
-	public sealed class FontPSX:IReadable<FontPSX>,IConvertibleToOSE<FontOSE>
+	public sealed class FontPSX:IReadable<FontPSX>,IWritable,IConvertibleToOSE<FontOSE>
 	{
 		public readonly ushort Texture;
 		public readonly ushort BaseLine;
@@ -25,6 +25,14 @@ namespace ArgonautReverse.PSX
 			var width = parser.Read<ushort>();
 			var height = parser.Read<ushort>();
 			return new FontPSX(texture, baseLine, width, height);
+		}
+
+		void IWritable.Write(WadWriter writer)
+		{
+			writer.Write<ushort>(Texture);
+			writer.Write<ushort>(BaseLine);
+			writer.Write<ushort>(Width);
+			writer.Write<ushort>(Height);
 		}
 
 		FontOSE IConvertibleToOSE<FontOSE>.ToOSE() => new FontOSE

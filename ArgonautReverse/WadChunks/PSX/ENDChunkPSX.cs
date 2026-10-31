@@ -45,8 +45,13 @@ namespace ArgonautReverse.WadChunks.PSX
 
 		protected override void WriteData(ChunkWriter writer)
 		{
-			if(spsxChunk==null){return;}
-			throw new NotImplementedException();
+			if(writer.WriteVersion == HARRY_POTTER_1_PS1.WadVersion || writer.WriteVersion == HARRY_POTTER_2_PS1.WadVersion)
+			{
+				if(spsxChunk!=null)
+				{
+					throw new NotImplementedException();
+				}
+			}
 		}
 		
 		public override void Serialize(WadWriter data_out)
