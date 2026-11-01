@@ -1,14 +1,16 @@
 using System.Drawing;
 using System.Drawing.Imaging;
+
 using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
+using ArgonautReverse.WadChunks.PSX;
 
 namespace ArgonautReverse.PSX
 {
 	public sealed class TextureFilePSX
 	{
-		public const int image_header_size = 4;
-		public const int rle_size = 2;
+		public const int PageWidth = 256;
+		public const int PageHeight = 256;
 		public static readonly (int Width, int Height) image_dimensions = (1024, 1024);
 		public static readonly int image_bytes_size = image_dimensions.Width * image_dimensions.Height / 2;//Floor division
 
@@ -18,108 +20,32 @@ namespace ArgonautReverse.PSX
 		public readonly bool has_alpha;
 		public IReadOnlyList<TextureDataPSX> Textures{get;}
 
-		private TextureFilePSX(int n_rows, byte[] textures_data, bool legacy_alpha, IReadOnlyList<TextureDataPSX> textures)
+		private TextureFilePSX(int n_rows, byte[] textures_data, bool legacy_alpha, TextureDataPSX[] textures)
 		{
-			Textures = textures;
 			this.n_rows = n_rows;
 			this.textures_data = textures_data;
 			this.legacy_alpha = legacy_alpha;  //TODO Legacy alpha (Croc 2)
 			has_alpha = !legacy_alpha;//TODO Remove. Patch that disables bugged Croc 2 textures transparency export
+			Textures = textures;
 		}
 
-		public int n_textures => Textures.Count;
-
-		public static TextureFilePSX parse(WadReader data_in, bool compressed16bit, bool hasMemoryCardIcons)
+		public unsafe static TextureFilePSX parse(TPSXChunk chunk, WadReader data_in, bool compressed16bit)
 		{
-			var textures = new List<TextureDataPSX>();
-			int n_textures = data_in.Read<int>();
-			int n_rows = data_in.Read<int>();//Pages
-
-			if(n_textures > 4000 || n_rows < 0 || 4 < n_rows)
+			var textures = new TextureDataPSX[chunk.TextureHeaders.Count];
+			for(int texture_id = 0; texture_id < chunk.TextureHeaders.Count; texture_id++)
 			{
-				if(data_in.Configuration.IgnoreWarnings)
-				{
-					TexturesWarning.Warn(n_textures, n_rows);
-				}
-				else
-				{
-					throw new TexturesWarning(data_in.AbsolutePosition, n_textures, n_rows);
-				}
+				textures[texture_id] = TextureDataPSX.Parse(chunk.TextureHeaders[texture_id]);
 			}
 
-			// In Harry Potter, the last 16 textures are empty (full of 00 bytes)
-			int n_stored_textures = n_textures;
-			if(data_in.ReadVersion == HARRY_POTTER_1_PS1.WadVersion || data_in.ReadVersion == HARRY_POTTER_2_PS1.WadVersion)
+			//Pad to 4 pages
+			var textureData = new byte[sizeof(ushort) * (4 * PageWidth * PageHeight)];
+			fixed(byte* textureData0 = textureData)
 			{
-				n_stored_textures = n_textures - 16;
-			}
-			for(int texture_id = 0; texture_id < n_stored_textures; texture_id++)
-			{
-				textures.Add(TextureDataPSX.Parse(data_in));
-			}
-			if(data_in.ReadVersion == HARRY_POTTER_1_PS1.WadVersion || data_in.ReadVersion == HARRY_POTTER_2_PS1.WadVersion)
-			{
-				data_in.SkipBytes(192); // 16 textures x 12 bytes
+				chunk.TextureData.CopyTo(new Span<ushort>(textureData0, chunk.TextureData.Length));
 			}
 
-			var n_idk_yet_1 = data_in.Read<int>();//Not sure what this is but it is the number of effects below.
-			var number_effects = data_in.Read<int>(); // Name found in the debug symbols
-
-			/*TODO: Effects*/data_in.SkipBytes(n_idk_yet_1 * image_header_size);//image_header_size is just sizeof(int)
-
-			//TODO: Memory Card Icons
-			if(hasMemoryCardIcons)
-			{
-				//data_in.SkipBytes(5*(768*sizeof(int)));
-				for(int i = 0; i < 5; i++)//5 slots
-				{
-					var mcPalette = data_in.ReadArray<uint>(128);
-					var mcBitmapData = data_in.ReadArray<uint>(16 * 40);
-				}
-			}
-			byte[] textures_data;
-			if(compressed16bit)
-			{
-				var raw_textures = new byte[image_bytes_size];
-				var raw_texturesStream = new MemoryStream(raw_textures);
-				while(data_in.Remaining > 0)//TODO: Figure out actual programatic check.
-				{
-					short run = data_in.Read<short>();
-					if(run < 0)
-					{
-						var element = data_in.Read<ushort>();
-						for(int count = -run; count > 0; count--)
-						{
-							raw_texturesStream.WriteByte((byte)element);
-							raw_texturesStream.WriteByte((byte)(element >> 8));
-						}
-					}
-					else if(run > 0)
-					{
-						raw_texturesStream.Write(data_in.ReadArray<byte>(rle_size * run));
-					}
-					else
-					{
-						throw new ZeroRunLengthError(data_in.AbsolutePosition);
-					}
-				}
-				raw_texturesStream.Position = 0;
-				textures_data = raw_texturesStream.ToArray();
-				raw_texturesStream.Close();
-				if(data_in.ReadVersion == CROC_2_DEMO_PS1.WadVersion)  // Patch for Croc 2 Demo (non-dummy) last end offset error
-				{
-					data_in.Position -= 2;
-				}
-			}
-			else
-			{
-				var image_size = n_rows * (image_bytes_size / 4);//Floor division
-				var padding_size = image_bytes_size - image_size;
-				textures_data = new byte[image_size + padding_size];
-				data_in.ReadArray(textures_data.AsSpan(0, image_size));
-			}
 			bool legacy_alpha = data_in.ReadVersion == CROC_2_DEMO_PS1.WadVersion || data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion;
-			return new TextureFilePSX(n_rows, textures_data, legacy_alpha, textures);
+			return new TextureFilePSX(chunk.PageCount, textureData, legacy_alpha, textures);
 		}
 
 		/// <summary>Draws a complete colored texture image (composed of multiple single textures).</summary>
@@ -161,7 +87,7 @@ namespace ArgonautReverse.PSX
 					else
 					{
 						int paletteSize;
-						if((texture.flags & TextureFlagsPSX.HAS_256_COLORS_PALETTE) != 0)  // 256-colors paletted
+						if(texture.flags.Has256ColorPalette)  // 256-colors paletted
 						{
 							texture_image = im_8bits_paletted.Clone(rect, PixelFormat.Format8bppIndexed);
 							paletteSize = 256;

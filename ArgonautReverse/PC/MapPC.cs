@@ -632,7 +632,7 @@ namespace ArgonautReverse.PC
 				writer.Write<int>(strArray.Count);
 				for(int i=0; i < strArray.Count; i++)
 				{
-					writer.WriteString(0x30, strArray[i]);
+					writer.WriteCStringPadded(0x30, strArray[i]);
 				}
 			}
 

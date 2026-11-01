@@ -1,55 +1,32 @@
-using ArgonautReverse.IO;
-
 namespace ArgonautReverse.PSX
 {
 	public sealed class TextureDataPSX
 	{
 		public record class Box(int TL, int TR, int BL, int BR);
 
-		public readonly TextureFlagsPSX flags;
+		public readonly TextureHeaderFlagsPSX flags;
 		public readonly XY[] raw_coords;
 		public readonly Box cm;
 		public readonly int? palette_start;
 
-		public TextureDataPSX(TextureFlagsPSX flags, XY[] raw_coords, Box cm, int? palette_start)
+		public TextureDataPSX(TextureHeaderFlagsPSX flags, XY[] raw_coords, Box cm, int? palette_start)
 		{
 			this.flags = flags;
-			Utils.Assert(((int)this.flags & 0xFE00) == 0);
 			this.raw_coords = raw_coords;
 			this.cm = cm;
 			this.palette_start = palette_start;
 		}
 
-		public static TextureDataPSX Parse(WadReader data_in)
+		public static TextureDataPSX Parse(TextureHeaderPSX header)
 		{
-			//Bottom Right
-			var brX = data_in.Read<byte>();
-			var brY = data_in.Read<byte>();
-
-			var colorLUT = data_in.Read<ushort>();
-
-			//Bottom Left
-			var blX = data_in.Read<byte>();
-			var blY = data_in.Read<byte>();
-
-			var flags = (TextureFlagsPSX)data_in.Read<ushort>();
-
-			//Top Right
-			var trX = data_in.Read<byte>();
-			var trY = data_in.Read<byte>();
-
-			//Top Left
-			var tlX = data_in.Read<byte>();
-			var tlY = data_in.Read<byte>();
-
 			// Raw coordinates are contained in a 1024x1024, 512x1024 or 256x1024 space
 			// (16-colors paletted, 256-colors paletted and non-paletted high color respectively)
 			var raw_coords = new XY[]
 			{
-				new XY(brX, brY),
-				new XY(blX, blY),
-				new XY(trX, trY),
-				new XY(tlX, tlY)
+				new XY(header.BR_x, header.BR_y),
+				new XY(header.BL_x, header.BL_y),
+				new XY(header.TR_x, header.TR_y),
+				new XY(header.TL_x, header.TL_y)
 			};
 
 			Box cm;
@@ -79,14 +56,14 @@ namespace ArgonautReverse.PSX
 			}
 
 			int? palette_start = null;
-			if(!flags.HasNoPaletted)
+			if(!header.TPage.HasNoPaletted)
 			{
-				palette_start = ((colorLUT & 0xFFC0) << 3) + ((colorLUT & 0xF) << 5);
+				palette_start = ((header.TClut & 0xFFC0) << 3) + ((header.TClut & 0xF) << 5);
 			}
 
 			// The top-left x coordinate of the 256-colors or high color textures needs to be corrected
 			// 1024x1024 space -> 512x1024 or 256x1024 space respectively
-			return new TextureDataPSX(flags, raw_coords, cm, palette_start);
+			return new TextureDataPSX(header.TPage, raw_coords, cm, palette_start);
 		}
 
 		/// <summary>Textures tend to be better delimited when rounded to the nearest multiple of 2</summary>

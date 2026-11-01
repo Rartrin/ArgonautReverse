@@ -36,7 +36,7 @@ namespace ArgonautReverse.PC
 
 		public void Write(WadWriter writer)
 		{
-			writer.WriteString(4, FileExtension);
+			writer.WriteStringData(4, FileExtension);
 			writer.Write<int>(ObjCount);
 			writer.Write<uint>(0);//InfoList placeholder
 			writer.Write<uint>(0);//ObjList placeholder

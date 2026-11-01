@@ -38,14 +38,6 @@ namespace ArgonautReverse
 		protected static string IgnoreWarningsMessage => "\nIf you think that the amounts are coherent, you can silence this warning with the --ignore-warnings commandline option.";
 	}
 
-	public sealed class TexturesWarning(int absolute_file_offset, int n_textures, int n_rows):ReverseWarning(absolute_file_offset, GetWarningMessage(n_textures, n_rows))
-	{
-		private static string GetWarningMessage(int n_textures, int n_rows) =>
-			$"Too much textures ({n_textures}), or incorrect row count ({n_rows}).\n"+
-			$"It is most probably caused by an inaccuracy in my reverse engineering of the textures format.";
-		public static void Warn(int n_textures, int n_rows) => WarnInner(GetWarningMessage(n_textures, n_rows));
-	}
-
 	public sealed class Models3DWarning(int absolute_file_offset, int n_vertices, int n_faces):ReverseWarning(absolute_file_offset, GetWarningMessage(n_vertices, n_faces) + IgnoreWarningsMessage)
 	{
 		private static string GetWarningMessage(int n_vertices, int n_faces) =>

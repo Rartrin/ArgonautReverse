@@ -71,8 +71,7 @@ namespace ArgonautReverse.WadChunks.PC
 				for(int j = 0; j < LanguageStrings[i].Length; j++)
 				{
 					var languageString = LanguageStrings[i][j];
-					writer.WriteString(languageString.Length, languageString);
-					writer.Write((byte)'\0');//Strings are null terminated
+					writer.WriteCString(languageString);
 				}
 			}
 		}

@@ -113,35 +113,35 @@ namespace ArgonautReverse.Files
 				output.WriteLine(dimensions);
 			}
 		}
-		public override void Parse(ProgramArgs args, Configuration conf/*, string kwargs_stem*/)
+		public unsafe override void Parse(ProgramArgs args, Configuration conf/*, string kwargs_stem*/)
 		{
 			if(!args.ExtractIMGs){return;}
 
-			ArraySegment<byte>[] images_data;
+			var images = new List<Bitmap>();
 			if(this.Stem == "REPORT")// Patch for REPORT.IMG that contains multiple images
 			{
 				var imageSizes = new[]{608, 288, 288, 288, 608, 608, 608, 608, 608, 608, 608, 608};
 				//This starts as the space between offsets. Then we make each offset the sum all values up to this one.
 
-				images_data = new ArraySegment<byte>[imageSizes.Length];
 				int curOffset = imageSizes[0];
 				for(int i=1; i<imageSizes.Length; i++)
 				{
-					images_data[i-1] = new ArraySegment<byte>(this._data, curOffset, curOffset+imageSizes[i]);
+					images.Add(CreateImage(this._data.AsSpan(curOffset, imageSizes[i])));
 					curOffset += imageSizes[i];
 				}
-				//images_data = [this._data[offsets[i - 1] : offsets[i]] for i in range(1, offsets.Length)];
 			}
 			else
 			{
-				images_data = [this._data];
+				images.Add(CreateImage(this._data));
 			}
+			this.Images = images;
 
-			var images = new List<Bitmap>();
-			foreach(var image_data in images_data)
+			static Bitmap CreateImage(Span<byte> image_data)
 			{
-				if(ImageType.lookup.Any(image_type => image_type.bytes_size == image_data.Count))//(image_data.Count in [image_type.bytes_size for image_type in ImageType])
+				int imageDataLength = image_data.Length;
+				if(ImageType.lookup.Any(image_type => image_type.bytes_size == imageDataLength))//(image_data.Count in [image_type.bytes_size for image_type in ImageType])
 				{
+					//TODO: Harry Potter stuff
 					ImageType image_type;
 					// Fix for WIZPAGE.IMG that has the same bytes length than other WIZ files but not the same dimensions
 					//if(kwargs_stem == "WIZPAGE")
@@ -150,25 +150,55 @@ namespace ArgonautReverse.Files
 					//}
 					//else
 					{
-						image_type = ImageType.guess_from_bytes_size(image_data.Count);
+						image_type = ImageType.guess_from_bytes_size(image_data.Length);
 					}
-					ColorARGB555[] palette;
 					if(image_type.n_palette_colors != 0)
 					{
-						palette = Utils.ParsePalette(image_data.Slice(0, 2*image_type.n_palette_colors), image_type.has_alpha);
+						var palette = Utils.ParsePalette(image_data.Slice(0, 2*image_type.n_palette_colors), image_type.has_alpha);
+
+						var pixels_data = image_data.Slice(2*palette.Length);
+
+						Bitmap image;
+						if(palette.Length == 16)
+						{
+							var pixels_data_4bit = Utils.parse_4bits_paletted(pixels_data);
+							fixed(byte* pixels_data_4bit0 = pixels_data_4bit)
+							{
+								//TODO: Y,X? Notice stride
+								image = new Bitmap(image_type.dimensions.Y, image_type.dimensions.X, image_type.dimensions.Y*sizeof(byte), PixelFormat.Format4bppIndexed, (IntPtr)pixels_data_4bit0);
+								//var pixels = np.reshape(np.array(Utils.parse_4bits_paletted(pixels_data), dtype:np.uint8), (dimensions.Y, dimensions.X));
+							}
+						}
+						else
+						{
+							fixed(byte* pixels_data0 = pixels_data)
+							{
+								image = new Bitmap(image_type.dimensions.X, image_type.dimensions.Y, image_type.dimensions.X*sizeof(byte), PixelFormat.Format8bppIndexed, (IntPtr)pixels_data0);
+							}
+						}
+						var imagePalette = image.Palette;
+						for(int i=0; i<palette.Length; i++)
+						{
+							imagePalette.Entries[i] = palette[i]!.ToSystem();
+						}
+						image.Palette = imagePalette;
+						return image;
 					}
 					else
 					{
-						palette = null;
+						var highColor = Utils.ParsePixelData(image_data, image_type.has_alpha);
+						fixed(ColorARGB555* highColor0 = highColor)
+						{
+							//TODO: Y,X? Notice stride
+							return new Bitmap(image_type.dimensions.Y, image_type.dimensions.X, image_type.dimensions.Y*sizeof(ColorARGB555), PixelFormat.Format16bppArgb1555, (IntPtr)highColor0);
+						}
 					}
-					images.Add(to_full_colorized(image_data, image_type.dimensions, palette, image_type.n_palette_colors, image_type.has_alpha));
 				}
 				else
 				{
 					throw new Exception("Unknown image size");
 				}
 			}
-			this.Images = images;
 		}
 
 		public override void ExtractAssets(ProgramArgs args, Configuration conf)
@@ -184,47 +214,6 @@ namespace ArgonautReverse.Files
 				for(int i=0; i<Images.Count; i++)
 				{
 					Images[i].Save(Path.Join(args.ExtractPath, Stem, $"{i}.png"));
-				}
-			}
-		}
-
-		public static unsafe Bitmap to_full_colorized(ArraySegment<byte> data, XY dimensions, ColorARGB555[] palette, int n_palette_colors, bool has_alpha)
-		{
-			var pixels_data = data.AsSpan(0, 2*n_palette_colors);
-			if(n_palette_colors != 0)
-			{
-				fixed(byte* pixels_data0 = pixels_data)
-				{
-					Bitmap image;
-					if(n_palette_colors == 16)
-					{
-						var pixels_data_4bit = Utils.parse_4bits_paletted(pixels_data);
-						fixed(byte* pixels_data_4bit0 = pixels_data_4bit)
-						{
-							//TODO: Y,X? Notice stride
-							image = new Bitmap(dimensions.Y, dimensions.X, dimensions.Y*sizeof(byte), PixelFormat.Format4bppIndexed, (IntPtr)pixels_data_4bit0);
-							//var pixels = np.reshape(np.array(Utils.parse_4bits_paletted(pixels_data), dtype:np.uint8), (dimensions.Y, dimensions.X));
-						}
-					}
-					else
-					{
-						image = new Bitmap(dimensions.X, dimensions.Y, dimensions.X*sizeof(byte), PixelFormat.Format8bppIndexed, (IntPtr)pixels_data0);
-					}
-					var imagePalette = image.Palette;
-					for(int i=0; i<n_palette_colors; i++)
-					{
-						imagePalette.Entries[i] = palette[i].ToSystem();
-					}
-					image.Palette = imagePalette;
-					return image;
-				}
-			}
-			else
-			{
-				var highColor = Utils.ParseHighColor(pixels_data, has_alpha);
-				fixed(ColorARGB555* highColor0 = highColor)
-				{
-					return new Bitmap(dimensions.Y, dimensions.X, dimensions.Y*sizeof(ColorARGB555), PixelFormat.Format16bppArgb1555, (IntPtr)highColor0);
 				}
 			}
 		}

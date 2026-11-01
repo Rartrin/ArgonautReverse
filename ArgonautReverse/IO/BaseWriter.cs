@@ -12,7 +12,8 @@ namespace ArgonautReverse.IO
 		public abstract int Position{get;set;}
 		public abstract int Length{get;}
 
-		public void SkipBytes(int offset)
+		//This doesn't make much sense in a writer.
+		[Obsolete]public void SkipBytes(int offset)
 		{
 			Position += offset;
 		}
@@ -99,8 +100,8 @@ namespace ArgonautReverse.IO
 			}
 		}
 
-		/// <summary>Writes a fixed length ASCII string</summary>
-		public void WriteString(int length, string str)
+		/// <summary>Writes a fixed length ASCII string. Does not null terminate.</summary>
+		public void WriteStringData(int length, string str)
 		{
 			if(length != str.Length){throw new Exception();}
 
@@ -109,12 +110,34 @@ namespace ArgonautReverse.IO
 			WriteData(bytes);
 		}
 
-		public void WriteStringUTF16(int length, string str)
+		/// <summary>Writes a fixed length UTF16 string. Does not null terminate.</summary>
+		public void WriteStringDataUTF16(int length, string str)
 		{
 			if(length != str.Length){throw new Exception();}
 
 			Span<byte> bytes = stackalloc byte[2 * length];
 			Encoding.Unicode.GetBytes(str, bytes);
+			WriteData(bytes);
+		}
+
+		/// <summary>Writes a fixed length ASCII string with null terminator.</summary>
+		public void WriteCString(string str)
+		{
+			Span<byte> bytes = stackalloc byte[str.Length+1];
+			bytes[^1] = 0;
+			Encoding.ASCII.GetBytes(str, bytes);
+			WriteData(bytes);
+		}
+
+		/// <summary>Writes a fixed length ASCII string with null terminator and pads the remaining space.</summary>
+		public void WriteCStringPadded(int length, string str)
+		{
+			//String must be less than to account for the null terminator.
+			if(str.Length >= length){throw new Exception("String is too long.");}
+
+			Span<byte> bytes = stackalloc byte[length];
+			bytes.Slice(str.Length).Clear();
+			Encoding.ASCII.GetBytes(str, bytes);
 			WriteData(bytes);
 		}
 	}
