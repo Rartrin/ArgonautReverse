@@ -228,82 +228,76 @@ namespace ArgonautReverse.PSX
 		public static ObjectPSX Parse(WadReader reader)
 		{
 			var ret = new ObjectPSX();
+
 			ret.BaseParse(reader);
+
+			ret.lvert = reader.ReadArray(SVECTOR.ParseWithImportantPadding, ret.nvert);
+			ret.lnorm = reader.ReadArray(SVECTOR.ParseWithImportantPadding, ret.nvert);
+
+			ret.lface = reader.ReadArray<FacePSX>(ret.nface);
+
+			int ncoll = ret.nfloor + ret.nceil;
+			if(reader.ReadVersion.NEW_COLLISION)
+			{
+				ncoll += ret.nwall!.Value;
+			}
+			ret.lcoll = reader.ReadArray<FaceCollision>(ncoll);
 			return ret;
 		}
 
-		void IWritable.Write(WadWriter writer)
+		public void Write(WadWriter writer)
 		{
 			BaseWrite(writer);
-		}
-
-		public void ParseSetupData(WadReader reader)
-		{
-			lvert = reader.ReadArray(SVECTOR.ParseWithImportantPadding, nvert);
-			lnorm = reader.ReadArray(SVECTOR.ParseWithImportantPadding, nvert);
-
-			lface = reader.ReadArray<FacePSX>(nface);
-
-			int ncoll = nfloor + nceil;
-			if(reader.ReadVersion.NEW_COLLISION)
-			{
-				ncoll += nwall.Value;
-			}
-			lcoll = reader.ReadArray<FaceCollision>(ncoll);
-		}
-
-		public void WriteSetupData(WadWriter writer)
-		{
 			writer.WriteFromArray(SVECTOR.WriteWithImportantPadding, lvert);
-			writer.WriteFromArray(SVECTOR.WriteWithImportantPadding, lnorm);
+			writer.WriteFromArray(SVECTOR.WriteWithImportantPadding, lnorm!);
 			writer.WriteArray<FacePSX>(lface);
 			writer.WriteArray<FaceCollision>(lcoll);
 		}
 	}
 
-	public sealed class TObjectPSX:BaseObjectPSX<TFacePSX>,IReadable<TObjectPSX>,IWritable
+	public sealed class TObjectPSX:BaseObjectPSX<TFacePSX>,IReadableArrayMultipass<TObjectPSX>,IWritableArrayMultipass
 	{
-		public static TObjectPSX Parse(WadReader reader)
+		public static TObjectPSX ParseStruct(WadReader reader)
 		{
 			var ret = new TObjectPSX();
 			ret.BaseParse(reader);
 			return ret;
 		}
 
-		void IWritable.Write(WadWriter writer)
+		public void WriteStruct(WadWriter writer)
 		{
 			BaseWrite(writer);
 		}
 
-		public void ParseSetupData(WadReader reader)
+		public static void ParseData(WadReader reader, TObjectPSX obj)
 		{
-			lvert = reader.ReadArray(SVECTOR.ParseWithImportantPadding, nvert);
+			obj.lvert = reader.ReadArray(SVECTOR.ParseWithImportantPadding, obj.nvert);
 
 			if(reader.ReadVersion != HARRY_POTTER_1_PS1.WadVersion && reader.ReadVersion != HARRY_POTTER_2_PS1.WadVersion)
 			{
-				lnorm = reader.ReadArray(SVECTOR.ParseWithImportantPadding, nvert);
+				obj.lnorm = reader.ReadArray(SVECTOR.ParseWithImportantPadding, obj.nvert);
 			}
 			else
 			{
-				lnorm = null;
+				obj.lnorm = null;
 			}
 
-			lface = reader.ReadArray<TFacePSX>(nface);
+			obj.lface = reader.ReadArray<TFacePSX>(obj.nface);
 
-			int ncoll = nfloor + nceil;
+			int ncoll = obj.nfloor + obj.nceil;
 			if(reader.ReadVersion.NEW_COLLISION)
 			{
-				ncoll += nwall.Value;
+				ncoll += obj.nwall!.Value;
 			}
-			lcoll = reader.ReadArray<FaceCollision>(ncoll);
+			obj.lcoll = reader.ReadArray<FaceCollision>(ncoll);
 		}
 
-		public void WriteSetupData(WadWriter writer)
+		public void WriteData(WadWriter writer)
 		{
 			writer.WriteFromArray(SVECTOR.WriteWithImportantPadding, lvert);
 			if(writer.WriteVersion != HARRY_POTTER_1_PS1.WadVersion && writer.WriteVersion != HARRY_POTTER_2_PS1.WadVersion)
 			{
-				writer.WriteFromArray(SVECTOR.WriteWithImportantPadding, lnorm);
+				writer.WriteFromArray(SVECTOR.WriteWithImportantPadding, lnorm!);
 			}
 			else
 			{

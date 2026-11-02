@@ -291,9 +291,9 @@ namespace ArgonautReverse.PSX
 					var (x, z) = this.DPSX.LevelFile.chunks_matrix.x_z_coords(i);
 					foreach(var chunk in chunk_holder.Subchunks)
 					{
-						var cm = chunk.model_3d_data.Data;
-						cm.ToBatchObj(obj, $"{wad_filename}_{sub_chunk_id}", x, chunk.height, z, chunk.rotation, vio);
-						vio += cm.n_vertices;
+						var cm = chunk.model_3d_data;
+						cm.Data.ToBatchObj(obj, $"{wad_filename}_{sub_chunk_id}", x, chunk.height, z, chunk.rotation, vio);
+						vio += cm.Object.nvert;
 						sub_chunk_id += 1;
 					}
 				}

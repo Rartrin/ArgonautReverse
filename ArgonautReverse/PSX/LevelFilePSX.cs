@@ -1,5 +1,6 @@
 using ArgonautReverse.Engine.Versions;
 using ArgonautReverse.IO;
+using ArgonautReverse.WadChunks.PSX;
 
 namespace ArgonautReverse.PSX
 {
@@ -7,12 +8,12 @@ namespace ArgonautReverse.PSX
 	{
 		public readonly ChunksMatrixPSX chunks_matrix;
 
-		public readonly MapPSX map;
+		public readonly MapPSX? map;
 
 		public uint LocalPoolSize;
 		public uint MaxParticles;
 
-		private LevelFilePSX(ChunksMatrixPSX chunks_matrix, MapPSX map, uint localPoolSize, uint maxParticles)
+		private LevelFilePSX(ChunksMatrixPSX chunks_matrix, MapPSX? map, uint localPoolSize, uint maxParticles)
 		{
 			this.chunks_matrix = chunks_matrix;
 			this.map = map;
@@ -20,56 +21,16 @@ namespace ArgonautReverse.PSX
 			MaxParticles = maxParticles;
 		}
 
-		public static LevelFilePSX Parse(WadReader data_in, WadFlagPSX wadFlag)
+		public static LevelFilePSX Setup(DPSXChunk chunk, WadReader data_in)
 		{
 			//Track Objects
-			var n_chunk_models = data_in.Read<int>();
-			var _chunk_model_headers = new TObjectPSX[n_chunk_models];
-			for(int i = 0; i < n_chunk_models; i++)
+			var chunk_models = new TObjectDataPSX[chunk.TrackObjects.Length];
+			for(int i = 0; i < chunk_models.Length; i++)
 			{
-				_chunk_model_headers[i] = TObjectPSX.Parse(data_in);
-			}
-			var chunk_models = new TObjectDataPSX[n_chunk_models];
-			for(int i = 0; i < n_chunk_models; i++)
-			{
-				chunk_models[i] = TObjectDataPSX.Parse(data_in, _chunk_model_headers[i]);
+				chunk_models[i] = TObjectDataPSX.Setup(data_in, chunk.TrackObjects[i]);
 			}
 
-			uint localPoolSize = 8;
-			if((wadFlag & WadFlagPSX.WF_LOCALPOOLSIZE) != 0)
-			{
-				if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
-				{
-					throw new NotImplementedException();
-				}
-				localPoolSize = data_in.Read<uint>();
-			}
-			localPoolSize <<= 10;
-
-			uint maxParticles = 200;
-			if((wadFlag & WadFlagPSX.WF_PARTICLESIZE) != 0)
-			{
-				if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
-				{
-					//Nothing here in dummy. Likly this just indicates to use a different hardcoded count.
-				}
-				else
-				{
-					maxParticles = data_in.Read<uint>();
-				}
-			}
-
-			//Track pieces
-			var n_sub_chunks = data_in.Read<int>();
-
-			MapPSX map = null;
-			if(n_sub_chunks != 0)
-			{
-				map = MapPSX.Parse(data_in, wadFlag, chunk_models);
-				Utils.Assert(n_sub_chunks == map.NumberOfPieces);
-			}
-
-			if(map != null)
+			if(chunk.Map != null)
 			{
 				static IReadOnlyList<int> parse_chunks_info(MapIndexPSX mapIndex)
 				{
@@ -87,13 +48,13 @@ namespace ArgonautReverse.PSX
 
 				var _sub_chunks_height_0 = new Dictionary<int, (int z, int x)>();
 
-				var _chunks_matrix = new IReadOnlyList<int>[map.MapXY];
-				for(int z = 0; z < map.MapZ; z++)
+				var _chunks_matrix = new IReadOnlyList<int>?[chunk.Map.MapXY];
+				for(int z = 0; z < chunk.Map.MapZ; z++)
 				{
-					for(int x = 0; x < map.MapX; x++)
+					for(int x = 0; x < chunk.Map.MapX; x++)
 					{
-						var index = z * map.MapX + x;
-						var mapIndex = map.Grid[z][x];
+						var index = z * chunk.Map.MapX + x;
+						var mapIndex = chunk.Map.Grid[z][x];
 						if(mapIndex == null)
 						{
 							_chunks_matrix[index] = null;
@@ -112,9 +73,9 @@ namespace ArgonautReverse.PSX
 
 				var _sub_chunks_height = new Dictionary<int, int>();
 				var _sub_chunks_rotation = new Dictionary<int, ChunkRotationPSX>();
-				for(int i = 0; i < n_sub_chunks; i++)
+				for(int i = 0; i < chunk.Map.NumberOfPieces; i++)
 				{
-					var pos = map.Positions[i];
+					var pos = chunk.Map.Positions[i];
 
 					Utils.Assert(pos.rot.vx == 0);
 					Utils.Assert(pos.rot.vy == 0 || pos.rot.vy == 1 << 10 || pos.rot.vy == 2 << 10 || pos.rot.vy == 3 << 10);
@@ -129,8 +90,8 @@ namespace ArgonautReverse.PSX
 					_sub_chunks_height[i] = pos.trn.vy;
 				}
 
-				var chunks_holders = new ChunkHolderPSX[map.MapXY];
-				for(int i = 0; i < map.MapXY; i++)
+				var chunks_holders = new ChunkHolderPSX[chunk.Map.MapXY];
+				for(int i = 0; i < chunk.Map.MapXY; i++)
 				{
 					if(_chunks_matrix[i] is IReadOnlyList<int> sub_chunk_ids)
 					{
@@ -140,7 +101,7 @@ namespace ArgonautReverse.PSX
 							var sub_chunk_id = sub_chunk_ids[s];
 							sub_chunks[s] = new SubChunkPSX
 							(
-								chunk_models[map.Pieces[sub_chunk_id]],
+								chunk_models[chunk.Map.Pieces[sub_chunk_id]],
 								_sub_chunks_height[sub_chunk_id],
 								_sub_chunks_rotation[sub_chunk_id]
 							);
@@ -148,7 +109,7 @@ namespace ArgonautReverse.PSX
 
 						if(data_in.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
 						{
-							chunks_holders[i] = new ChunkHolderPSX(sub_chunks, map.ZoneData[i], map.LightTuples?[i]);
+							chunks_holders[i] = new ChunkHolderPSX(sub_chunks, chunk.Map.ZoneData![i], chunk.Map.LightTuples?[i]);
 						}
 						else
 						{
@@ -159,7 +120,7 @@ namespace ArgonautReverse.PSX
 					{
 						if(data_in.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
 						{
-							chunks_holders[i] = new ChunkHolderPSX(zone_id: map.ZoneData[i], lightTuples: map.LightTuples?[i]);
+							chunks_holders[i] = new ChunkHolderPSX(zone_id: chunk.Map.ZoneData![i], lightTuples: chunk.Map.LightTuples?[i]);
 						}
 						else
 						{
@@ -174,13 +135,13 @@ namespace ArgonautReverse.PSX
 					(
 						chunks_holders,
 						chunk_models,
-						map.MapZ,
-						map.MapX,
-						map.ZoneData is not null
+						chunk.Map.MapZ,
+						chunk.Map.MapX,
+						chunk.Map.ZoneData is not null
 					),
-					map,
-					localPoolSize,
-					maxParticles
+					chunk.Map,
+					chunk.LocalPoolSize,
+					chunk.MaxParticles
 				);
 			}
 			else
@@ -195,54 +156,10 @@ namespace ArgonautReverse.PSX
 						0,
 						false
 					),
-					map,
-					localPoolSize,
-					maxParticles
+					chunk.Map,
+					chunk.LocalPoolSize,
+					chunk.MaxParticles
 				);
-			}
-		}
-
-		public void Write(WadWriter writer, WadFlagPSX wadFlag)
-		{
-			//Track Objects
-			writer.Write<int>(chunks_matrix.chunks_models.Length);
-			for(int i = 0; i < chunks_matrix.chunks_models.Length; i++)
-			{
-				writer.Write<TObjectPSX>(chunks_matrix.chunks_models[i].Object);
-			}
-			for(int i = 0; i < chunks_matrix.chunks_models.Length; i++)
-			{
-				chunks_matrix.chunks_models[i].Write(writer);
-			}
-
-			if((wadFlag & WadFlagPSX.WF_LOCALPOOLSIZE) != 0)
-			{
-				if(writer.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
-				{
-					throw new NotImplementedException();
-				}
-				writer.Write<uint>(LocalPoolSize >> 10);
-			}
-
-			if((wadFlag & WadFlagPSX.WF_PARTICLESIZE) != 0)
-			{
-				if(writer.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
-				{
-					//Nothing here in dummy. Likly this just indicates to use a different hardcoded count.
-				}
-				else
-				{
-					writer.Write<uint>(MaxParticles);
-				}
-			}
-			if(map != null)
-			{
-				writer.Write<int>(map.NumberOfPieces);
-				map.Write(writer, wadFlag, chunks_matrix.chunks_models);
-			}
-			else
-			{
-				writer.Write<int>(0);
 			}
 		}
 	}

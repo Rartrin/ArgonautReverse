@@ -20,35 +20,30 @@ namespace ArgonautReverse.WadChunks.PSX
 
 		public override string ChunkDescription => "3D models, animations & level geometry";
 
-		public override DPSXChunk Parse(WadReader data_in)
+		public override DPSXChunk Parse(WadReader reader)
 		{
 			//TODO: WadFlag and SpriteOffset
-			WadFlagPSX wadFlags = (WadFlagPSX)data_in.Read<uint>();
+			WadFlagPSX wadFlags = (WadFlagPSX)reader.Read<uint>();
 
 			//TODO: Why are these also in TPSX?
-			var spriteOffset = data_in.Read<int>();
+			var spriteOffset = reader.Read<int>();
 
-			var fontLookup = data_in.ReadArray<FontPSX>(256);
+			var fontLookup = reader.ReadArray<FontPSX>(256);
 
-			if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
+			if(reader.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
 				//TODO: What is this for?
 				//This is in the DUMMY wads but not the main demo wads.
-				var unknown = data_in.Read<int>();
+				var unknown = reader.Read<int>();
 			}
 
-			var n_models_3d = data_in.Read<int>();
-			var models_3d = data_in.ReadArray<ObjectDataPSX>(n_models_3d);
+			var stratObjectCount = reader.Read<int>();
+			var stratObjects = reader.ReadArray<ObjectPSX>(stratObjectCount);
 
-			var n_animations = data_in.Read<int>();
-			var animations = data_in.ReadArrayWithoutMultipass<AnimationPSX>(n_animations);
-			var animationData = new AnimationDataPSX[n_animations];
-			for(int i = 0; i < n_animations; i++)
-			{
-				animationData[i] = AnimationDataPSX.Parse(animations[i]);
-			}
+			var n_animations = reader.Read<int>();
+			var animations = reader.ReadArrayWithoutMultipass<AnimationPSX>(n_animations);
 
-			if((wadFlags & WadFlagPSX.WF_HASCUTSCENES) != 0)//if(data_in.Version==CROC_2_PS1.Instance || data_in.Version==CROC_2_DEMO_PS1.Instance)
+			if((wadFlags & WadFlagPSX.WF_HASCUTSCENES) != 0)//if(reader.Version==CROC_2_PS1.Instance || reader.Version==CROC_2_DEMO_PS1.Instance)
 			{
 				//TODO: Cutscene data
 				throw new NotImplementedException();
@@ -57,45 +52,121 @@ namespace ArgonautReverse.WadChunks.PSX
 			SimpleImagePSX[] heads;
 			if((wadFlags & WadFlagPSX.WF_HASHEADS) != 0)
 			{
-				var headCount = data_in.Read<int>();
-				heads = data_in.ReadArray<SimpleImagePSX>(headCount);
+				var headCount = reader.Read<int>();
+				heads = reader.ReadArray<SimpleImagePSX>(headCount);
 			}
 			else
 			{
 				heads = [];
 			}
 
-			var n_actors = data_in.Read<int>();
-			var actors = data_in.ReadArray<ActorDataPSX>(n_actors);
+			var n_actors = reader.Read<int>();
+			var actors = reader.ReadArray<ActorDataPSX>(n_actors);
 
-			var level_file = LevelFilePSX.Parse(data_in, wadFlags);
+			var trackObjectCount = reader.Read<int>();
+			var trackObjects = reader.ReadArrayMultipass<TObjectPSX>(trackObjectCount);
 
-			if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
+			uint localPoolSize = 8;
+			if((wadFlags & WadFlagPSX.WF_LOCALPOOLSIZE) != 0)
+			{
+				if(reader.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
+				{
+					throw new NotImplementedException();
+				}
+				localPoolSize = reader.Read<uint>();
+			}
+			localPoolSize <<= 10;
+
+			uint maxParticles = 200;
+			if((wadFlags & WadFlagPSX.WF_PARTICLESIZE) != 0)
+			{
+				if(reader.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
+				{
+					//Nothing here in dummy. Likly this just indicates to use a different hardcoded count.
+				}
+				else
+				{
+					maxParticles = reader.Read<uint>();
+				}
+			}
+
+			//Track pieces
+			var n_sub_chunks = reader.Read<int>();
+
+			MapPSX? map = null;
+			if(n_sub_chunks != 0)
+			{
+				map = MapPSX.Parse(reader, wadFlags, trackObjects);
+				Utils.Assert(n_sub_chunks == map.NumberOfPieces);
+			}
+			if(reader.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
 			{
 				//TODO: End of Demo Dummy's level files aren't reversed yet
-				data_in.AssertEndOfChunk(ChunkType, warn:true);
+				reader.AssertEndOfChunk(ChunkType, warn:true);
 			}
 			else
 			{
-				data_in.AssertEndOfChunk(ChunkType);
+				reader.AssertEndOfChunk(ChunkType);
 			}
-			return new DPSXChunk(wadFlags, spriteOffset, fontLookup, models_3d, animations, animationData, heads, actors, level_file, data_in.GetAllWadData());
+
+			var models_3d = new ObjectDataPSX[stratObjectCount];
+			for(int i = 0; i < stratObjectCount; i++)
+			{
+				var data = ObjectModelDataPSX.Setup(reader, stratObjects[i]);
+				models_3d[i] = new ObjectDataPSX(stratObjects[i], data);
+			}
+						var animationData = new AnimationDataPSX[n_animations];
+			for(int i = 0; i < n_animations; i++)
+			{
+				animationData[i] = AnimationDataPSX.Parse(animations[i]);
+			}
+
+			var chunk = new DPSXChunk(reader.GetAllWadData())
+			{
+				WadFlags = wadFlags,
+				SpriteOffset = spriteOffset,
+				FontLookup = fontLookup,
+				StratObjects = stratObjects,
+				Animations = animations,
+				Heads = heads,
+				Actors = actors,
+				TrackObjects = trackObjects,
+				LocalPoolSize = localPoolSize,
+				MaxParticles = maxParticles,
+				Map = map,
+
+				Models3D = models_3d,
+				AnimationData = animationData,
+			};
+			chunk.LevelFile = LevelFilePSX.Setup(chunk, reader);
+			return chunk;
 		}
 	}
 
-	public sealed class DPSXChunk(WadFlagPSX wadFlags, int spriteOffset, FontPSX[] fontLookup, ObjectDataPSX[] models3D, IReadOnlyList<AnimationPSX> animations, AnimationDataPSX[] animationData, SimpleImagePSX[] heads, ActorDataPSX[] actors, LevelFilePSX levelFile, byte[]? fallback_data = null):BaseWadChunk(DPSXChunkInfo.Instance, fallback_data)
+	public sealed class DPSXChunk(byte[]? fallback_data = null):BaseWadChunk(DPSXChunkInfo.Instance, fallback_data)
 	{
-		public readonly IReadOnlyList<ObjectDataPSX> Models3D = models3D;
-		public readonly IReadOnlyList<AnimationPSX> Animations = animations;
-		public readonly IReadOnlyList<AnimationDataPSX> AnimationData = animationData;
-		public readonly IReadOnlyList<SimpleImagePSX> Heads = heads;
-		public readonly IReadOnlyList<ActorDataPSX> Actors = actors;
-		public readonly LevelFilePSX LevelFile = levelFile;
+		public required WadFlagPSX WadFlags{get;init;}
+		public required int SpriteOffset{get;init;}
+		public required FontPSX[] FontLookup{get;init;}
+		public required ObjectPSX[] StratObjects{get;init;}
+		public required IReadOnlyList<AnimationPSX> Animations{get;init;}
+		public required IReadOnlyList<SimpleImagePSX> Heads{get;init;}
+		public required IReadOnlyList<ActorDataPSX> Actors{get;init;}
+		public required TObjectPSX[] TrackObjects{get;init;}
+		public required uint LocalPoolSize{get;init;}
+		public required uint MaxParticles{get;init;}
+		public required MapPSX? Map{get;init;}
+
+		//Wrappers for exporting
+		public required IReadOnlyList<ObjectDataPSX> Models3D{get;init;}
+		public required IReadOnlyList<AnimationDataPSX> AnimationData{get;init;}
+
+		public LevelFilePSX LevelFile;
 
 		public override void PostParseSetup(WADFile wadFile)
 		{
 			//Setup strat scripts
-			if(LevelFile.map==null)
+			if(Map == null)
 			{
 				Utils.Assert(Actors.Count == 0);
 			}
@@ -120,33 +191,29 @@ namespace ArgonautReverse.WadChunks.PSX
 
 		protected override void WriteData(ChunkWriter writer)
 		{
+			if(writer.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion){throw new Exception("Writing DUMMY wads is not supported.");}
+
 			//TODO: Build WadFlags based on data.
-			writer.Write<uint>((uint)wadFlags);
+			writer.Write<uint>((uint)WadFlags);
 
 			//TODO: Why are these also in TPSX?
-			writer.Write<int>(spriteOffset);
+			writer.Write<int>(SpriteOffset);
 
-			writer.WriteSizedArray<FontPSX>(256, fontLookup);
+			writer.WriteSizedArray<FontPSX>(256, FontLookup);
 
-			if(writer.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
-			{
-				//writer.Write<int>(unknown);
-				throw new Exception();
-			}
-
-			writer.Write<int>(Models3D.Count);
-			writer.WriteArray<ObjectDataPSX>(Models3D);
+			writer.Write<int>(StratObjects.Length);
+			writer.WriteArray<ObjectPSX>(StratObjects);
 
 			writer.Write<int>(AnimationData.Count);
 			writer.WriteArrayWithoutMultipass<AnimationPSX>(Animations);
 
-			if((wadFlags & WadFlagPSX.WF_HASCUTSCENES) != 0)//if(data_in.Version==CROC_2_PS1.Instance || data_in.Version==CROC_2_DEMO_PS1.Instance)
+			if((WadFlags & WadFlagPSX.WF_HASCUTSCENES) != 0)
 			{
 				//TODO: Cutscene data
 				throw new NotImplementedException();
 			}
 
-			if((wadFlags & WadFlagPSX.WF_HASHEADS) != 0)
+			if((WadFlags & WadFlagPSX.WF_HASHEADS) != 0)
 			{
 				writer.Write<int>(Heads.Count);
 				writer.WriteArray<SimpleImagePSX>(Heads);
@@ -155,14 +222,38 @@ namespace ArgonautReverse.WadChunks.PSX
 			writer.Write<int>(Actors.Count);
 			writer.WriteArray<ActorDataPSX>(Actors);
 
-			LevelFile.Write(writer, wadFlags);
+			//Track Objects
+			writer.Write<int>(TrackObjects.Length);
+			writer.WriteArrayMultipass<TObjectPSX>(TrackObjects);
+
+			if((WadFlags & WadFlagPSX.WF_LOCALPOOLSIZE) != 0)
+			{
+				writer.Write<uint>(LocalPoolSize >> 10);
+			}
+
+			if((WadFlags & WadFlagPSX.WF_PARTICLESIZE) != 0)
+			{
+				writer.Write<uint>(MaxParticles);
+			}
+			if(Map != null)
+			{
+				writer.Write<int>(Map.NumberOfPieces);
+				Map.Write(writer, WadFlags, TrackObjects);
+			}
+			else
+			{
+				writer.Write<int>(0);
+			}
 		}
 
 		public void ProcessScipts(WADFile wadFile)
 		{
-			foreach(var strat in LevelFile.map.Strats)
+			if(Map != null)
 			{
-				strat.Script = GetScript(strat.AddrOffset);
+				foreach(var strat in Map.Strats)
+				{
+					strat.Script = GetScript(strat.AddrOffset);
+				}
 			}
 
 			//TODO: Validate this theory

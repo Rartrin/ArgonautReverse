@@ -181,16 +181,10 @@ namespace ArgonautReverse.PSX
 		}
 	}
 
-	public sealed class ObjectModelDataPSX(ObjectPSX header, IReadOnlyList<IReadOnlyList<Vector3>> vertices, IReadOnlyList<IReadOnlyList<Vector3>> normals, IReadOnlyList<int[]> quads, IReadOnlyList<Vector3> tris, IReadOnlyList<Vector3> facesNormals, IReadOnlyList<int> facesTextureIds, int verticesGroups):Model3DDataPSX<FacePSX>(false, vertices, normals, quads, tris, facesNormals, facesTextureIds, verticesGroups)
+	public sealed class ObjectModelDataPSX(IReadOnlyList<IReadOnlyList<Vector3>> vertices, IReadOnlyList<IReadOnlyList<Vector3>> normals, IReadOnlyList<int[]> quads, IReadOnlyList<Vector3> tris, IReadOnlyList<Vector3> facesNormals, IReadOnlyList<int> facesTextureIds, int verticesGroups):Model3DDataPSX<FacePSX>(false, vertices, normals, quads, tris, facesNormals, facesTextureIds, verticesGroups)
 	{
-		//header parameter is needed for chunks 3D models, where the headers are separated from the 3D model data.
-		public readonly ObjectPSX obj = header;
-		public int n_vertices => obj.nvert;
-
-		public static unsafe ObjectModelDataPSX Parse(WadReader data_in, ObjectPSX obj)
+		public static unsafe ObjectModelDataPSX Setup(WadReader data_in, ObjectPSX obj)
 		{
-			obj.ParseSetupData(data_in);
-
 			var vertices = ParseVerticesNormals(obj.lvert);
 			var normals = ParseVerticesNormals(obj.lnorm!);
 
@@ -257,7 +251,6 @@ namespace ArgonautReverse.PSX
 
 			return new ObjectModelDataPSX
 			(
-				obj,
 				vertices,
 				normals,
 				quads,
@@ -267,23 +260,12 @@ namespace ArgonautReverse.PSX
 				vertices.Count
 			);
 		}
-
-		public void Write(WadWriter writer, ObjectPSX obj)
-		{
-			obj.WriteSetupData(writer);
-		}
 	}
 
-	public sealed class TrackModelDataPSX(TObjectPSX header, IReadOnlyList<IReadOnlyList<Vector3>> vertices, IReadOnlyList<IReadOnlyList<Vector3>> normals, IReadOnlyList<int[]> quads, IReadOnlyList<Vector3> tris, IReadOnlyList<Vector3> facesNormals, IReadOnlyList<int> facesTextureIds, int verticesGroups):Model3DDataPSX<TFacePSX>(true, vertices, normals, quads, tris, facesNormals, facesTextureIds, verticesGroups)
+	public sealed class TrackModelDataPSX(IReadOnlyList<IReadOnlyList<Vector3>> vertices, IReadOnlyList<IReadOnlyList<Vector3>> normals, IReadOnlyList<int[]> quads, IReadOnlyList<Vector3> tris, IReadOnlyList<Vector3> facesNormals, IReadOnlyList<int> facesTextureIds, int verticesGroups):Model3DDataPSX<TFacePSX>(true, vertices, normals, quads, tris, facesNormals, facesTextureIds, verticesGroups)
 	{
-		//header parameter is needed for chunks 3D models, where the headers are separated from the 3D model data.
-		public readonly TObjectPSX obj = header;
-		public int n_vertices => obj.nvert;
-
-		public static unsafe TrackModelDataPSX Parse(WadReader data_in, TObjectPSX obj)
+		public static unsafe TrackModelDataPSX Setup(WadReader data_in, TObjectPSX obj)
 		{
-			obj.ParseSetupData(data_in);
-
 			var vertices = ParseVerticesNormals(obj.lvert);
 			IReadOnlyList<IReadOnlyList<Vector3>> normals;
 
@@ -391,7 +373,6 @@ namespace ArgonautReverse.PSX
 
 			return new TrackModelDataPSX
 			(
-				obj,
 				vertices,
 				normals,
 				quads,
@@ -401,35 +382,17 @@ namespace ArgonautReverse.PSX
 				vertices.Count
 			);
 		}
-
-		public void Write(WadWriter writer, TObjectPSX obj)
-		{
-			obj.WriteSetupData(writer);
-		}
 	}
 
-	public sealed class ObjectDataPSX:IReadable<ObjectDataPSX>,IWritable
+	public sealed class ObjectDataPSX
 	{
 		public ObjectPSX Object{get;}
 		public ObjectModelDataPSX Data{get;}
 
-		private ObjectDataPSX(ObjectPSX obj, ObjectModelDataPSX data)
+		public ObjectDataPSX(ObjectPSX obj, ObjectModelDataPSX data)
 		{
 			Object = obj;
 			Data = data;
-		}
-
-		public static ObjectDataPSX Parse(WadReader data_in)
-		{
-			var obj = ObjectPSX.Parse(data_in);
-			var data = ObjectModelDataPSX.Parse(data_in, obj);
-			return new ObjectDataPSX(obj, data);
-		}
-
-		void IWritable.Write(WadWriter writer)
-		{
-			writer.Write<ObjectPSX>(Object);
-			Data.Write(writer, Object);
 		}
 
 		/// <summary>
@@ -463,7 +426,6 @@ namespace ArgonautReverse.PSX
 			}
 			var newData = new ObjectModelDataPSX
 			(
-				Data.obj,
 				vertices,
 				normals,
 				Data.Quads,
@@ -487,15 +449,10 @@ namespace ArgonautReverse.PSX
 			Data = data;
 		}
 
-		public static TObjectDataPSX Parse(WadReader data_in, TObjectPSX obj)
+		public static TObjectDataPSX Setup(WadReader data_in, TObjectPSX obj)
 		{
-			var data = TrackModelDataPSX.Parse(data_in, obj);
+			var data = TrackModelDataPSX.Setup(data_in, obj);
 			return new TObjectDataPSX(obj, data);
-		}
-
-		public void Write(WadWriter writer)
-		{
-			Data.Write(writer, Object);
 		}
 	}
 }

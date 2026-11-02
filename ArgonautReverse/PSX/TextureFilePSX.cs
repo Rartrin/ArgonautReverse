@@ -53,75 +53,77 @@ namespace ArgonautReverse.PSX
 		{
 			var res = new Bitmap(image_dimensions.Width, image_dimensions.Height, PixelFormat.Format32bppArgb);
 
+			var textures_data_4bit = Utils.ParsePixelDataIndex4Bit(textures_data);
+			Bitmap im_4bits_paletted;
+			fixed(byte* textures_data_4bit0 = textures_data_4bit)
+			{
+				im_4bits_paletted = new Bitmap(image_dimensions.Width, image_dimensions.Height, image_dimensions.Width / 2, PixelFormat.Format4bppIndexed, (nint)textures_data_4bit0);
+			}
+			Bitmap im_8bits_paletted;
+			Bitmap im_high_color;
 			fixed(byte* textures_data0 = textures_data)
 			{
-				var textures_data_4bit = Utils.parse_4bits_paletted(textures_data);
-				Bitmap im_4bits_paletted;
-				fixed(byte* textures_data_4bit0 = textures_data_4bit)
+				im_8bits_paletted = new Bitmap(image_dimensions.Width, image_dimensions.Height, image_dimensions.Width / 2, PixelFormat.Format8bppIndexed, (nint)textures_data0);
+				im_high_color = new Bitmap(image_dimensions.Width, image_dimensions.Height, image_dimensions.Width / 4 /* * (has_alpha?4:3)*/, PixelFormat.Format32bppArgb, (nint)textures_data0);
+			}
+
+			var resGraphics = Graphics.FromImage(res);
+
+			for(int t = 0; t < Textures.Count; t++)
+			{
+				var texture = Textures[t];
+
+				var box = texture.GetInputBox();
+				if(box.TL == box.BL || box.TR == box.BR)
 				{
-					im_4bits_paletted = new Bitmap(image_dimensions.Width, image_dimensions.Height, image_dimensions.Width / 2, PixelFormat.Format4bppIndexed, (nint)textures_data_4bit0);
+					Console.WriteLine($"Invalid texture dimentions {box.TL},{box.TR},{box.BL},{box.BR}");
+					continue;
 				}
-				Bitmap im_8bits_paletted = new Bitmap(image_dimensions.Width, image_dimensions.Height, image_dimensions.Width / 2, PixelFormat.Format8bppIndexed, (nint)textures_data0);
-				Bitmap im_high_color = new Bitmap(image_dimensions.Width, image_dimensions.Height, image_dimensions.Width / 4 /* * (has_alpha?4:3)*/, PixelFormat.Format32bppArgb, (nint)textures_data0);
 
-				var resGraphics = Graphics.FromImage(res);
+				var rect = Rectangle.FromLTRB(box.TL, box.TR, box.BL, box.BR);
 
-				for(int t = 0; t < Textures.Count; t++)
+				Bitmap texture_image;
+				if(texture.flags.HasNoPaletted)// True color (no palette)
 				{
-					var texture = Textures[t];
-
-					var box = texture.GetInputBox();
-					if(box.TL == box.BL || box.TR == box.BR)
-					{
-						Console.WriteLine($"Invalid texture dimentions {box.TL},{box.TR},{box.BL},{box.BR}");
-						continue;
-					}
-
-					var rect = Rectangle.FromLTRB(box.TL, box.TR, box.BL, box.BR);
-
-					Bitmap texture_image;
-					if(texture.flags.HasNoPaletted)// True color (no palette)
-					{
-						texture_image = im_high_color.Clone(rect, PixelFormat.Format32bppArgb);
-					}
-					else
-					{
-						int paletteSize;
-						if(texture.flags.Has256ColorPalette)  // 256-colors paletted
-						{
-							texture_image = im_8bits_paletted.Clone(rect, PixelFormat.Format8bppIndexed);
-							paletteSize = 256;
-						}
-						else// 16-colors paletted
-						{
-							texture_image = im_4bits_paletted.Clone(rect, PixelFormat.Format4bppIndexed);
-							paletteSize = 16;
-						}
-						var palette = texture_image.Palette;
-
-						var paletteColors = Utils.ParsePalette
-						(
-							textures_data.AsSpan(texture.palette_start ?? 0, 2*paletteSize),
-							has_alpha,
-							legacy_alpha
-						);
-
-						for(int p = 0; p < palette.Entries.Length; p++)
-						{
-							palette.Entries[p] = paletteColors[p].ToSystem();
-						}
-						texture_image.Palette = palette;
-					}
-					var drawPos = texture.output_top_left_corner;
-					resGraphics.DrawImageUnscaled(texture_image, drawPos.X, drawPos.Y);
+					texture_image = im_high_color.Clone(rect, PixelFormat.Format32bppArgb);
 				}
+				else
+				{
+					int paletteSize;
+					if(texture.flags.Has256ColorPalette)  // 256-colors paletted
+					{
+						texture_image = im_8bits_paletted.Clone(rect, PixelFormat.Format8bppIndexed);
+						paletteSize = 256;
+					}
+					else// 16-colors paletted
+					{
+						texture_image = im_4bits_paletted.Clone(rect, PixelFormat.Format4bppIndexed);
+						paletteSize = 16;
+					}
+					var palette = texture_image.Palette;
+
+					var paletteColors = Utils.ParsePalette
+					(
+						textures_data.AsSpan(texture.palette_start ?? 0, 2*paletteSize),
+						has_alpha,
+						legacy_alpha
+					);
+
+					for(int p = 0; p < palette.Entries.Length; p++)
+					{
+						palette.Entries[p] = paletteColors[p].ToSystem();
+					}
+					texture_image.Palette = palette;
+				}
+				var drawPos = texture.output_top_left_corner;
+				resGraphics.DrawImageUnscaled(texture_image, drawPos.X, drawPos.Y);
 			}
 			return res;
 		}
 
 		public unsafe void SaveRawTextureData(string path)
 		{
-			var textureData4bit = Utils.parse_4bits_paletted(textures_data);
+			var textureData4bit = Utils.ParsePixelDataIndex4Bit(textures_data);
 			fixed(byte* texturesData0 = textureData4bit)
 			{
 				var ret = new Bitmap(image_dimensions.Width, image_dimensions.Height, image_dimensions.Width/2, PixelFormat.Format4bppIndexed, (nint)texturesData0);

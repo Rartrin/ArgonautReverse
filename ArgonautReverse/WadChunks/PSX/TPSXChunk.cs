@@ -70,7 +70,7 @@ namespace ArgonautReverse.WadChunks.PSX
 				throw new Exception($"Invalid page count {pageCount}. Must be between 0 and 4 inclusively.");
 			}
 
-			//TODO: In Harry Potter, the last 16 textures are empty (full of 00 bytes).
+			//In Harry Potter, the last 16 textures are empty (full of 00 bytes).
 			var textureHeaders = new TextureHeaderPSX[textureCount];
 			for(int i = 0; i < textureCount; i++)
 			{
@@ -161,8 +161,6 @@ namespace ArgonautReverse.WadChunks.PSX
 		protected override void WriteData(ChunkWriter writer)
 		{
 			if(writer.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion){throw new NotImplementedException("DUMMY wad writing not supported.");}
-			//writer.WriteArray(Data!);
-			//return;
 
 			//TODO: Add argument for compressing textures.
 			bool CompressTextures = false;

@@ -562,7 +562,7 @@ namespace ArgonautReverse.PSX
 			}
 		}
 
-		public static MapPSX Parse(WadReader data_in, WadFlagPSX wadFlag, TObjectDataPSX[] chunk_models)
+		public static MapPSX Parse(WadReader data_in, WadFlagPSX wadFlag, TObjectPSX[] trackObjects)
 		{
 			//Params are stored before the map
 			var mapParamCount = data_in.Read<int>();
@@ -725,7 +725,7 @@ namespace ArgonautReverse.PSX
 					{
 						if(map.LightTableIndices[i] == 0){continue;}
 
-						map.LightTables[i] = data_in.ReadArray<CVECTOR>(chunk_models[map.Pieces[i]].Object.nvert * map.LightTableIndices[i]);
+						map.LightTables[i] = data_in.ReadArray<CVECTOR>(trackObjects[map.Pieces[i]].nvert * map.LightTableIndices[i]);
 					}
 				}
 				else if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
@@ -746,7 +746,7 @@ namespace ArgonautReverse.PSX
 						{
 							for(int i = 0; i < sub_chunks_n_lighting[model_id]; i++)
 							{
-								var size = 4 * chunk_models[map.Pieces[model_id]].Data.n_vertices;
+								var size = 4 * trackObjects[map.Pieces[model_id]].nvert;
 								data_in.SkipBytes(size);
 							}
 						}
@@ -754,7 +754,7 @@ namespace ArgonautReverse.PSX
 						{
 							for(int i = 0; i < sub_chunks_n_add_lighting[model_id]; i++)
 							{
-								var size = 4 * chunk_models[map.TrackChangeData[model_id].OtherPiece].Data.n_vertices;
+								var size = 4 * trackObjects[map.TrackChangeData[model_id].OtherPiece].nvert;
 								data_in.SkipBytes(size);
 							}
 						}
@@ -807,8 +807,8 @@ namespace ArgonautReverse.PSX
 
 						for(int j = 0; j < map.NumberOfPieces; j++)
 						{
-							var trackObj = chunk_models[map.Pieces[j]];
-							preMap[i][j].lface = data_in.ReadArray<PolyAllPSX>(trackObj.Object.nface);
+							var trackObj = trackObjects[map.Pieces[j]];
+							preMap[i][j].lface = data_in.ReadArray<PolyAllPSX>(trackObj.nface);
 						}
 					}
 					map.pre_map = preMap;
@@ -926,7 +926,7 @@ namespace ArgonautReverse.PSX
 			return map;
 		}
 
-		public void Write(WadWriter writer, WadFlagPSX wadFlag, TObjectDataPSX[] chunk_models)
+		public void Write(WadWriter writer, WadFlagPSX wadFlag, TObjectPSX[] trackObjects)
 		{
 			//Params are stored before the map
 			writer.Write<int>(Params.Count);
@@ -1045,7 +1045,7 @@ namespace ArgonautReverse.PSX
 					{
 						if(LightTableIndices[i] == 0){continue;}
 
-						writer.WriteSizedArray<CVECTOR>(chunk_models[Pieces[i]].Object.nvert * LightTableIndices[i], LightTables[i]);
+						writer.WriteSizedArray<CVECTOR>(trackObjects[Pieces[i]].nvert * LightTableIndices[i], LightTables[i]);
 					}
 				}
 				else if(writer.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
@@ -1066,7 +1066,7 @@ namespace ArgonautReverse.PSX
 
 					for(int j = 0; j < NumberOfPieces; j++)
 					{
-						writer.WriteSizedArray<PolyAllPSX>(chunk_models[Pieces[j]].Object.nface, pre_map[i][j].lface);
+						writer.WriteSizedArray<PolyAllPSX>(trackObjects[Pieces[j]].nface, pre_map[i][j].lface);
 					}
 				}
 			}

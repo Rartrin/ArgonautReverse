@@ -161,7 +161,7 @@ namespace ArgonautReverse.Files
 						Bitmap image;
 						if(palette.Length == 16)
 						{
-							var pixels_data_4bit = Utils.parse_4bits_paletted(pixels_data);
+							var pixels_data_4bit = Utils.ParsePixelDataIndex4Bit(pixels_data);
 							fixed(byte* pixels_data_4bit0 = pixels_data_4bit)
 							{
 								//TODO: Y,X? Notice stride

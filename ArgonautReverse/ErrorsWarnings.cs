@@ -1,7 +1,5 @@
 namespace ArgonautReverse
 {
-	public sealed class UnsupportedParsing(string feature_name):NotImplementedException($"Sorry, {feature_name} parsing / exporting isn't supported (yet) on this game.");
-
 	public sealed class UnsupportedSerialization(string feature_name):NotImplementedException($"Sorry, {feature_name} serializing isn't supported (yet) on this game.");
 
 	public abstract class ReverseError(string explanation, int? absolute_file_offset = null):Exception
@@ -25,8 +23,6 @@ namespace ArgonautReverse
 	public sealed class VerticesNormalsGroupsMismatch(int n_vertices_groups, int n_normals_groups, int absolute_file_offset):ReverseError($"Different amounts of vertices groups ({n_vertices_groups}) and normals groups ({n_normals_groups}) found.", absolute_file_offset);
 
 	public sealed class IncompatibleAnimationError(int n_model_vg, int n_anim_vg):ReverseError($"This model has {n_model_vg} vertex groups, but this animation is designed for models with {n_anim_vg} vertex groups, thus they are incompatible.");
-
-	public sealed class ZeroRunLengthError(int absolute_file_offset):ReverseError("A zero run length has been found while decompressing.", absolute_file_offset);
 
 	public abstract class ReverseWarning(int absolute_file_offset, string message):ReverseError(message, absolute_file_offset)
 	{
