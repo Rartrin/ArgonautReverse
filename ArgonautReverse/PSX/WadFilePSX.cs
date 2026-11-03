@@ -76,9 +76,9 @@ namespace ArgonautReverse.PSX
 		{
 			output.Write("Game level");
 
-			if(TPSX != null)
+			if(TPSX != null && TPSX.Titles != null)
 			{
-				output.Write($" ({string.Join(", ", TPSX.Titles!.Select(title => title.Trim(' ')))})");
+				output.Write($" ({string.Join(", ", TPSX.Titles.Select(title => title.Trim(' ')))})");
 			}
 			
 			output.WriteLine();

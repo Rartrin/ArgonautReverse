@@ -29,7 +29,7 @@
     },
     "Export Jungle Level 1": {
       "commandName": "Project",
-      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-wads \"GameFiles/DUMMY/Wads/00FFF800.WAD\" --extract-path \"Extracted/DUMMY/00FFF800\" --extract-levels"
+      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-wads \"GameFiles/DUMMY/Wads/00FFF800.WAD\" --extract-path \"Extracted/DUMMY/00FFF800\" --extract levels"
     },
     "Export DUMMY": {
       "commandName": "Project",
@@ -42,6 +42,10 @@
     "Export DUMMY - Levels+Models+Textures": {
       "commandName": "Project",
       "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --search-psx-dat \"GameFiles/DUMMY/Raw/DUMMY.DAT\" --extract-path \"Extracted/DUMMY\" --extract levels,textures,models"
+    },
+    "Export DUMMY - Sunken Boat": {
+      "commandName": "Project",
+      "commandLineArgs": "--read-format \"Croc 2 Demo PS1 (Dummy)\" --read-wads \"GameFiles/DUMMY/Wads/0158B000.WAD\" --extract-path \"Extracted/DUMMY/0158B000\" --extract scripts"
     },
     "Export Croc 2 PC": {
       "commandName": "Project",
