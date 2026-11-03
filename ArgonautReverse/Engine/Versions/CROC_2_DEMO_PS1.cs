@@ -6,14 +6,12 @@ namespace ArgonautReverse.Engine.Versions
 	//Croc 2 PS1 US Demo
 	public static class CROC_2_DEMO_PS1
 	{
-		public static DatVersion DatVersion => CROC_2_DEMO_PS1_Dat.Instance;
-		public static WadVersion WadVersion => CROC_2_DEMO_PS1_Wad.Instance;
+		public static readonly DatVersion DatVersion = new CROC_2_DEMO_PS1_Dat();
+		public static readonly WadVersion WadVersion = new CROC_2_DEMO_PS1_Wad(DatVersion);
 		public static DirFormat DirFormat => CROC_2_PS1.DirFormat;
 
 		private sealed class CROC_2_DEMO_PS1_Dat:DatVersionPSX
 		{
-			public static readonly DatVersion Instance = new CROC_2_DEMO_PS1_Dat();
-
 			public override string Title => "Croc 2 Demo PS1";
 			public override string FilenameDAT => "CROCII.DAT";
 			public override string FilenameDIR => "CROCII.DIR";
@@ -24,16 +22,14 @@ namespace ArgonautReverse.Engine.Versions
 			public override IReadOnlyList<WadVersion> WadVersions{get;} = [WadVersion];
 		}
 
-		private sealed class CROC_2_DEMO_PS1_Wad:WadVersion
+		private sealed class CROC_2_DEMO_PS1_Wad(DatVersion datVersion):WadVersion(datVersion)
 		{
-			public static readonly WadVersion Instance = new CROC_2_DEMO_PS1_Wad();
-
 			public override DateTime BuildDate => new DateTime(1999, 3, 4);
 			
 			public override bool NEW_COLLISION => false;
 			public override bool KEYFRAME_STUFF => false;
-            public override bool HAS_SPLINE_POINTS => false;
-            public override bool HAS_STRAT_ARRAY_POOL => false;
+			public override bool HAS_SPLINE_POINTS => false;
+			public override bool HAS_STRAT_ARRAY_POOL => false;
 
 			public override InstructionOpcode MapOpcode(int value) => MapperCroc2.OpcodeMapper(value);
 			public override TriggerType MapTriggerType(int value) => MapperCroc2.TriggerTypeMapper(value);

@@ -138,7 +138,8 @@ namespace ArgonautReverse.WadChunks.PSX
 				MemoryCardIcons = memoryCardIcons,
 				TextureData = textureData,
 			};
-			tpsxChunk.TextureFile = TextureFilePSX.parse(tpsxChunk, reader, compressed16bit);
+			bool legacyAlpha = reader.ReadVersion == CROC_2_DEMO_PS1.WadVersion || reader.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion;
+			tpsxChunk.TextureFile = TextureFilePSX.parse(tpsxChunk, compressed16bit, legacyAlpha);
 			reader.AssertEndOfChunk(ChunkType, warn:true);//TODO: Incorrect data size on HP games?
 			return tpsxChunk;
 		}
@@ -146,8 +147,6 @@ namespace ArgonautReverse.WadChunks.PSX
 
 	public sealed class TPSXChunk(byte[]? fallback_data = null):BaseWadChunk(TPSXChunkInfo.Instance, fallback_data),IConvertibleToOSE<IReadOnlyList<ChunkOSE>>
 	{
-		public TextureFilePSX? TextureFile;
-
 		public required IReadOnlyList<string>? Titles{get;init;}
 		public required int? SpriteOffset{get;init;}
 		public required IReadOnlyList<FontPSX>? FontLookup{get;init;}
@@ -157,6 +156,9 @@ namespace ArgonautReverse.WadChunks.PSX
 		public required uint[] EffectData{get;init;}
 		public required SimpleImagePSX[]? MemoryCardIcons{get;init;}
 		public required ushort[] TextureData{get;init;}
+
+		//Data for exporting
+		public TextureFilePSX TextureFile;
 
 		protected override void WriteData(ChunkWriter writer)
 		{

@@ -10,33 +10,18 @@ namespace ArgonautReverse.PSX
 		LEFT = 3,
 	}
 
-	public sealed class SubChunkPSX
+	public sealed class SubChunkPSX(TObjectDataPSX model_3d_data, int height, ChunkRotationPSX rotation)
 	{
-		public readonly TObjectDataPSX model_3d_data;
-		public readonly int height;
-		public readonly ChunkRotationPSX rotation;
-		public SubChunkPSX(TObjectDataPSX model_3d_data, int height, ChunkRotationPSX rotation)
-		{
-			this.model_3d_data = model_3d_data;
-			this.height = height;
-			this.rotation = rotation;
-		}
+		public readonly TObjectDataPSX model_3d_data = model_3d_data;
+		public readonly int height = height;
+		public readonly ChunkRotationPSX rotation = rotation;
 	}
 
-	public sealed class ChunkHolderPSX
+	public sealed class ChunkHolderPSX(IReadOnlyList<SubChunkPSX>? subChunks, Zone? zoneID, LightTuplePSX? lightTuples)
 	{
-		public readonly IReadOnlyList<SubChunkPSX> Subchunks;
-		public readonly Zone? zone_id;
-		public readonly LightTuplePSX? LightTuples;
-
-		public int Count => Subchunks.Count;
-
-		public ChunkHolderPSX(IReadOnlyList<SubChunkPSX>? sub_chunks = null, Zone? zone_id = null, LightTuplePSX? lightTuples = null)
-		{
-			Subchunks = sub_chunks ?? [];
-			this.zone_id = zone_id;
-			LightTuples = lightTuples;
-		}
+		public readonly IReadOnlyList<SubChunkPSX> Subchunks = subChunks ?? [];
+		public readonly Zone? ZoneID = zoneID;
+		public readonly LightTuplePSX? LightTuples = lightTuples;
 	}
 
 	public sealed class ChunksMatrixPSX
@@ -46,7 +31,7 @@ namespace ArgonautReverse.PSX
 		public readonly int n_rows;
 		public readonly int n_columns;
 		public readonly bool has_zone_ids;
-		public readonly Zone max_zone_id;
+		public readonly Zone? max_zone_id;
 
 		public ChunksMatrixPSX(IReadOnlyList<ChunkHolderPSX> chunks_holders, TObjectDataPSX[] chunks_models, int n_rows, int n_columns, bool has_zone_ids)
 		{
@@ -57,7 +42,7 @@ namespace ArgonautReverse.PSX
 			this.chunks_models = chunks_models;
 			if(has_zone_ids)
 			{
-				max_zone_id = chunks_holders.Select(chunk_holder => chunk_holder.zone_id).MaxBy(zone => zone.InfoIndex);
+				max_zone_id = chunks_holders.Select(chunk_holder => chunk_holder.ZoneID!).MaxBy(zone => zone.InfoIndex);
 			}
 			else
 			{

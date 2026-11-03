@@ -1,8 +1,6 @@
 using System.Drawing;
 using System.Drawing.Imaging;
 
-using ArgonautReverse.Engine.Versions;
-using ArgonautReverse.IO;
 using ArgonautReverse.WadChunks.PSX;
 
 namespace ArgonautReverse.PSX
@@ -29,7 +27,7 @@ namespace ArgonautReverse.PSX
 			Textures = textures;
 		}
 
-		public unsafe static TextureFilePSX parse(TPSXChunk chunk, WadReader data_in, bool compressed16bit)
+		public unsafe static TextureFilePSX parse(TPSXChunk chunk, bool compressed16bit, bool legacyAlpha)
 		{
 			var textures = new TextureDataPSX[chunk.TextureHeaders.Count];
 			for(int texture_id = 0; texture_id < chunk.TextureHeaders.Count; texture_id++)
@@ -44,8 +42,7 @@ namespace ArgonautReverse.PSX
 				chunk.TextureData.CopyTo(new Span<ushort>(textureData0, chunk.TextureData.Length));
 			}
 
-			bool legacy_alpha = data_in.ReadVersion == CROC_2_DEMO_PS1.WadVersion || data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion;
-			return new TextureFilePSX(chunk.PageCount, textureData, legacy_alpha, textures);
+			return new TextureFilePSX(chunk.PageCount, textureData, legacyAlpha, textures);
 		}
 
 		/// <summary>Draws a complete colored texture image (composed of multiple single textures).</summary>

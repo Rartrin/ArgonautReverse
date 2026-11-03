@@ -78,13 +78,13 @@ namespace ArgonautReverse.PSX
 
 			if(TPSX != null)
 			{
-				output.Write($" ({string.Join(", ", TPSX.Titles.Select(title => title.Trim(' ')))})");
+				output.Write($" ({string.Join(", ", TPSX.Titles!.Select(title => title.Trim(' ')))})");
 			}
 			
 			output.WriteLine();
 			if(TPSX != null)
 			{
-				output.Write($" {TPSX.TextureFile.Textures.Count} texture(s)");
+				output.Write($" {TPSX.TextureFile!.Textures.Count} texture(s)");
 			}
 			if(SPSX != null)
 			{
@@ -92,7 +92,7 @@ namespace ArgonautReverse.PSX
 			}
 			if(DPSX != null)
 			{
-				output.Write($" {DPSX.Models3D.Count} model(s) {DPSX.AnimationData.Count} animation(s) {DPSX.LevelFile.chunks_matrix.n_filled_chunks} chunk(s)");
+				output.Write($" {DPSX.LevelFile.StratObjectData.Count} model(s) {DPSX.LevelFile.AnimationData.Count} animation(s) {DPSX.LevelFile.chunks_matrix.n_filled_chunks} chunk(s)");
 			}
 			output.WriteLine();
 		}
@@ -112,8 +112,8 @@ namespace ArgonautReverse.PSX
 		/// </summary>
 		public void ExportModels(string folder_path, string wad_filename)
 		{
-			var n_models = DPSX.Models3D.Count;
-			var n_animations = DPSX.AnimationData.Count;
+			var n_models = DPSX.LevelFile.StratObjectData.Count;
+			var n_animations = DPSX.LevelFile.AnimationData.Count;
 
 			int? guess_compatible_animation(int position, int n_vertices_groups)
 			{
@@ -125,7 +125,7 @@ namespace ArgonautReverse.PSX
 				{
 					if(a > -1)
 					{
-						if(DPSX.AnimationData[a].n_vertices_groups == n_vertices_groups)
+						if(DPSX.LevelFile.AnimationData[a].n_vertices_groups == n_vertices_groups)
 						{
 							return a;
 						}
@@ -133,7 +133,7 @@ namespace ArgonautReverse.PSX
 					}
 					if(b < n_animations)
 					{
-						if(DPSX.AnimationData[b].n_vertices_groups == n_vertices_groups)
+						if(DPSX.LevelFile.AnimationData[b].n_vertices_groups == n_vertices_groups)
 						{
 							return b;
 						}
@@ -152,26 +152,26 @@ namespace ArgonautReverse.PSX
 			}
 
 			this._prepare_obj_export(folder_path, wad_filename);
-			for(int i=0; i<DPSX.Models3D.Count; i++)
+			for(int i=0; i<DPSX.LevelFile.StratObjectData.Count; i++)
 			{
-				var model_3d = this.DPSX.Models3D[i];
+				var model_3d = this.DPSX.LevelFile.StratObjectData[i];
 				var obj_filename = $"{wad_filename}_{i}";
 				var obj_file = new StringWriter();
 				var textures = TPSX.TextureFile.Textures;
-				if(model_3d.Data.VerticesGroups == 1)
+				if(model_3d.VerticesGroups == 1)
 				{
-					model_3d.Data.ToSingleObj(obj_file, obj_filename, textures, wad_filename);
+					model_3d.ToSingleObj(obj_file, obj_filename, textures, wad_filename);
 				}
 				else
 				{
-					var animation_id = guess_compatible_animation(i, DPSX.Models3D[i].Data.VerticesGroups);
+					var animation_id = guess_compatible_animation(i, DPSX.LevelFile.StratObjectData[i].VerticesGroups);
 					if(animation_id == null)
 					{
-						model_3d.Data.ToSingleObj(obj_file, obj_filename, textures, wad_filename);
+						model_3d.ToSingleObj(obj_file, obj_filename, textures, wad_filename);
 					}
 					else
 					{
-						model_3d.Animate(DPSX.AnimationData[animation_id.Value]).Data.ToSingleObj(obj_file, obj_filename, textures, wad_filename);
+						model_3d.Animate(DPSX.LevelFile.AnimationData[animation_id.Value]).ToSingleObj(obj_file, obj_filename, textures, wad_filename);
 					}
 				}
 				File.WriteAllText(Path.Join(folder_path, obj_filename + ".obj"), obj_file.ToString());
@@ -273,7 +273,7 @@ namespace ArgonautReverse.PSX
 
 			this._prepare_obj_export(folder_path, wad_filename);
 			var obj = new StringWriter();
-			obj.WriteLine(string.Format(TrackModelDataPSX.mtl_header, wad_filename));
+			obj.WriteLine(string.Format(TObjectDataPSX.mtl_header, wad_filename));
 			int vio = 0;
 			int sub_chunk_id = 0;
 			foreach(var texture in TPSX.TextureFile.Textures)
@@ -292,8 +292,8 @@ namespace ArgonautReverse.PSX
 					foreach(var chunk in chunk_holder.Subchunks)
 					{
 						var cm = chunk.model_3d_data;
-						cm.Data.ToBatchObj(obj, $"{wad_filename}_{sub_chunk_id}", x, chunk.height, z, chunk.rotation, vio);
-						vio += cm.Object.nvert;
+						cm.ToBatchObj(obj, $"{wad_filename}_{sub_chunk_id}", x, chunk.height, z, chunk.rotation, vio);
+						vio += cm.nvert;
 						sub_chunk_id += 1;
 					}
 				}

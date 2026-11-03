@@ -4,14 +4,12 @@ namespace ArgonautReverse.Engine.Versions
 {
 	public static class HARRY_POTTER_2_PS1
 	{
-		public static DatVersion DatVersion => HARRY_POTTER_2_PS1_Dat.Instance;
-		public static WadVersion WadVersion => HARRY_POTTER_2_PS1_Wad.Instance;
+		public static readonly DatVersion DatVersion = new HARRY_POTTER_2_PS1_Dat();
+		public static readonly WadVersion WadVersion = new HARRY_POTTER_2_PS1_Wad(DatVersion);
 		public static DirFormat DirFormat => CROC_2_PS1.DirFormat;
 
 		private sealed class HARRY_POTTER_2_PS1_Dat:DatVersionPSX
 		{
-			public static readonly DatVersion Instance = new HARRY_POTTER_2_PS1_Dat();
-
 			public override string Title => "Harry Potter 2 PS1";
 			public override string FilenameDAT => "POTTER.DAT";
 			public override string FilenameDIR => "POTTER.DIR";
@@ -22,16 +20,14 @@ namespace ArgonautReverse.Engine.Versions
 			public override IReadOnlyList<WadVersion> WadVersions{get;} = [WadVersion];
 		}
 
-		private sealed class HARRY_POTTER_2_PS1_Wad:WadVersion
+		private sealed class HARRY_POTTER_2_PS1_Wad(DatVersion datVersion):WadVersion(datVersion)
 		{
-			public static readonly WadVersion Instance = new HARRY_POTTER_2_PS1_Wad();
-
 			public override DateTime BuildDate => new DateTime(2002, 11, 5);
 			
 			public override bool NEW_COLLISION => true;
 			public override bool KEYFRAME_STUFF => true;
-            public override bool HAS_SPLINE_POINTS => throw new NotImplementedException();
-            public override bool HAS_STRAT_ARRAY_POOL => throw new NotImplementedException();
+			public override bool HAS_SPLINE_POINTS => throw new NotImplementedException();
+			public override bool HAS_STRAT_ARRAY_POOL => throw new NotImplementedException();
 
 			public override InstructionOpcode MapOpcode(int value) => throw new NotImplementedException();
 			public override TriggerType MapTriggerType(int value) => throw new NotImplementedException();

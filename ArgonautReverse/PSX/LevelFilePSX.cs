@@ -6,6 +6,9 @@ namespace ArgonautReverse.PSX
 {
 	public sealed class LevelFilePSX
 	{
+		public readonly IReadOnlyList<ObjectDataPSX> StratObjectData;
+		public readonly IReadOnlyList<AnimationDataPSX> AnimationData;
+
 		public readonly ChunksMatrixPSX chunks_matrix;
 
 		public readonly MapPSX? map;
@@ -13,8 +16,10 @@ namespace ArgonautReverse.PSX
 		public uint LocalPoolSize;
 		public uint MaxParticles;
 
-		private LevelFilePSX(ChunksMatrixPSX chunks_matrix, MapPSX? map, uint localPoolSize, uint maxParticles)
+		private LevelFilePSX(IReadOnlyList<ObjectDataPSX> stratObjectData, IReadOnlyList<AnimationDataPSX> animationData, ChunksMatrixPSX chunks_matrix, MapPSX? map, uint localPoolSize, uint maxParticles)
 		{
+			StratObjectData = stratObjectData;
+			AnimationData = animationData;
 			this.chunks_matrix = chunks_matrix;
 			this.map = map;
 			LocalPoolSize = localPoolSize;
@@ -23,6 +28,18 @@ namespace ArgonautReverse.PSX
 
 		public static LevelFilePSX Setup(DPSXChunk chunk, WadReader data_in)
 		{
+			var stratObjectData = new ObjectDataPSX[chunk.StratObjects.Length];
+			for(int i = 0; i < chunk.StratObjects.Length; i++)
+			{
+				stratObjectData[i] = ObjectDataPSX.Setup(data_in, chunk.StratObjects[i]);
+			}
+
+			var animationData = new AnimationDataPSX[chunk.Animations.Length];
+			for(int i = 0; i < chunk.Animations.Length; i++)
+			{
+				animationData[i] = AnimationDataPSX.Setup(chunk.Animations[i]);
+			}
+
 			//Track Objects
 			var chunk_models = new TObjectDataPSX[chunk.TrackObjects.Length];
 			for(int i = 0; i < chunk_models.Length; i++)
@@ -93,6 +110,7 @@ namespace ArgonautReverse.PSX
 				var chunks_holders = new ChunkHolderPSX[chunk.Map.MapXY];
 				for(int i = 0; i < chunk.Map.MapXY; i++)
 				{
+					SubChunkPSX[]? subChunks = null;
 					if(_chunks_matrix[i] is IReadOnlyList<int> sub_chunk_ids)
 					{
 						var sub_chunks = new SubChunkPSX[sub_chunk_ids.Count];
@@ -106,31 +124,14 @@ namespace ArgonautReverse.PSX
 								_sub_chunks_rotation[sub_chunk_id]
 							);
 						}
-
-						if(data_in.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
-						{
-							chunks_holders[i] = new ChunkHolderPSX(sub_chunks, chunk.Map.ZoneData![i], chunk.Map.LightTuples?[i]);
-						}
-						else
-						{
-							chunks_holders[i] = new ChunkHolderPSX(sub_chunks);
-						}
 					}
-					else
-					{
-						if(data_in.DatVersion != CROC_2_DEMO_PS1_DUMMY.DatVersion)
-						{
-							chunks_holders[i] = new ChunkHolderPSX(zone_id: chunk.Map.ZoneData![i], lightTuples: chunk.Map.LightTuples?[i]);
-						}
-						else
-						{
-							chunks_holders[i] = new ChunkHolderPSX();
-						}
-					}
+					chunks_holders[i] = new ChunkHolderPSX(subChunks, chunk.Map.ZoneData?[i], chunk.Map.LightTuples?[i]);
 				}
 
 				return new LevelFilePSX
 				(
+					stratObjectData,
+					animationData,
 					new ChunksMatrixPSX
 					(
 						chunks_holders,
@@ -148,6 +149,8 @@ namespace ArgonautReverse.PSX
 			{
 				return new LevelFilePSX
 				(
+					stratObjectData,
+					animationData,
 					new ChunksMatrixPSX
 					(
 						[],

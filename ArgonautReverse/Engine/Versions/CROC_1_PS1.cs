@@ -8,14 +8,12 @@ namespace ArgonautReverse.Engine.Versions
 	[Obsolete("Most likely intended to use Croc_2_PS1")]
 	public static class CROC_1_PS1
 	{
-		public static DatVersion DatVersion => CROC_1_PS1_Dat.Instance;
-		public static WadVersion WadVersion => CROC_1_PS1_Wad.Instance;
-		public static DirFormat DirFormat => CROC_1_PS1_DirFormat.Instance;
+		public static readonly DatVersion DatVersion = new CROC_1_PS1_Dat();
+		public static readonly WadVersion WadVersion = new CROC_1_PS1_Wad(DatVersion);
+		public static readonly DirFormat DirFormat = new CROC_1_PS1_DirFormat();
 
 		private sealed class CROC_1_PS1_Dat:DatVersionPSX
 		{
-			public static readonly DatVersion Instance = new CROC_1_PS1_Dat();
-
 			public override string Title => "Croc 1 PS1";
 
 			public override string FilenameDAT => "CROCFILE.1";
@@ -27,25 +25,21 @@ namespace ArgonautReverse.Engine.Versions
 			public override IReadOnlyList<WadVersion> WadVersions => [WadVersion];
 		}
 
-		private sealed class CROC_1_PS1_Wad:WadVersion
+		private sealed class CROC_1_PS1_Wad(DatVersion datVersion):WadVersion(datVersion)
 		{
-			public static readonly WadVersion Instance = new CROC_1_PS1_Wad();
-
 			public override DateTime BuildDate => new DateTime(1997, 9, 29);
 			
 			public override bool NEW_COLLISION => throw new Exception();
 			public override bool KEYFRAME_STUFF => throw new Exception();
-            public override bool HAS_SPLINE_POINTS => throw new Exception();
-            public override bool HAS_STRAT_ARRAY_POOL => throw new Exception();
+			public override bool HAS_SPLINE_POINTS => throw new Exception();
+			public override bool HAS_STRAT_ARRAY_POOL => throw new Exception();
 
 			public override InstructionOpcode MapOpcode(int value) => throw new NotImplementedException();
-            public override TriggerType MapTriggerType(int value) => throw new NotImplementedException();
+			public override TriggerType MapTriggerType(int value) => throw new NotImplementedException();
 		}
 
 		private sealed class CROC_1_PS1_DirFormat:DirFormat
 		{
-			public static readonly DirFormat Instance = new CROC_1_PS1_DirFormat();
-
 			//Little Endian, 12 byte string, followed by two 32-bit integers, and 4 bytes of padding
 			//This is the same as Croc 2 but with padding at the end
 			//Struct("<12sII4x")

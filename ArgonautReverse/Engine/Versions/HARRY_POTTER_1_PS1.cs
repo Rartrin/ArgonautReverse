@@ -4,14 +4,12 @@ namespace ArgonautReverse.Engine.Versions
 {
 	public static class HARRY_POTTER_1_PS1
 	{
-		public static DatVersion DatVersion => HARRY_POTTER_1_PS1_Dat.Instance;
-		public static WadVersion WadVersion => HARRY_POTTER_1_PS1_Wad.Instance;
+		public static readonly DatVersion DatVersion = new HARRY_POTTER_1_PS1_Dat();
+		public static readonly WadVersion WadVersion = new HARRY_POTTER_1_PS1_Wad(DatVersion);
 		public static DirFormat DirFormat => CROC_2_PS1.DirFormat;
 
 		private sealed class HARRY_POTTER_1_PS1_Dat:DatVersionPSX
 		{
-			public static readonly DatVersion Instance = new HARRY_POTTER_1_PS1_Dat();
-
 			public override string Title => "Harry Potter 1 PS1";
 			public override string FilenameDAT => "POTTER.DAT";
 			public override string FilenameDIR => "POTTER.DIR";
@@ -22,10 +20,8 @@ namespace ArgonautReverse.Engine.Versions
 			public override IReadOnlyList<WadVersion> WadVersions{get;} = [WadVersion];
 		}
 
-		private sealed class HARRY_POTTER_1_PS1_Wad:WadVersion
+		private sealed class HARRY_POTTER_1_PS1_Wad(DatVersion datVersion):WadVersion(datVersion)
 		{
-			public static readonly WadVersion Instance = new HARRY_POTTER_1_PS1_Wad();
-
 			public override DateTime BuildDate => new DateTime(2001, 10, 2);
 			
 			public override bool NEW_COLLISION => true;

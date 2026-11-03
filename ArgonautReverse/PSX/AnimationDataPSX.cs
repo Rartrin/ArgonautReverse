@@ -8,7 +8,7 @@ namespace ArgonautReverse.PSX
 		public readonly IReadOnlyList<int> FrameIndexes = frameIndexes;
 		public readonly IReadOnlyList<IReadOnlyList<Matrix4x4>> Frames = frames;
 
-		public static unsafe AnimationDataPSX Parse(AnimationPSX animation)
+		public static unsafe AnimationDataPSX Setup(AnimationPSX animation)
 		{
 			IReadOnlyList<int> frameIndexes;
 			Matrix4x4[][] frames;

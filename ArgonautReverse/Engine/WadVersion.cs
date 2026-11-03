@@ -2,8 +2,10 @@
 
 namespace ArgonautReverse.Engine
 {
-	public abstract class WadVersion
+	public abstract class WadVersion(DatVersion datVersion)
 	{
+		public DatVersion DatVersion = datVersion;
+
 		/// <summary>A unique date for indicating a version</summary>
 		public abstract DateTime BuildDate{get;}
 

@@ -7,17 +7,32 @@ namespace ArgonautReverse.Engine.Versions
 	//The files in here were built prior to the rest of the demo.
 	public static class CROC_2_DEMO_PS1_DUMMY
 	{
-		public static DatVersion DatVersion => CROC_2_DEMO_PS1_DUMMY_Dat.Instance;
-		public static DirFormat? DirFormat => null;
+		public static readonly DatVersion DatVersion = new CROC_2_DEMO_PS1_DUMMY_Dat();
+		public const DirFormat? DirFormat = null;
 
-		public static WadVersion WadVersion_Early => CROC_2_DEMO_PS1_DUMMY_Wad.Instance_Early;
-		//public static WadVersion WadVersion_Early2 => CROC_2_DEMO_PS1_DUMMY_Wad.Instance_Early2;
-		public static WadVersion WadVersion_Latest => CROC_2_DEMO_PS1_DUMMY_Wad.Instance_Latest;
+		public static readonly WadVersion WadVersion_Early = new CROC_2_DEMO_PS1_DUMMY_Wad
+		(
+			DatVersion,
+			100,
+			"00BD7800",//Dino Fight
+			"01864000",//Early snow hub
+			"01BEF000",//Early Sledding/Snowman roll
+			"01CBF000"//Widgies
+		);
+		//public static WadVersion WadVersion_Early2 = new CROC_2_DEMO_PS1_DUMMY_Wad
+		//(
+		//	200,
+		//	"01507800"//Sandy Square 2
+		//);
+		public static readonly WadVersion WadVersion_Latest = new CROC_2_DEMO_PS1_DUMMY_Wad
+		(
+			DatVersion,
+			999,
+			"__Latest__"
+		);
 
 		private sealed class CROC_2_DEMO_PS1_DUMMY_Dat:DatVersionPSX
 		{
-			public static readonly DatVersion Instance = new CROC_2_DEMO_PS1_DUMMY_Dat();
-
 			public override string Title => "Croc 2 Demo PS1 (Dummy)";
 			public override string FilenameDAT => "DUMMY.DAT";
 			public override string? FilenameDIR => null;
@@ -43,10 +58,10 @@ namespace ArgonautReverse.Engine.Versions
 			
 			public override bool NEW_COLLISION => false;
 			public override bool KEYFRAME_STUFF => false;
-            public override bool HAS_SPLINE_POINTS => false;
-            public override bool HAS_STRAT_ARRAY_POOL => false;
+			public override bool HAS_SPLINE_POINTS => false;
+			public override bool HAS_STRAT_ARRAY_POOL => false;
 
-			private CROC_2_DEMO_PS1_DUMMY_Wad(int buildVersionOrder, params string[] wadNames)
+			public CROC_2_DEMO_PS1_DUMMY_Wad(DatVersion datVersion, int buildVersionOrder, params string[] wadNames):base(datVersion)
 			{
 				if(buildVersionOrder<0 || 1000<=buildVersionOrder)
 				{
@@ -63,7 +78,7 @@ namespace ArgonautReverse.Engine.Versions
 
 			public override InstructionOpcode MapOpcode(int value)
 			{
-				if(this != Instance_Latest)
+				if(this != WadVersion_Latest)
 				{
 					//TODO: Early dummy WAD opcode mapping.
 					//Console.WriteLine("WARNING: Parsing script on earlier dummy WAD, may not be compatible with regular dummy WAD mapping.");
@@ -229,29 +244,6 @@ namespace ArgonautReverse.Engine.Versions
 			}
 
 			public override TriggerType MapTriggerType(int value) => MapperCroc2.TriggerTypeMapper(value);
-
-			public static readonly WadVersion Instance_Early;
-			//public static readonly WadVersion Instance_Early2;
-			//Version used by most
-			public static readonly WadVersion Instance_Latest;
-
-			static CROC_2_DEMO_PS1_DUMMY_Wad()
-			{
-				Instance_Early = new CROC_2_DEMO_PS1_DUMMY_Wad
-				(
-					100,
-					"00BD7800",//Dino Fight
-					"01864000",//Early snow hub
-					"01BEF000",//Early Sledding/Snowman roll
-					"01CBF000"//Widgies
-				);
-				//Instance_Early2 = new CROC_2_DEMO_PS1_DUMMY_Wad
-				//(
-				//	200,
-				//	"01507800"//Sandy Square 2
-				//);
-				Instance_Latest = new CROC_2_DEMO_PS1_DUMMY_Wad(999, "__Latest__");
-			}
 		}
 	}
 }

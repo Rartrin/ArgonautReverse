@@ -6,6 +6,9 @@
 		PC,
 		PSX,
 	}
+	//DatVersion is generally for each game release where as WadVersion is per wad.
+	//Most cases the WadVersion will be connected to the DatVersion except for the DUMMY wads since they are from multiple builds.
+	//TODO: Perhaps Make the DatVersion encompase all version of a game for a platform, including demos, then use the WadVersion for the rest? This might require splitting up the DUMMY wads.
 	public abstract class DatVersion
 	{
 		public abstract string Title{get;}

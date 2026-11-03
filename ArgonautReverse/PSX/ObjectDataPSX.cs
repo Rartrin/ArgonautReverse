@@ -5,7 +5,7 @@ using ArgonautReverse.PSX.LibGTE;
 
 namespace ArgonautReverse.PSX
 {
-	public abstract class Model3DDataPSX<Face>(bool isTrack, IReadOnlyList<IReadOnlyList<Vector3>> vertices, IReadOnlyList<IReadOnlyList<Vector3>> normals, IReadOnlyList<int[]> quads, IReadOnlyList<Vector3> tris, IReadOnlyList<Vector3> facesNormals, IReadOnlyList<int> facesTextureIds, int verticesGroups) where Face:IReadable<Face>
+	public abstract class BaseObjectDataPSX<Face>(bool isTrack, IReadOnlyList<IReadOnlyList<Vector3>> vertices, IReadOnlyList<IReadOnlyList<Vector3>> normals, IReadOnlyList<int[]> quads, IReadOnlyList<Vector3> tris, IReadOnlyList<Vector3> facesNormals, IReadOnlyList<int> facesTextureIds, int verticesGroups, int nvert) where Face:IReadable<Face>
 	{
 		public const string mtl_header = "mtllib {0}.MTL\nusemtl mtl1\ns off";
 
@@ -18,14 +18,16 @@ namespace ArgonautReverse.PSX
 		public readonly IReadOnlyList<int> FacesTextureIds = facesTextureIds;
 		public readonly int VerticesGroups = verticesGroups;
 
-		protected static IReadOnlyList<IReadOnlyList<Vector3>> ParseVerticesNormals(IReadOnlyList<SVECTOR> verts_norms)
+		public readonly int nvert = nvert;
+
+		protected static IReadOnlyList<IReadOnlyList<Vector3>> SetupVectorGroups(IReadOnlyList<SVECTOR> vectors)
 		{
 			var res = new List<Vector3[]>();
 			var group = new List<Vector3>();
-			for(int v = 0; v < verts_norms.Count; v++)
+			for(int v = 0; v < vectors.Count; v++)
 			{
 				// Vertices
-				var xyz_pad = verts_norms[v];
+				var xyz_pad = vectors[v];
 				var xyz = new Vector3(xyz_pad.vx, xyz_pad.vy, xyz_pad.vz);
 				group.Add(xyz);
 				//TODO: Use index for more?
@@ -181,12 +183,12 @@ namespace ArgonautReverse.PSX
 		}
 	}
 
-	public sealed class ObjectModelDataPSX(IReadOnlyList<IReadOnlyList<Vector3>> vertices, IReadOnlyList<IReadOnlyList<Vector3>> normals, IReadOnlyList<int[]> quads, IReadOnlyList<Vector3> tris, IReadOnlyList<Vector3> facesNormals, IReadOnlyList<int> facesTextureIds, int verticesGroups):Model3DDataPSX<FacePSX>(false, vertices, normals, quads, tris, facesNormals, facesTextureIds, verticesGroups)
+	public sealed class ObjectDataPSX(IReadOnlyList<IReadOnlyList<Vector3>> vertices, IReadOnlyList<IReadOnlyList<Vector3>> normals, IReadOnlyList<int[]> quads, IReadOnlyList<Vector3> tris, IReadOnlyList<Vector3> facesNormals, IReadOnlyList<int> facesTextureIds, int verticesGroups, int nvert):BaseObjectDataPSX<FacePSX>(false, vertices, normals, quads, tris, facesNormals, facesTextureIds, verticesGroups, nvert)
 	{
-		public static unsafe ObjectModelDataPSX Setup(WadReader data_in, ObjectPSX obj)
+		public static unsafe ObjectDataPSX Setup(WadReader data_in, ObjectPSX obj)
 		{
-			var vertices = ParseVerticesNormals(obj.lvert);
-			var normals = ParseVerticesNormals(obj.lnorm!);
+			var vertices = SetupVectorGroups(obj.lvert);
+			var normals = SetupVectorGroups(obj.lnorm!);
 
 			if(vertices.Count != normals.Count)
 			{
@@ -249,7 +251,7 @@ namespace ArgonautReverse.PSX
 				}
 			}
 
-			return new ObjectModelDataPSX
+			return new ObjectDataPSX
 			(
 				vertices,
 				normals,
@@ -257,16 +259,59 @@ namespace ArgonautReverse.PSX
 				tris,
 				faces_normals,
 				facesTextureIds,
-				vertices.Count
+				vertices.Count,
+				obj.nvert
+			);
+		}
+
+		/// <summary>
+		/// Returns vertices and vertices normals of this model after application of an animation frame's
+		/// rotation & translation information. The model is **not** modified.
+		/// </summary>
+		public ObjectDataPSX Animate(AnimationDataPSX animation, int frame_id = 0)
+		{
+			if(VerticesGroups != animation.n_vertices_groups)
+			{
+				throw new IncompatibleAnimationError(VerticesGroups, animation.n_vertices_groups);
+			}
+			var vertices = new Vector3[VerticesGroups][];
+			var normals = new Vector3[VerticesGroups][];
+			for(int i = 0; i < VerticesGroups; i++)
+			{
+				//var rotation = animation[frame_id][i][.., 0..3];
+				//var translation = animation[frame_id][i].Translation;
+				var transform = animation.Frames[frame_id][i];
+
+				vertices[i] = new Vector3[Vertices[i].Count];
+				for(int j=0; j<vertices[i].Length; j++)
+				{
+					vertices[i][j] = Vector3.Transform(Vertices[i][j], transform);//np.add(this.vertices[i].dot(rotation), translation)
+				}
+				normals[i] = new Vector3[Normals[i].Count];
+				for(int j=0; j<normals[i].Length; j++)
+				{
+					normals[i][j] = Vector3.Transform(Normals[i][j], transform);//np.add(this.normals[i].dot(rotation), translation)
+				}
+			}
+			return new ObjectDataPSX
+			(
+				vertices,
+				normals,
+				Quads,
+				Tris,
+				FacesNormals,
+				FacesTextureIds,
+				VerticesGroups,
+				nvert
 			);
 		}
 	}
 
-	public sealed class TrackModelDataPSX(IReadOnlyList<IReadOnlyList<Vector3>> vertices, IReadOnlyList<IReadOnlyList<Vector3>> normals, IReadOnlyList<int[]> quads, IReadOnlyList<Vector3> tris, IReadOnlyList<Vector3> facesNormals, IReadOnlyList<int> facesTextureIds, int verticesGroups):Model3DDataPSX<TFacePSX>(true, vertices, normals, quads, tris, facesNormals, facesTextureIds, verticesGroups)
+	public sealed class TObjectDataPSX(IReadOnlyList<IReadOnlyList<Vector3>> vertices, IReadOnlyList<IReadOnlyList<Vector3>> normals, IReadOnlyList<int[]> quads, IReadOnlyList<Vector3> tris, IReadOnlyList<Vector3> facesNormals, IReadOnlyList<int> facesTextureIds, int verticesGroups, int nvert):BaseObjectDataPSX<TFacePSX>(true, vertices, normals, quads, tris, facesNormals, facesTextureIds, verticesGroups, nvert)
 	{
-		public static unsafe TrackModelDataPSX Setup(WadReader data_in, TObjectPSX obj)
+		public static unsafe TObjectDataPSX Setup(WadReader data_in, TObjectPSX obj)
 		{
-			var vertices = ParseVerticesNormals(obj.lvert);
+			var vertices = SetupVectorGroups(obj.lvert);
 			IReadOnlyList<IReadOnlyList<Vector3>> normals;
 
 			if(data_in.ReadVersion == HARRY_POTTER_1_PS1.WadVersion || data_in.ReadVersion == HARRY_POTTER_2_PS1.WadVersion)
@@ -275,7 +320,7 @@ namespace ArgonautReverse.PSX
 			}
 			else
 			{
-				normals = ParseVerticesNormals(obj.lnorm!);
+				normals = SetupVectorGroups(obj.lnorm!);
 
 				if(vertices.Count != normals.Count)
 				{
@@ -289,7 +334,6 @@ namespace ArgonautReverse.PSX
 			var facesTextureIds = new List<int>();
 
 			var faces = obj.lface;
-
 
 			//Dummy has normal field on both track
 			if(data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion)
@@ -371,7 +415,7 @@ namespace ArgonautReverse.PSX
 				}
 			}
 
-			return new TrackModelDataPSX
+			return new TObjectDataPSX
 			(
 				vertices,
 				normals,
@@ -379,80 +423,9 @@ namespace ArgonautReverse.PSX
 				tris,
 				faces_normals,
 				facesTextureIds,
-				vertices.Count
+				vertices.Count,
+				obj.nvert
 			);
-		}
-	}
-
-	public sealed class ObjectDataPSX
-	{
-		public ObjectPSX Object{get;}
-		public ObjectModelDataPSX Data{get;}
-
-		public ObjectDataPSX(ObjectPSX obj, ObjectModelDataPSX data)
-		{
-			Object = obj;
-			Data = data;
-		}
-
-		/// <summary>
-		/// Returns vertices and vertices normals of this model after application of an animation frame's
-		/// rotation & translation information. The model is **not** modified.
-		/// </summary>
-		public ObjectDataPSX Animate(AnimationDataPSX animation, int frame_id = 0)
-		{
-			if(Data.VerticesGroups != animation.n_vertices_groups)
-			{
-				throw new IncompatibleAnimationError(Data.VerticesGroups, animation.n_vertices_groups);
-			}
-			var vertices = new Vector3[Data.VerticesGroups][];
-			var normals = new Vector3[Data.VerticesGroups][];
-			for(int i = 0; i < Data.VerticesGroups; i++)
-			{
-				//var rotation = animation[frame_id][i][.., 0..3];
-				//var translation = animation[frame_id][i].Translation;
-				var transform = animation.Frames[frame_id][i];
-
-				vertices[i] = new Vector3[Data.Vertices[i].Count];
-				for(int j=0; j<vertices[i].Length; j++)
-				{
-					vertices[i][j] = Vector3.Transform(Data.Vertices[i][j], transform);//np.add(this.vertices[i].dot(rotation), translation)
-				}
-				normals[i] = new Vector3[Data.Normals[i].Count];
-				for(int j=0; j<normals[i].Length; j++)
-				{
-					normals[i][j] = Vector3.Transform(Data.Normals[i][j], transform);//np.add(this.normals[i].dot(rotation), translation)
-				}
-			}
-			var newData = new ObjectModelDataPSX
-			(
-				vertices,
-				normals,
-				Data.Quads,
-				Data.Tris,
-				Data.FacesNormals,
-				Data.FacesTextureIds,
-				Data.VerticesGroups
-			);
-			return new ObjectDataPSX(Object, newData);
-		}
-	}
-
-	public sealed class TObjectDataPSX
-	{
-		public TObjectPSX Object{get;}
-		public TrackModelDataPSX Data{get;}
-
-		private TObjectDataPSX(TObjectPSX obj, TrackModelDataPSX data)
-		{
-			Object = obj;
-			Data = data;
-		}
-
-		public static TObjectDataPSX Setup(WadReader data_in, TObjectPSX obj)
-		{
-			var data = TrackModelDataPSX.Setup(data_in, obj);
-			return new TObjectDataPSX(obj, data);
 		}
 	}
 }

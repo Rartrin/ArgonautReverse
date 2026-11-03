@@ -109,18 +109,6 @@ namespace ArgonautReverse.WadChunks.PSX
 				reader.AssertEndOfChunk(ChunkType);
 			}
 
-			var models_3d = new ObjectDataPSX[stratObjectCount];
-			for(int i = 0; i < stratObjectCount; i++)
-			{
-				var data = ObjectModelDataPSX.Setup(reader, stratObjects[i]);
-				models_3d[i] = new ObjectDataPSX(stratObjects[i], data);
-			}
-						var animationData = new AnimationDataPSX[n_animations];
-			for(int i = 0; i < n_animations; i++)
-			{
-				animationData[i] = AnimationDataPSX.Parse(animations[i]);
-			}
-
 			var chunk = new DPSXChunk(reader.GetAllWadData())
 			{
 				WadFlags = wadFlags,
@@ -134,9 +122,6 @@ namespace ArgonautReverse.WadChunks.PSX
 				LocalPoolSize = localPoolSize,
 				MaxParticles = maxParticles,
 				Map = map,
-
-				Models3D = models_3d,
-				AnimationData = animationData,
 			};
 			chunk.LevelFile = LevelFilePSX.Setup(chunk, reader);
 			return chunk;
@@ -149,7 +134,7 @@ namespace ArgonautReverse.WadChunks.PSX
 		public required int SpriteOffset{get;init;}
 		public required FontPSX[] FontLookup{get;init;}
 		public required ObjectPSX[] StratObjects{get;init;}
-		public required IReadOnlyList<AnimationPSX> Animations{get;init;}
+		public required AnimationPSX[] Animations{get;init;}
 		public required IReadOnlyList<SimpleImagePSX> Heads{get;init;}
 		public required IReadOnlyList<ActorDataPSX> Actors{get;init;}
 		public required TObjectPSX[] TrackObjects{get;init;}
@@ -157,10 +142,7 @@ namespace ArgonautReverse.WadChunks.PSX
 		public required uint MaxParticles{get;init;}
 		public required MapPSX? Map{get;init;}
 
-		//Wrappers for exporting
-		public required IReadOnlyList<ObjectDataPSX> Models3D{get;init;}
-		public required IReadOnlyList<AnimationDataPSX> AnimationData{get;init;}
-
+		//Data for exporting
 		public LevelFilePSX LevelFile;
 
 		public override void PostParseSetup(WADFile wadFile)
@@ -204,7 +186,7 @@ namespace ArgonautReverse.WadChunks.PSX
 			writer.Write<int>(StratObjects.Length);
 			writer.WriteArray<ObjectPSX>(StratObjects);
 
-			writer.Write<int>(AnimationData.Count);
+			writer.Write<int>(Animations.Length);
 			writer.WriteArrayWithoutMultipass<AnimationPSX>(Animations);
 
 			if((WadFlags & WadFlagPSX.WF_HASCUTSCENES) != 0)

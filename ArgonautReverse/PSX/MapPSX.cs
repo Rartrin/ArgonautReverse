@@ -601,7 +601,7 @@ namespace ArgonautReverse.PSX
 			//bool useZones = (wadFlag & WadFlagPSX.WF_USESZONES) != 0;
 			//if(newZones != useZones || newZones == (data_in.DatVersion == CROC_2_DEMO_PS1_DUMMY.DatVersion))
 			//{
-			//	//HP1 has NEWZONES with out USESZONES
+			//	//HP1 has NEWZONES without USESZONES
 			//	throw new Exception("Not certain if WF_USESZONES can still be relied on");
 			//}
 			if((wadFlag & WadFlagPSX.WF_NEWZONES) != 0)
